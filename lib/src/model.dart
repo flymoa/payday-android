@@ -1,6 +1,10 @@
 import 'dart:convert';
 
-const demoSpreadsheetId = '1lu6JabfKowbZhHXrGD9rJeQdbpXNc9_YnTPucSr9_Yg';
+// Fixed at build-time, never accepted from a user-entered URL in the app.
+const demoSpreadsheetId = String.fromEnvironment(
+  'PAYDAY_TEST_SHEET_ID',
+  defaultValue: '1lu6JabfKowbZhHXrGD9rJeQdbpXNc9_YnTPucSr9_Yg',
+);
 const demoHeaders = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Note', 'Bill ID (optional)'];
 
 int sheetDate(DateTime d) => DateTime.utc(d.year, d.month, d.day)
