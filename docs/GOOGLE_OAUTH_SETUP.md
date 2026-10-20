@@ -13,7 +13,7 @@ The GitHub Actions APK is a **compile-only debug artifact** until OAuth is confi
    `ma.payday.payday_mobile`.
 6. Provide the **actual SHA-1 fingerprint of the key signing the APK**.
    For local development on Windows, run:
-   `keytool -list -v -alias androiddebugkey -keystore "%USERPROFILE%\\.android\\debug.keystore" -storepass android -keypass android`
+   `keytool -list -v -alias androiddebugkey -keystore "$env:USERPROFILE\\.android\\debug.keystore" -storepass android -keypass android`
    (when the default Android debug keystore exists).
 7. Create a **Web application** OAuth client in the **same Google Cloud project**.
 8. Use the public **Web client ID**, not a client secret, when launching Flutter.
