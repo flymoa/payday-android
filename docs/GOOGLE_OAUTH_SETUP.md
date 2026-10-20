@@ -25,7 +25,7 @@ The app expects the Web client ID through a compile-time Dart define:
 flutter create --platforms=android --org=ma.payday --project-name=payday_mobile .
 python tool/harden_android.py
 flutter pub get
-flutter run --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
+flutter run --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com --dart-define=PAYDAY_TEST_SHEET_ID=1gpWUxFX4PI3fiImiiO_oz-nsLrx0ixHmQyx78MhcjmU
 ```
 
 The OAuth client ID itself is not secret; only share it if comfortable doing so.
@@ -35,10 +35,9 @@ The OAuth client ID itself is not secret; only share it if comfortable doing so.
 
 1. Sign into the Android app using the account that can edit the DEMO sheet.
 2. Confirm categories and transactions appear from `Settings` and `Record`.
-3. Add one small fictional expense to a **separate copy of the DEMO**.
-   Do not test on the original sheet; this source currently points to the
-   original demo ID, so make a deliberate test-only ID override in a review
-   branch before attempting a write test.
+3. Use the build-time `PAYDAY_TEST_SHEET_ID` override shown above to
+   connect only to our separate validation copy. Record one tiny fictional
+   expense in that copy; the original DEMO remains untouched.
 4. Confirm a single row is saved in `Record`, with its `Expense` formula
    untouched.
 5. Disconnect the internet during a save, reconnect, and use Verify & Sync.
@@ -54,3 +53,8 @@ The OAuth client ID itself is not secret; only share it if comfortable doing so.
   install with a valid personal Google OAuth configuration.
 
 Provider setup reference: https://pub.dev/packages/google_sign_in_android
+
+Build-time note: the `PAYDAY_TEST_SHEET_ID` switch is supplied by the
+developer before compilation, never accepted as a URL from the Android
+user. Production builds must default to the original fictional-data DEMO
+until a safe migration plan is approved.
