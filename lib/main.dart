@@ -240,6 +240,25 @@ class _PaydayScreenState extends State<PaydayScreen> {
               child: const Text('Sign in with Google')),
           ] else ...[
             Row(children: [
+              TextButton(
+                onPressed: _busy ? null : _connect,
+                child: const Text('Reconnect Google')),
+              const Spacer(),
+              TextButton(
+                onPressed: _busy ? null : () async {
+                  await _auth.disconnect();
+                  if (mounted) {
+                    setState(() {
+                      _online = false;
+                      _transactions = [];
+                      _categories = [];
+                      _message = 'Disconnected. Pending expenses were kept.';
+                    });
+                  }
+                },
+                child: const Text('Disconnect')),
+            ]),
+            Row(children: [
               IconButton(onPressed: _busy ? null : () => _changeMonth(-1),
                 icon: const Icon(Icons.chevron_left)),
               Expanded(child: Text(
