@@ -1,0 +1,16 @@
+.dart_tool/
+.pub-cache/
+.pub/
+build/
+android/.gradle/
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+*.pem
+*.p12
+google-services.json
+*.env
+*.credentials.json
+.idea/
+*.iml
