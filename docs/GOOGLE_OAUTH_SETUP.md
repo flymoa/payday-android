@@ -3,6 +3,27 @@
 The project uses only the **Payday fictional-data DEMO spreadsheet**.
 The GitHub Actions APK is a **compile-only debug artifact** until OAuth is configured.
 
+## Easiest SHA-1 method: GitHub Actions (no Java installation)
+
+For the APK built by our GitHub workflow, **use the fingerprint printed by
+GitHub**, not the fingerprint from a different computer:
+
+1. Open https://github.com/flymoa/payday-android/actions
+2. Open the newest **Android validation (DEMO only)** workflow run.
+   If no run appears, choose the workflow and click **Run workflow**.
+3. On the run's **Summary** page, find **Payday Android — debug APK SHA-1**.
+4. Copy only the hexadecimal fingerprint, for example
+   `AA:BB:CC:...:FF` (your actual value will be different).
+5. In https://console.cloud.google.com/auth/clients create an **Android**
+   OAuth client. Use package `ma.payday.payday_mobile` and paste that SHA-1.
+6. Create a **Web application** OAuth client in the same Google Cloud project
+   and use its client ID when building Payday.
+
+**Important:** GitHub caches the development signing keystore, but the cache
+can be evicted. The SHA-1 may change if a new key has to be generated. A
+durable private signing key will be needed before release. Never post or
+commit keystore files or their passwords.
+
 ## Google Cloud configuration (one-time)
 
 1. Visit https://console.cloud.google.com/ and select a project you own.
