@@ -769,11 +769,11 @@ class _FinanceState extends State<FinanceScreen>{
    if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:Text(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
       style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
-   DropdownButtonFormField<String>(initialValue:type,decoration:InputDecoration(labelText:'Type'),items:['Expense','Income','Savings out','Savings in'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)rebuild((){type=v;category=v=='Income'?'Salary':v.startsWith('Savings')?'Savings':cats.contains('Groceries')?'Groceries':cats.first;});}),
+   DropdownButtonFormField<String>(isExpanded:true,initialValue:type,decoration:InputDecoration(labelText:'Type'),items:['Expense','Income','Savings out','Savings in'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)rebuild((){type=v;category=v=='Income'?'Salary':v.startsWith('Savings')?'Savings':cats.contains('Groceries')?'Groceries':cats.first;});}),
    SizedBox(height:12),
-   DropdownButtonFormField<String>(key:ValueKey(type),initialValue:category,decoration:InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
+   DropdownButtonFormField<String>(isExpanded:true,key:ValueKey(type),initialValue:category,decoration:InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
    SizedBox(height:12),field(amt,'Amount (MAD)',number:true),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
-   Row(children:[Icon(Icons.today,size:18),TextButton.icon(icon:Icon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}'))]),
+   Row(children:[Icon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:Icon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}')))]),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
    icon:Icon(Icons.check_circle_outline),label:Text(submitting?'Saving…':'Save locally'),

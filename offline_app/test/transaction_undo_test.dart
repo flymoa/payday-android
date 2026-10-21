@@ -47,8 +47,8 @@ void main(){
    addTearDown(()=>tester.binding.setSurfaceSize(null));
    final store=UndoStore(db);
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(store:store,initialData:store.snapshot())));
-   await tester.pumpAndSettle();await tester.tap(find.text('Records').last);await tester.pumpAndSettle();
-   await tester.tap(find.text('Market'));await tester.pumpAndSettle();
+   await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Home');await tester.tap(find.text('Records').last);await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Records');
+   await tester.tap(find.text('Market'));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Edit form');
    await tester.ensureVisible(find.text('Delete transaction'));await tester.tap(find.text('Delete transaction'));await tester.pumpAndSettle();
    await tester.tap(find.text('Delete').last);
    for(var i=0;i<30;i++){await tester.pump(const Duration(milliseconds:50));}
