@@ -205,11 +205,12 @@ class _FinanceState extends State<FinanceScreen>{
   final status=categoryBudgetStatus(spent,limit);
   final isOver=status==CategoryBudgetStatus.overBudget;
   final isNear=status==CategoryBudgetStatus.nearLimit;
+  final isSpent=status==CategoryBudgetStatus.fullySpent;
   final isUnbudgeted=status==CategoryBudgetStatus.unbudgeted;
-  final statusColor=isOver?homeOver:(isNear||isUnbudgeted)?homeNear:homeGreen;
+  final statusColor=isOver?homeOver:(isNear||isSpent||isUnbudgeted)?homeNear:homeGreen;
   final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
   final description=isOver?'Over budget':
-    isUnbudgeted?'No budget set':isNear?'Near limit':'${(spent*100/limit).round()}% used';
+    isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':'${(spent*100/limit).round()}% used';
   return Container(
    margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.all(15),
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
@@ -221,7 +222,7 @@ class _FinanceState extends State<FinanceScreen>{
      if(isOver)Padding(padding:EdgeInsets.only(right:4),
       child:Icon(Icons.error_outline,color:homeOver,size:17)),
      Text(description,style:TextStyle(color:isOver?homeOver:
-      (isNear||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
+      (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
       fontWeight:FontWeight.w700,fontSize:12)),
     ]),
     SizedBox(height:9),
@@ -506,7 +507,7 @@ class _FinanceState extends State<FinanceScreen>{
    header('Spending categories'),
    ...categories.map((c){final name=st(c,'name'),b=budgetFor(d,month,name);
     final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-    return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · Left ${money(b-spent)}',money(b),icon:Icons.tune,onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
+    return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),icon:Icons.tune,onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
    }),
    SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:Icon(Icons.add),label:Text('Add category'))
   ]);
@@ -597,6 +598,13 @@ class _FinanceState extends State<FinanceScreen>{
    header('Occasional expenses',subtitle:'Real money set aside, tracked separately from spending.',
     action:IconButton.filledTonal(onPressed:()=>reserveForm(null),
      icon:Icon(Icons.add),tooltip:'Create a reserve')),
+   Card(child:Padding(padding:EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text('How reserves work',style:TextStyle(fontWeight:FontWeight.bold)),
+    SizedBox(height:8),Text('The monthly amount is a suggestion, not an automatic transfer. Tap Add money when you actually set it aside. Your recorded transfers reduce what is still needed this month.'),
+    SizedBox(height:8),Text('When paying the expense: Take out the money you use, then record the purchase as an Expense. Taking money out alone does not record spending.'),
+   ]))),
+   Text('Guidance for ${monthLabel(now)}',style:TextStyle(fontWeight:FontWeight.w700)),
+   SizedBox(height:8),
    if(reserves.isEmpty)Card(child:Padding(padding:EdgeInsets.all(18),
     child:Text('Create a reserve for a vacation, annual bill or future purchase. '
       'Record each deposit to see progress and reduce your spendable cash.'))),
@@ -608,6 +616,16 @@ class _FinanceState extends State<FinanceScreen>{
       target:val(r,'target'),currentlyFunded:held,
       due:parseDay(st(r,'due')),selectedMonth:now);
     final goal=val(r,'target');
+    final due=parseDay(st(r,'due'));
+    final start=monthFromKey(st(r,'start_month'));
+    final before=reserveFundedAt(d,r,monthKey(DateTime(now.year,now.month-1)));
+    final remainingThisMonth=reserveThisMonthRemaining(target:goal,fundedBeforeMonth:before,
+     netContributedThisMonth:contributed,due:due,start:start,month:now);
+    final active=todayMonth.compareTo(monthKey(start))>=0;
+    final overdue=todayMonth.compareTo(monthKey(due))>0;
+    final guidance=needed==0?'Target fully funded':!active?'Starts ${monthLabel(start)}':
+     overdue?'Past due · still needed: ${money(needed)}':
+     remainingThisMonth==0?'This month is funded':'Still to set aside this month: ${money(remainingThisMonth)}';
     return Card(child:Padding(padding:EdgeInsets.all(16),child:Column(
      crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[Expanded(child:Text(st(r,'name'),
@@ -631,8 +649,10 @@ class _FinanceState extends State<FinanceScreen>{
       LinearProgressIndicator(value:goal==0?0:(held/goal).clamp(0,1).toDouble(),
        minHeight:9,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
       SizedBox(height:10),
-      Text('Set aside this month: ${money(contributed)}',style:TextStyle(fontSize:12)),
-      Text(next>0?'Suggested next month: ${money(next)}':
+      Text(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade)),
+      SizedBox(height:6),
+      Text('Net set aside this month: ${money(contributed)}',style:TextStyle(fontSize:12)),
+      Text(!active?'Monthly guidance begins in ${monthLabel(start)}':next>0?'Suggested next month: ${money(next)}':
        needed==0?'Target fully funded':'Next month: target due or overdue',
        style:TextStyle(fontSize:12,color:muted)),
       SizedBox(height:15),
@@ -1122,6 +1142,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

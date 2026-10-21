@@ -88,11 +88,12 @@ int reserveNextMonthTopUp({
 
 /// Visual budget status for the Home dashboard. Unbudgeted spending is not
 /// silently treated as healthy, and exactly 100% remains at the limit.
-enum CategoryBudgetStatus { withinBudget, nearLimit, overBudget, unbudgeted }
+enum CategoryBudgetStatus { withinBudget, nearLimit, fullySpent, overBudget, unbudgeted }
 
 CategoryBudgetStatus categoryBudgetStatus(int spent,int budget){
  if(budget<=0)return CategoryBudgetStatus.unbudgeted;
  if(spent>budget)return CategoryBudgetStatus.overBudget;
+ if(spent==budget)return CategoryBudgetStatus.fullySpent;
  if(spent*100>=budget*85)return CategoryBudgetStatus.nearLimit;
  return CategoryBudgetStatus.withinBudget;
 }
@@ -232,4 +233,16 @@ String budgetCopyState(Iterable<Map<String,Object?>> rows,String month){
 DateTime nextBillDue(DateTime due){
  final last=DateTime(due.year,due.month+2,0).day;
  return DateTime(due.year,due.month+1,due.day>last?last:due.day);
+}
+
+
+/// Guidance is a suggestion only: actual deposits must still be recorded.
+int reserveThisMonthRemaining({required int target,required int fundedBeforeMonth,
+ required int netContributedThisMonth,required DateTime due,
+ required DateTime start,required DateTime month}){
+ final key=monthKey(month);
+ if(key.compareTo(monthKey(start))<0||key.compareTo(monthKey(due))>0)return 0;
+ final needed=(target-fundedBeforeMonth-netContributedThisMonth).clamp(0,target);
+ return reserveAdditionalHold(target:target,fundedBeforeMonth:fundedBeforeMonth,
+  netContributedThisMonth:netContributedThisMonth,due:due,month:month).clamp(0,needed);
 }

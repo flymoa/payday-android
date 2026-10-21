@@ -17,7 +17,7 @@ void main() {
   expect(categoryBudgetStatus(0,10000),CategoryBudgetStatus.withinBudget);
   expect(categoryBudgetStatus(8499,10000),CategoryBudgetStatus.withinBudget);
   expect(categoryBudgetStatus(8500,10000),CategoryBudgetStatus.nearLimit);
-  expect(categoryBudgetStatus(10000,10000),CategoryBudgetStatus.nearLimit);
+  expect(categoryBudgetStatus(10000,10000),CategoryBudgetStatus.fullySpent);
   expect(categoryBudgetStatus(10001,10000),CategoryBudgetStatus.overBudget);
   expect(categoryBudgetStatus(2500,0),CategoryBudgetStatus.unbudgeted);
  });
@@ -97,4 +97,5 @@ void main() {
   expect(freeAfterPlan(income:1000000,expenses:300000,transferredOut:100000,transferredIn:0,unpaidBills:200000,savingsGap:50000,reserves:30000,buffer:20000),300000);
  });
 }
+
 
