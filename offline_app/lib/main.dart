@@ -325,23 +325,37 @@ class _FinanceState extends State<FinanceScreen>{
   return (d*100).round();
  }
  void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));}
- Future<void> transactionForm(RowData? existing,{String billId=''}) async{
+ Future<void> transactionForm(RowData? existing,{RowData? payBill}) async{
   final d=await store.snapshot();if(!mounted)return;
+  final prefill=payBill==null?null:prepareBillPayment(
+    name:st(payBill,'name'),
+    category:st(payBill,'category'),
+    code:st(payBill,'code'),
+    billAmountCents:val(payBill,'amount'),
+    alreadyPaidCents:billPaid(d,payBill),
+  );
+  if(prefill!=null && prefill.amountCents<=0){
+    inputError('This bill is fully paid. No remaining payment is due.');
+    return;
+  }
   final cats=list(d,'categories').map((x)=>st(x,'name')).toList();
-  final desc=TextEditingController(text:existing==null?'':st(existing,'description'));
+  final desc=TextEditingController(text:existing==null?(prefill?.description??''):st(existing,'description'));
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
-  final bill=TextEditingController(text:existing==null?billId:st(existing,'bill_id'));
-  final amt=TextEditingController(text:existing==null?'':mad(val(existing,'amount')).toStringAsFixed(2));
-  var type=existing==null?'Expense':st(existing,'type');
-  var category=existing==null?'Groceries':st(existing,'category');
+  final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
+  final amt=TextEditingController(text:existing==null?(prefill==null?'':mad(prefill.amountCents).toStringAsFixed(2)):mad(val(existing,'amount')).toStringAsFixed(2));
+  var type=existing==null?(prefill?.type??'Expense'):st(existing,'type');
+  var category=existing==null?(prefill?.category??'Groceries'):st(existing,'category');
   if(!cats.contains(category))category=cats.first;
   var date=existing==null?DateTime.now():parseDay(st(existing,'date'));
-  await sheet(existing==null?'New transaction':'Edit transaction',(c,rebuild)=>Column(children:[
+  await sheet(existing==null?(prefill==null?'New transaction':'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
+   if(prefill!=null)Padding(padding:const EdgeInsets.only(bottom:12),child:Text(
+      'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
+      style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
    DropdownButtonFormField<String>(initialValue:type,decoration:const InputDecoration(labelText:'Type'),items:['Expense','Income','Savings out','Savings in'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)rebuild(()=>type=v);}),
    const SizedBox(height:12),
    DropdownButtonFormField<String>(key:ValueKey(type),initialValue:cats.contains(category)?category:cats.first,decoration:const InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
    const SizedBox(height:12),field(amt,'Amount (MAD)',number:true),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
-   Row(children:[const Icon(Icons.today,size:18),TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text(dayKey(date)))]),
+   Row(children:[const Icon(Icons.today,size:18),TextButton.icon(icon:const Icon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}'))]),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete this transaction?',()=>store.removeTransaction(val(existing,'id')));},child:const Text('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
    icon:const Icon(Icons.check_circle_outline),label:const Text('Save locally'),
@@ -397,7 +411,16 @@ class _FinanceState extends State<FinanceScreen>{
    DropdownButtonFormField<String>(initialValue:category,items:list(d,'categories').map((x)=>DropdownMenuItem(value:st(x,'name'),child:Text(st(x,'name')))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(c.mounted)Navigator.pop(c);},child:const Text('Save bill')),
-   if(existing!=null)TextButton(onPressed:(){Navigator.pop(c);transactionForm(null,billId:st(existing,'code'));},child:const Text('Record payment using this Bill ID')),
+   if(existing!=null)TextButton.icon(
+    onPressed:billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
+      ?null:()async{
+       Navigator.pop(c);
+       if(mounted)await transactionForm(null,payBill:existing);
+      },
+    icon:const Icon(Icons.payments_outlined),
+    label:Text(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
+      ?'Bill fully paid':'Record payment · ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))} remaining'),
+   ),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:const Text('Delete bill',style:TextStyle(color:Colors.red)))
   ]));
  }
