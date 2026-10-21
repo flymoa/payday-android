@@ -669,6 +669,39 @@ class _FinanceState extends State<FinanceScreen>{
    SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:Text('Settings & cash buffer'))
   ]);
  }
+ Future<void> deleteTransactionWithUndo(int id)async{
+  final confirmed=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+   title:Text('Delete this transaction?'),
+   content:Text('You can restore it using Undo while the confirmation bar is visible.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Delete'))]));
+  if(confirmed!=true||!mounted||writing)return;
+  writing=true;
+  try{
+   final removed=await store.deleteTransactionForUndo(id);
+   refresh();
+   if(!mounted)return;
+   if(removed==null){inputError('This transaction was already removed.');return;}
+   showTransactionUndo(removed);
+  }catch(e){if(mounted)inputError('Could not delete transaction: $e');}
+  finally{writing=false;}
+ }
+ void showTransactionUndo(RowData removed,{bool retry=false}){
+  var restoring=false;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+   duration:Duration(seconds:10),
+   content:Text(retry?'Could not restore. Tap Undo to retry.':'Transaction deleted.'),
+   action:SnackBarAction(label:'Undo',onPressed:()async{
+    if(restoring)return;
+    restoring=true;
+    try{
+     await store.restoreDeletedTransaction(removed);
+     refresh();
+     if(mounted)inputError('Transaction restored.');
+    }catch(e){if(mounted)showTransactionUndo(removed,retry:true);}
+   })));
+ }
+
  Future<void> confirmDelete(String title,Future<void> Function() action) async {
   final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:Text(title),content:Text('This permanently removes the selected local record.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Delete'))]));
   if(ok==true)await execute(action);
@@ -741,7 +774,7 @@ class _FinanceState extends State<FinanceScreen>{
    DropdownButtonFormField<String>(key:ValueKey(type),initialValue:category,decoration:InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
    SizedBox(height:12),field(amt,'Amount (MAD)',number:true),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
    Row(children:[Icon(Icons.today,size:18),TextButton.icon(icon:Icon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}'))]),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete this transaction?',()=>store.removeTransaction(val(existing,'id')));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
+   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
    icon:Icon(Icons.check_circle_outline),label:Text(submitting?'Saving…':'Save locally'),
    onPressed:submitting?null:()async{
@@ -1089,6 +1122,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

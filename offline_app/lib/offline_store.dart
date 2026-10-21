@@ -71,6 +71,19 @@ class OfflineStore {
   if(id==null){await d.insert('transactions',values);}else{await d.update('transactions',values,where:'id=?',whereArgs:[id]);}
  }
  Future<void> removeTransaction(int id) async => (await db).delete('transactions',where:'id=?',whereArgs:[id]);
+ /// Capture the actual saved row in the same transaction as deletion.
+ Future<Map<String,Object?>?> deleteTransactionForUndo(int id)async{
+  return (await db).transaction((txn)async{
+   final rows=await txn.query('transactions',where:'id=?',whereArgs:[id]);
+   if(rows.isEmpty)return null;
+   await txn.delete('transactions',where:'id=?',whereArgs:[id]);
+   return Map<String,Object?>.from(rows.single);
+  });
+ }
+ Future<void> restoreDeletedTransaction(Map<String,Object?> row)async{
+  // Abort on an occupied ID: never replace a newer or restored record.
+  await (await db).insert('transactions',row,conflictAlgorithm:ConflictAlgorithm.abort);
+ }
  Future<BudgetAssignmentCheck> setBudget(String month,String category,int cents)async{
   if(cents<0||cents>100000000000)throw ArgumentError('Invalid budget amount');
   // Re-read and validate inside the same SQLite transaction as the write.
@@ -262,6 +275,7 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 
