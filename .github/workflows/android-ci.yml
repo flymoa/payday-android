@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'tool/**'
+      - '.github/workflows/android-ci.yml'
   workflow_dispatch:
     inputs:
       web_client_id:
