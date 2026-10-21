@@ -10,9 +10,21 @@ This is a **separate Android application** with application ID `ma.payday.payday
 - **Bills:** due date, bill code, expense-category link, paid-to-date and partial outstanding balance computed from Expense rows.
 - **Savings:** savings pool = opening savings + savings transfers out - savings transfers in + confirmed month-close extras. Goal allocations **do not** increase the savings pool.
 - **Month close:** checks for transactions and balance, amount of extra savings, and refusal to close future/current months.
-- **Reserves:** future occasional-expense targets with recommended monthly top-ups.
+- **Reserves:** future occasional-expense targets with **dated actual transfers** into/out of each pot, a progress bar, a movement history, remaining target, and a calculated suggested contribution for next month. Contributions reduce this month's spendable cash without increasing expense totals.
 - **Year overview:** monthly income, expense, and recorded transfers.
 - **Backup:** JSON export through Android's Share sheet; explicit restore replaces the local database atomically.
+
+## Using the reserve ledger (v1.1.0)
+
+1. Open **More → Occasional expenses** and create a reserve with a target and due date.
+2. Tap **Add money**, enter the actual amount and date, and save it. Payday records a dated reserve transfer and subtracts it from the selected month's available cash.
+3. The reserve card immediately updates **Put aside**, **Still needed**, its progress indicator, and **Suggested next month**.
+4. **Take out** returns reserved money to spendable cash and records the withdrawal.
+5. **View transfer history** shows each move. The reserve movement is **not** an expense or a savings-goal allocation. When you actually spend the saved money, first take it out of the reserve and then record the purchase as an ordinary expense.
+
+A reserve's **opening funded** amount means money already set aside before Payday tracked it. It is an opening balance and **is not newly deducted** from monthly spendable cash. Only transfers recorded using **Add money** reduce monthly available cash. Existing reserve and transaction records are retained by the SQLite schema v1 → v2 migration.
+
+Local backups exported by v1.1.0 use schema v2 and include reserve transfers; importing an older schema-v1 backup is supported and creates an empty reserve transfer history.
 
 ## Storage and privacy
 
