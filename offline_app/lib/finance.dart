@@ -96,3 +96,25 @@ CategoryBudgetStatus categoryBudgetStatus(int spent,int budget){
  if(spent*100>=budget*85)return CategoryBudgetStatus.nearLimit;
  return CategoryBudgetStatus.withinBudget;
 }
+
+
+/// Accept decimal dirhams with a dot or comma and at most two decimal places.
+/// Reject ambiguous thousands separators, rounding and non-finite values.
+int? parseMoneyCents(String input,{bool allowZero=false}) {
+ final text=input.trim();
+ if(!RegExp(r'^\d+(?:[.,]\d{1,2})?$').hasMatch(text))return null;
+ final parts=text.replaceAll(',','.').split('.');
+ final whole=int.tryParse(parts[0]);
+ if(whole==null||whole>1000000000)return null;
+ final fraction=parts.length==1?0:int.parse(parts[1].padRight(2,'0'));
+ final cents=whole*100+fraction;
+ if(cents>100000000000||(!allowZero&&cents==0))return null;
+ return cents;
+}
+
+bool matchesRecord(Map<String,Object?> row,String query,String type) {
+ if(type!='All'&&row['type']!=type)return false;
+ final text=query.trim().toLowerCase();
+ return text.isEmpty||['description','category','note','bill_id','date']
+  .any((key)=>(row[key]?.toString()??'').toLowerCase().contains(text));
+}
