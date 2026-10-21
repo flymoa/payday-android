@@ -8,14 +8,26 @@ const defaultCategories = <String,String>{
  'Eating out':'Flexible','Shopping':'Flexible','Leisure':'Flexible',
  'Subscriptions':'Essential','Debt payment':'Essential','Other':'Essential'
 };
-const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','settings'];
+const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
  Database? _database;
+ static Future<void> createReserveMovements(DatabaseExecutor d) async {
+  await d.execute("CREATE TABLE reserve_movements("
+    "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+    "reserve_id INTEGER NOT NULL,"
+    "date TEXT NOT NULL,"
+    "kind TEXT NOT NULL CHECK(kind IN ('add','release')),"
+    "amount INTEGER NOT NULL CHECK(amount>0),"
+    "note TEXT NOT NULL DEFAULT '',"
+    "FOREIGN KEY(reserve_id) REFERENCES reserves(id))");
+  await d.execute('CREATE INDEX ix_reserve_movements_date ON reserve_movements(date)');
+  await d.execute('CREATE INDEX ix_reserve_movements_reserve ON reserve_movements(reserve_id)');
+ }
  Future<Database> get db async {
   if (_database!=null) return _database!;
   final root = await getDatabasesPath();
-  _database=await openDatabase(path.join(root,'payday_local_v1.db'),version:1,onCreate:(d,v) async {
+  _database=await openDatabase(path.join(root,'payday_local_v1.db'),version:2,onCreate:(d,v) async {
    await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "")');
    await d.execute('CREATE INDEX ix_transactions_date ON transactions(date)');
    await d.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month, category))');
@@ -25,6 +37,7 @@ class OfflineStore {
    await d.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, due TEXT NOT NULL, amount INTEGER NOT NULL, category TEXT NOT NULL, note TEXT NOT NULL DEFAULT "")');
    await d.execute('CREATE TABLE month_closes(month TEXT PRIMARY KEY, entries_ok INTEGER NOT NULL DEFAULT 0, balance_ok INTEGER NOT NULL DEFAULT 0, extra INTEGER NOT NULL DEFAULT 0, opening_balance INTEGER NOT NULL DEFAULT 0)');
    await d.execute('CREATE TABLE reserves(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, target INTEGER NOT NULL, funded INTEGER NOT NULL DEFAULT 0, due TEXT NOT NULL, start_month TEXT NOT NULL)');
+   await createReserveMovements(d);
    await d.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
    final batch=d.batch();
    for(final c in defaultCategories.entries) { batch.insert('categories',{'name':c.key,'group_name':c.value}); }
@@ -35,6 +48,8 @@ class OfflineStore {
     batch.insert('settings',{'key':entry.key,'value':entry.value});
    }
    await batch.commit(noResult:true);
+  },onUpgrade:(d,oldVersion,newVersion) async {
+   if(oldVersion<2)await createReserveMovements(d);
   });
   return _database!;
  }
@@ -80,9 +95,65 @@ class OfflineStore {
   if(name.trim().isEmpty||target<=0||funded<0)throw ArgumentError('Invalid reserve');
   final v={'name':name,'target':target,'funded':funded,'due':due,'start_month':startMonth};
   final d=await db;
-  if(id==null){await d.insert('reserves',v);}else{await d.update('reserves',v,where:'id=?',whereArgs:[id]);}
+  if(id==null){
+    await d.insert('reserves',v);
+  }else{
+    final old=await d.query('reserves',columns:['funded'],where:'id=?',whereArgs:[id]);
+    if(old.isEmpty)throw StateError('Reserve no longer exists.');
+    if((old.first['funded'] as num).toInt()!=funded){
+      throw StateError('Opening amount cannot be edited; log a deposit or withdrawal instead.');
+    }
+    await d.update('reserves',v,where:'id=?',whereArgs:[id]);
+  }
  }
- Future<void> removeReserve(int id) async => (await db).delete('reserves',where:'id=?',whereArgs:[id]);
+ /// Every reserve deposit or withdrawal is kept as a dated ledger entry.
+ /// 'funded' on the reserve itself is historical opening funds, not a new transfer.
+ Future<void> recordReserveMovement({
+  required int reserveId,
+  required String date,
+  required String kind,
+  required int amount,
+  required String note,
+ }) async {
+  if(!['add','release'].contains(kind)||amount<=0||amount>100000000000){
+   throw ArgumentError('Enter a valid reserve transfer amount.');
+  }
+  final parsed=DateTime.tryParse(date);
+  if(parsed==null || date.length!=10 || parsed.year<2000 ||
+     DateTime(parsed.year,parsed.month,parsed.day).isAfter(DateTime.now())){
+   throw ArgumentError('Choose a valid payment date, not a future date.');
+  }
+  final d=await db;
+  await d.transaction((txn) async{
+   final rows=await txn.query('reserves',where:'id=?',whereArgs:[reserveId]);
+   if(rows.isEmpty)throw StateError('Reserve no longer exists.');
+   final reserve=rows.single;
+   final movements=await txn.rawQuery(
+     "SELECT COALESCE(SUM(CASE WHEN kind='add' THEN amount ELSE -amount END),0) AS net FROM reserve_movements WHERE reserve_id=?",
+     [reserveId]);
+   final balance=(reserve['funded'] as num).toInt()+(movements.single['net'] as num).toInt();
+   if(kind=='release' && amount>balance){
+     throw StateError('Cannot withdraw more than the funded amount.');
+   }
+   if(kind=='add' && amount>(reserve['target'] as num).toInt()-balance){
+     throw StateError('This transfer exceeds the reserve target.');
+   }
+   await txn.insert('reserve_movements',{
+     'reserve_id':reserveId,'date':date,'kind':kind,
+     'amount':amount,'note':note.trim(),
+   });
+  });
+ }
+ Future<void> removeReserve(int id) async {
+  final d=await db;
+  await d.transaction((txn) async{
+   final transfers=Sqflite.firstIntValue(await txn.rawQuery(
+     'SELECT COUNT(*) FROM reserve_movements WHERE reserve_id=?',[id]))??0;
+   if(transfers>0)throw StateError(
+     'This reserve has transfer history. Keep it for your records.');
+   await txn.delete('reserves',where:'id=?',whereArgs:[id]);
+  });
+ }
  Future<void> saveMonthClose(String month,{required bool entriesOk,required bool balanceOk,required int extra,required int openingBalance}) async {
   if(extra<0)throw ArgumentError('Invalid savings');
   await (await db).insert('month_closes',{
@@ -97,20 +168,28 @@ class OfflineStore {
   await (await db).insert('categories',{'name':name.trim(),'group_name':group});
  }
  Future<String> exportJson() async => const JsonEncoder.withIndent('  ').convert({
-  'format':'payday-local','schema_version':1,'exported_at':DateTime.now().toUtc().toIso8601String(),
+  'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
   'tables':await snapshot()
  });
  Future<void> importJson(String contents) async{
   final raw=jsonDecode(contents);
-  if(raw is! Map || raw['format']!='payday-local'||raw['schema_version']!=1)throw const FormatException('Unsupported Payday backup');
+  if(raw is! Map || raw['format']!='payday-local' ||
+    ![1,2].contains(raw['schema_version'])) {
+   throw const FormatException('Unsupported Payday backup');
+  }
   final tables=raw['tables'];
-  if(tables is! Map || localTables.any((t)=>tables[t] is! List))throw const FormatException('Incomplete backup');
+  final legacy=raw['schema_version']==1;
+  if(tables is! Map ||
+    localTables.where((t)=>!legacy||t!='reserve_movements')
+      .any((t)=>tables[t] is! List)) {
+   throw const FormatException('Incomplete backup');
+  }
   final d=await db;
   await d.transaction((txn) async{
    // Restoring is one SQLite transaction: either all tables change or none do.
    for(final table in localTables.reversed) {await txn.delete(table);}
    for(final name in localTables){
-    for(final item in tables[name] as List){
+    for(final item in (legacy && name=='reserve_movements' ? <dynamic>[] : tables[name] as List)){
      if(item is! Map)throw const FormatException('Invalid backup record');
      await txn.insert(name,Map<String,Object?>.from(item));
     }
