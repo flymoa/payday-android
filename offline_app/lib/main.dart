@@ -50,7 +50,8 @@ class _PaydayLocalState extends State<PaydayLocal> {
   home:FinanceScreen(onToggleTheme:()=>setState(()=>mode=mode==ThemeMode.dark?
    ThemeMode.light:ThemeMode.dark)));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme});final VoidCallback? onToggleTheme;@override State<FinanceScreen> createState()=>_FinanceState();}
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData});final VoidCallback? onToggleTheme;
+ final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
  bool get isDark=>Theme.of(context).brightness==Brightness.dark;
  Color get ink=>Theme.of(context).colorScheme.onSurface;
@@ -67,7 +68,7 @@ class _FinanceState extends State<FinanceScreen>{
  String recordType='All';
  final search=TextEditingController();
  final store=OfflineStore();
- late Future<Map<String,List<RowData>>> data=store.snapshot();
+ late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
  int? moreSection; // null means More menu; index selects the opened section.
