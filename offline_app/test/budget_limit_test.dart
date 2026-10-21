@@ -10,6 +10,7 @@ Map<String,Object?> row(String month,String category,int amount)=>
 
 class _BudgetStore extends OfflineStore {
  _BudgetStore(Database db):super(database:db);
+ @override Future<void> close()async{} // The test fixture owns this database.
  @override Future<Map<String,List<RowData>>> snapshot()async=>{
   'budgets':await table('budgets'),
   'categories':[
@@ -74,7 +75,7 @@ void main(){
  late Database db;
  late OfflineStore store;
  setUp(()async{
-  db=await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+  db=await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
   await db.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month,category))');
   store=OfflineStore(database:db);
  });
@@ -107,6 +108,7 @@ void main(){
   await tester.pumpWidget(MaterialApp(home:FinanceScreen(store:_BudgetStore(db))));
   await tester.pumpAndSettle();
   await tester.tap(find.text('Budgets').last);await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('Groceries'));await tester.pumpAndSettle();
   await tester.tap(find.text('Groceries'));await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField),'400');
   await tester.tap(find.text('Save budget'));await tester.pumpAndSettle();
