@@ -386,6 +386,7 @@ class _FinanceState extends State<FinanceScreen>{
   final expenses=sumType(ts,'Expense');
   final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final balance=monthlyBalance(d);
+  final reserveNet=balance.reserveNet;
   final available=balance.available,safe=balance.safe;
   final categories=list(d,'categories');
   final visibleCategories=categories.where((c){

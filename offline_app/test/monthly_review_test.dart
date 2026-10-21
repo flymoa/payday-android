@@ -36,7 +36,7 @@ void main(){
    expect(find.text('Spending without a category budget'),findsOneWidget);
    expect(find.text('Old expense'),findsNothing);
    await tester.ensureVisible(find.text('Continue to close checks'));await tester.pumpAndSettle();
-   final close=find.widgetWithText(FilledButton,'Continue to close checks');
+   final close=find.ancestor(of:find.text('Continue to close checks'),matching:find.byWidgetPredicate((w)=>w is FilledButton)).first;
    expect(tester.widget<FilledButton>(close).onPressed,isNull);
    expect(tester.takeException(),isNull);
    await tester.ensureVisible(find.byTooltip('Previous month'));
@@ -44,7 +44,7 @@ void main(){
    expect(find.text('Ready to review'),findsOneWidget);
    expect(find.text('No transactions recorded for this month. Bills and plans can still have outstanding amounts.'),findsOneWidget);
    await tester.ensureVisible(find.text('Continue to close checks'));await tester.pumpAndSettle();
-   expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton,'Continue to close checks')).onPressed,isNotNull);
+   expect(tester.widget<FilledButton>(find.ancestor(of:find.text('Continue to close checks'),matching:find.byWidgetPredicate((w)=>w is FilledButton)).first).onPressed,isNotNull);
    expect(tester.takeException(),isNull);
   });
  }
