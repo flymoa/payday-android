@@ -411,16 +411,21 @@ class _FinanceState extends State<FinanceScreen>{
    DropdownButtonFormField<String>(initialValue:category,items:list(d,'categories').map((x)=>DropdownMenuItem(value:st(x,'name'),child:Text(st(x,'name')))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(c.mounted)Navigator.pop(c);},child:const Text('Save bill')),
-   if(existing!=null)TextButton.icon(
-    onPressed:billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
+   if(existing!=null)Column(children:[
+    Text('Outstanding: ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))}',
+      style:const TextStyle(color:ink,fontWeight:FontWeight.w700)),
+    const SizedBox(height:8),
+    SizedBox(width:double.infinity,child:FilledButton.tonalIcon(
+     onPressed:billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
       ?null:()async{
        Navigator.pop(c);
        if(mounted)await transactionForm(null,payBill:existing);
       },
-    icon:const Icon(Icons.payments_outlined),
-    label:Text(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
-      ?'Bill fully paid':'Record payment · ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))} remaining'),
-   ),
+     icon:const Icon(Icons.payments_outlined),
+     label:Text(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
+      ?'Bill fully paid':'Record payment'),
+    )),
+   ]),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:const Text('Delete bill',style:TextStyle(color:Colors.red)))
   ]));
  }
