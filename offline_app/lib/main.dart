@@ -492,6 +492,8 @@ class _FinanceState extends State<FinanceScreen>{
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
+   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:Icon(Icons.copy_outlined),label:Text('Copy last month’s budget')),
+   SizedBox(height:8),
    Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.pie_chart_outline)]),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
     inc==0&&assigned==0?'Set planned income to start assigning your budget.':
@@ -754,6 +756,42 @@ class _FinanceState extends State<FinanceScreen>{
    },
   ));
  }
+ Future<void> copyBudgetForm(Map<String,List<RowData>> d)async{
+  final targetMonth=month;
+  final rows=list(d,'budgets');
+  final plan=BudgetCopyPlan(rows,targetMonth);
+  final expected=budgetCopyState(rows,targetMonth);
+  var saving=false;
+  String? error;
+  await sheet('Copy last month’s budget',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text('${monthLabel(monthFromKey(plan.sourceMonth))} → ${monthLabel(monthFromKey(targetMonth))}',
+     style:TextStyle(fontWeight:FontWeight.bold)),
+    SizedBox(height:12),
+    Text('Existing entries stay unchanged, including amounts set to zero. Only missing entries below will be added. This copies your plan, not transactions or bill payments.'),
+    SizedBox(height:12),
+    if(plan.additions.isEmpty)Text('Nothing to copy. The previous month has no missing entries to add.'),
+    ...plan.additions.map((r)=>Padding(padding:EdgeInsets.symmetric(vertical:8),
+     child:Row(children:[Expanded(child:Text(st(r,'category'))),SizedBox(width:8),Text(money(val(r,'amount')))]))),
+    Divider(),Text('Planned income after copy: ${money(plan.income)}'),
+    Text('Assigned after copy: ${money(plan.assigned)}'),
+    SizedBox(height:8),
+    if(!plan.allowed)Text('Cannot copy: allocations exceed planned income by ${money(plan.exceededBy)}. Update this month’s income plan or reduce existing allocations, then try again.',
+     style:TextStyle(color:Colors.deepOrange)),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:Text(error!,style:TextStyle(color:Colors.deepOrange))),
+   ]),footer:(c,rebuild)=>FilledButton(
+    onPressed:saving||!plan.allowed||plan.additions.isEmpty?null:()async{
+     rebuild(()=>saving=true);
+     try{
+      await store.copyBudget(targetMonth,expectedState:expected);
+      refresh();
+      if(c.mounted)Navigator.pop(c);
+      if(mounted)inputError('Budget copied to $targetMonth. Existing entries were kept.');
+     }catch(e){if(c.mounted)rebuild(()=>error=e.toString().replaceFirst('Bad state: ',''));}
+     finally{if(c.mounted)rebuild(()=>saving=false);}
+    },child:Text(saving?'Copying…':'Copy budget')));
+ }
+
  Future<void> budgetForm(Map<String,List<RowData>> d,String category)async{
   final budgetMonth=month;
   final original=budgetFor(d,budgetMonth,category);
@@ -1025,6 +1063,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

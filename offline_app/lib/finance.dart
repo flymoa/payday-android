@@ -194,3 +194,35 @@ class MonthlyBalance {
   transferredOut:savingsNet,transferredIn:0,unpaidBills:unpaidBills,
   savingsGap:savingsGap,reserves:reserveHold,buffer:buffer);
 }
+
+
+/// Copies missing entries only. Existing entries, including explicit zeroes, win.
+class BudgetCopyPlan {
+ BudgetCopyPlan(Iterable<Map<String,Object?>> rows,this.month){
+  final date=monthFromKey(month);
+  sourceMonth=monthKey(DateTime(date.year,date.month-1));
+  final target=rows.where((r)=>r['month']==month).toList();
+  final existing=target.map((r)=>r['category']).toSet();
+  additions=rows.where((r)=>r['month']==sourceMonth&&!existing.contains(r['category']))
+   .map((r)=><String,Object?>{'month':month,'category':r['category'],'amount':r['amount']}).toList()
+   ..sort((a,b)=>(a['category'] as String).compareTo(b['category'] as String));
+  final merged=[...target,...additions];
+  income=merged.where((r)=>r['category']=='Income plan').fold(0,(n,r)=>n+(r['amount'] as num).toInt());
+  assigned=assignedBudgetCents(merged,month);
+ }
+ final String month;
+ late final String sourceMonth;
+ late final List<Map<String,Object?>> additions;
+ late final int income,assigned;
+ bool get allowed=>assigned<=income;
+ int get exceededBy=>assigned-income;
+}
+
+/// Stable snapshot of both months so a preview cannot apply changed data.
+String budgetCopyState(Iterable<Map<String,Object?>> rows,String month){
+ final date=monthFromKey(month);
+ final previous=monthKey(DateTime(date.year,date.month-1));
+ final values=rows.where((r)=>r['month']==month||r['month']==previous)
+  .map((r)=>'${r['month']}:${r['category'].toString().length}:${r['category']}:${r['amount']}').toList()..sort();
+ return values.join('\n');
+}

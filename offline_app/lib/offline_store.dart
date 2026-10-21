@@ -84,6 +84,18 @@ class OfflineStore {
    return check;
   });
  }
+ Future<void> copyBudget(String month,{required String expectedState})async{
+  await (await db).transaction((txn)async{
+   final rows=await txn.query('budgets');
+   if(budgetCopyState(rows,month)!=expectedState){
+    throw StateError('Budgets changed. Close this preview and open it again.');
+   }
+   final plan=BudgetCopyPlan(rows,month);
+   if(!plan.allowed)throw StateError('Assignments exceed planned income by ${(plan.exceededBy/100).toStringAsFixed(2)} MAD.');
+   for(final row in plan.additions){await txn.insert('budgets',row);}
+  });
+ }
+
  Future<void> saveGoal({int? id,required String name,required int target}) async{
   if(name.trim().isEmpty || target<=0) throw ArgumentError('Invalid goal');
   final d=await db;
@@ -229,4 +241,5 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
