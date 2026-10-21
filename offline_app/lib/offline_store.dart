@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
-import 'finance.dart';
 
 const defaultCategories = <String,String>{
  'Housing':'Essential','Utilities':'Essential','Groceries':'Essential',
