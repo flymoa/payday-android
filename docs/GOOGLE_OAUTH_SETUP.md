@@ -3,6 +3,33 @@
 The project uses only the **Payday fictional-data DEMO spreadsheet**.
 The GitHub Actions APK is a **compile-only debug artifact** until OAuth is configured.
 
+## Build an OAuth-enabled test APK entirely through GitHub
+
+No local Flutter installation is required for this test.
+
+1. In Google Cloud → **Google Auth Platform → Clients**, confirm you have
+   *both* **Android** (package `ma.payday.payday_mobile`, matching GitHub SHA-1)
+   and **Web application** clients in the **same project**.
+2. Confirm the project's **Google Sheets API** is enabled and your Google
+   account is added to **Audience → Test users** when in Testing mode.
+3. Open https://github.com/flymoa/payday-android/actions/workflows/android-ci.yml
+4. Click **Run workflow**.
+5. Enter the **Web application Client ID** into the `web_client_id` field.
+   It normally ends with `.apps.googleusercontent.com`. Never enter the
+   client **secret**, password, or Android client ID.
+6. Start the workflow. The debug APK build is automatically pointed at the
+   isolated DEMO validation copy `1gpWUxFX4PI3fiImiiO_oz-nsLrx0ixHmQyx78MhcjmU`.
+7. Check for a **passing** Flutter test/build and the
+   `payday-demo-debug-test-copy` artifact.
+
+If the `web_client_id` field is left empty, the project can compile for
+diagnostics, but Google Sign-In remains unconfigured. A repository Actions
+variable named `PAYDAY_GOOGLE_WEB_CLIENT_ID` is also supported as an
+alternative to entering the ID for every manual build.
+
+The OAuth Client ID is a public identifier embedded in the APK; the OAuth
+Client **secret** must never be copied into GitHub or the app.
+
 ## Easiest SHA-1 method: GitHub Actions (no Java installation)
 
 For the APK built by our GitHub workflow, **use the fingerprint printed by
