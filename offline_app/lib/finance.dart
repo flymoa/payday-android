@@ -16,3 +16,36 @@ int monthlyReserveTopUp(int target,int funded,DateTime due,DateTime start) {
 }
 int freeAfterPlan({required int income,required int expenses,required int transferredOut,required int transferredIn,required int unpaidBills,required int savingsGap,required int reserves,required int buffer}) =>
  income-expenses-transferredOut+transferredIn-unpaidBills-savingsGap-reserves-buffer;
+
+
+/// Prepares a new expense from a saved bill. The due date is deliberately not
+/// copied: payment date is the day the user chooses (initially today).
+/// Any subsequent edits in the transaction form are allowed.
+class BillPaymentDraft {
+ const BillPaymentDraft({
+  required this.type,
+  required this.category,
+  required this.description,
+  required this.billId,
+  required this.amountCents,
+ });
+ final String type;
+ final String category;
+ final String description;
+ final String billId;
+ final int amountCents;
+}
+
+BillPaymentDraft prepareBillPayment({
+ required String name,
+ required String category,
+ required String code,
+ required int billAmountCents,
+ required int alreadyPaidCents,
+}) => BillPaymentDraft(
+ type: 'Expense',
+ category: category,
+ description: name,
+ billId: code,
+ amountCents: billOutstanding(billAmountCents,alreadyPaidCents),
+);
