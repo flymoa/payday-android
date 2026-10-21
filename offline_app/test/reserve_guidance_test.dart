@@ -28,10 +28,10 @@ void main(){
     'reserves':[{'id':1,'name':'Insurance','target':240000,'funded':0,'start_month':m,'due':dayKey(DateTime(now.year,now.month+3,0))}],
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
-   await tester.pumpAndSettle();
+   await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Home');
    expect(find.text('Fully spent'),findsOneWidget);expect(find.text('Near limit'),findsNothing);
-   await tester.tap(find.text('More').last);await tester.pumpAndSettle();
-   await tester.tap(find.text('Occasional expenses'));await tester.pumpAndSettle();
+   await tester.tap(find.text('More').last);await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'More');
+   await tester.tap(find.text('Occasional expenses'));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Reserves');
    expect(find.text('How reserves work'),findsOneWidget);
    expect(find.text('Still to set aside this month: 800.00 MAD'),findsOneWidget);
    await tester.ensureVisible(find.text('Still to set aside this month: 800.00 MAD'));await tester.pumpAndSettle();

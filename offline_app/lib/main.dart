@@ -635,7 +635,7 @@ class _FinanceState extends State<FinanceScreen>{
       ]),
       Text('Due ${st(r,'due')}',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:12),
-      Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+      Wrap(spacing:20,runSpacing:12,children:[
        Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         Text('Put aside',style:TextStyle(color:muted,fontSize:12)),
         Text(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:20)),
@@ -656,12 +656,12 @@ class _FinanceState extends State<FinanceScreen>{
        needed==0?'Target fully funded':'Next month: target due or overdue',
        style:TextStyle(fontSize:12,color:muted)),
       SizedBox(height:15),
-      Row(children:[
-       Expanded(child:FilledButton.icon(onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
-        icon:Icon(Icons.add),label:Text('Add money'))),
-       SizedBox(width:9),
-       Expanded(child:OutlinedButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
-        icon:Icon(Icons.remove),label:Text('Take out'))),
+      Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+       FilledButton.icon(onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
+        icon:Icon(Icons.add),label:Text('Add money')),
+       SizedBox(height:8),
+       OutlinedButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
+        icon:Icon(Icons.remove),label:Text('Take out')),
       ]),
       Align(alignment:Alignment.centerRight,child:TextButton.icon(
        onPressed:()=>reserveHistoryForm(r),
