@@ -856,6 +856,30 @@ class _FinanceState extends State<FinanceScreen>{
     await execute(()=>store.allocate(month,val(goal,'id'),n));if(c.mounted)Navigator.pop(c);
    },child:Text('Allocate savings'))]));
  }
+ Future<void> repeatBillForm(RowData bill)async{
+  final due=nextBillDue(parseDay(st(bill,'due')));
+  var saving=false;
+  String? error;
+  await sheet('Repeat next month',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text(st(bill,'name'),style:TextStyle(fontWeight:FontWeight.bold,fontSize:18)),
+    SizedBox(height:12),Text('Due: ${dayKey(due)}'),
+    Text('Amount: ${money(val(bill,'amount'))}'),Text('Category: ${st(bill,'category')}'),
+    SizedBox(height:12),Text('Creates one unpaid bill using the saved details above. Payments stay with the original bill. You can edit the new bill afterward. Repeat it again next month when needed; this does not schedule automatic payments.'),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:Text(error!,style:TextStyle(color:Colors.deepOrange))),
+   ]),footer:(c,rebuild)=>FilledButton(
+    onPressed:saving?null:()async{
+     rebuild(()=>saving=true);
+     try{
+      final created=await store.repeatBill(val(bill,'id'),expected:bill);
+      refresh();
+      if(c.mounted)Navigator.pop(c);
+      if(mounted)inputError(created?'Unpaid bill created for ${dayKey(due)}.':'This bill was already repeated. No duplicate was created.');
+     }catch(e){if(c.mounted)rebuild(()=>error=e.toString().replaceFirst('Bad state: ',''));}
+     finally{if(c.mounted)rebuild(()=>saving=false);}
+    },child:Text(saving?'Creating…':'Create next month’s bill')));
+ }
+
  Future<void> billForm(RowData? existing) async {
   final code=TextEditingController(text:existing==null?'B${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}':st(existing,'code'));
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
@@ -870,6 +894,8 @@ class _FinanceState extends State<FinanceScreen>{
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(c.mounted)Navigator.pop(c);},child:Text('Save bill')),
    if(existing!=null)Column(children:[
+    OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
+     icon:Icon(Icons.repeat),label:Text('Repeat next month')),
     Text('Outstanding: ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))}',
       style:TextStyle(color:ink,fontWeight:FontWeight.w700)),
     SizedBox(height:8),
@@ -1063,6 +1089,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

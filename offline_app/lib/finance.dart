@@ -226,3 +226,10 @@ String budgetCopyState(Iterable<Map<String,Object?>> rows,String month){
   .map((r)=>'${r['month']}:${r['category'].toString().length}:${r['category']}:${r['amount']}').toList()..sort();
  return values.join('\n');
 }
+
+
+/// Preserve the day where possible; never overflow a short month.
+DateTime nextBillDue(DateTime due){
+ final last=DateTime(due.year,due.month+2,0).day;
+ return DateTime(due.year,due.month+1,due.day>last?last:due.day);
+}

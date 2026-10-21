@@ -113,6 +113,27 @@ class OfflineStore {
   final d=await db;
   if(id==null){await d.insert('bills',v);}else{await d.update('bills',v,where:'id=?',whereArgs:[id]);}
  }
+ /// Re-read the saved source and insert the copy in one transaction.
+ /// Separate bill IDs keep payments attached to their original month.
+ Future<bool> repeatBill(int id,{required Map<String,Object?> expected})async{
+  return (await db).transaction((txn)async{
+   final rows=await txn.query('bills',where:'id=?',whereArgs:[id]);
+   if(rows.isEmpty)throw StateError('This bill no longer exists.');
+   final source=rows.single;
+   for(final key in ['code','name','due','amount','category','note']){
+    if(source[key]!=expected[key])throw StateError('This bill changed. Reopen it before repeating.');
+   }
+   final due=dayKey(nextBillDue(DateTime.parse(source['due'] as String)));
+   final code='REPEAT:$id:${due.substring(0,7)}';
+   final existing=await txn.query('bills',where:'code=?',whereArgs:[code]);
+   if(existing.isNotEmpty)return false;
+   await txn.insert('bills',{
+    'code':code,'name':source['name'],'due':due,'amount':source['amount'],
+    'category':source['category'],'note':source['note'],
+   });
+   return true;
+  });
+ }
  Future<void> removeBill(int id) async => (await db).delete('bills',where:'id=?',whereArgs:[id]);
  Future<void> saveReserve({int? id,required String name,required int target,required int funded,required String due,required String startMonth}) async{
   if(name.trim().isEmpty||target<=0||funded<0)throw ArgumentError('Invalid reserve');
@@ -241,5 +262,6 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
