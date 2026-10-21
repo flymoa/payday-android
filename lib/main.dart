@@ -45,6 +45,7 @@ class _PaydayScreenState extends State<PaydayScreen> {
   String? _category;
   String _message = '';
   bool _busy = false;
+  bool _starting = true;
   bool _online = false;
   int _queued = 0;
 
@@ -79,22 +80,24 @@ class _PaydayScreenState extends State<PaydayScreen> {
         await _flush();
       }
     } catch (e) {
-      _message = '$e';
+      _message = explainGoogleSignInError(e, _auth.stage);
+    } finally {
+      _starting = false;
+      if (mounted) setState(() {});
     }
-    if (mounted) setState(() {});
   }
 
   Future<void> _connect() async {
-    if (_busy) return;
+    if (_busy || _starting) return;
     setState(() {_busy = true; _message = '';});
     try {
       await _auth.connect();
-      _online = true;
       await _load();
+      _online = true;
       await _flush();
       _message = 'Connected to the Payday DEMO.';
     } catch (e) {
-      _message = '$e';
+      _message = explainGoogleSignInError(e, _auth.stage);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -236,8 +239,13 @@ class _PaydayScreenState extends State<PaydayScreen> {
             const SizedBox(height: 16),
             const Text('Connect your Google account to begin.'),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _busy ? null : _connect,
-              child: const Text('Sign in with Google')),
+            FilledButton(onPressed: (_busy || _starting) ? null : _connect,
+              child: Text(_starting ? 'Initializing Google...' : 'Sign in with Google')),
+            const SizedBox(height: 8),
+            Text('Authentication stage: ${_auth.stage}',
+              style: Theme.of(context).textTheme.bodySmall),
+            Text('OAuth project: ${_auth.clientProjectNumber}',
+              style: Theme.of(context).textTheme.bodySmall),
           ] else ...[
             Row(children: [
               TextButton(
