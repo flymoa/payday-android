@@ -246,3 +246,20 @@ int reserveThisMonthRemaining({required int target,required int fundedBeforeMont
  return reserveAdditionalHold(target:target,fundedBeforeMonth:fundedBeforeMonth,
   netContributedThisMonth:netContributedThisMonth,due:due,month:month).clamp(0,needed);
 }
+
+
+/// Aggregate only the already-selected month's expense rows.
+class MonthlyReview {
+ MonthlyReview(Iterable<Map<String,Object?>> transactions){
+  for(final row in transactions){
+   if(row['type']!='Expense')continue;
+   final name=row['category']?.toString()??'';
+   spending[name]=(spending[name]??0)+(row['amount'] as num).toInt();
+  }
+ }
+ final Map<String,int> spending={};
+ List<String> get rankedCategories=>spending.keys.toList()..sort((a,b){
+  final difference=spending[b]!.compareTo(spending[a]!);
+  return difference==0?a.compareTo(b):difference;
+ });
+}

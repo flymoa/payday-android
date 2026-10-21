@@ -327,17 +327,65 @@ class _FinanceState extends State<FinanceScreen>{
    ]));
  }
 
+ MonthlyBalance monthlyBalance(Map<String,List<RowData>> d){
+  final ts=monthTransactions(d);
+  final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
+  return MonthlyBalance(income:sumType(ts,'Income'),expenses:sumType(ts,'Expense'),
+   savingsNet:saved,reserveNet:reserveNetForMonth(d,month),unpaidBills:unpaidBills(d),
+   savingsGap:(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt(),
+   reserveHold:monthlyReserves(d),buffer:buffer(d));
+ }
+ Widget monthlyReview(Map<String,List<RowData>> d){
+  final balance=monthlyBalance(d);
+  final tx=monthTransactions(d);
+  final review=MonthlyReview(tx);
+  final closed=list(d,'month_closes').any((r)=>st(r,'month')==month&&val(r,'entries_ok')==1&&val(r,'balance_ok')==1);
+  final ended=selected.isBefore(DateTime(DateTime.now().year,DateTime.now().month));
+  final categories={...list(d,'budgets').where((r)=>st(r,'month')==month)
+   .map((r)=>st(r,'category')).where((c)=>c!='Income plan'&&c!='Savings goal'),...review.spending.keys};
+  final over=categories.where((c)=>budgetFor(d,month,c)>0&&(review.spending[c]??0)>budgetFor(d,month,c)).toList()..sort();
+  final unbudgeted=review.spending.keys.where((c)=>budgetFor(d,month,c)<=0).toList()..sort();
+  Widget lineItem(String label,int value)=>Padding(padding:EdgeInsets.symmetric(vertical:8),
+   child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Text(label)),
+    SizedBox(width:12),Flexible(child:Text(money(value),textAlign:TextAlign.right,
+     style:TextStyle(fontWeight:FontWeight.w700)))]));
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   header('Monthly review',subtitle:'Recorded activity for ${monthLabel(selected)}'),
+   Row(children:[IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),icon:Icon(Icons.chevron_left)),
+    Expanded(child:Text(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold))),
+    IconButton(tooltip:'Next month',onPressed:()=>shift(1),icon:Icon(Icons.chevron_right))]),
+   Text(closed?'Month-close checks saved':ended?'Ready to review':'Month in progress',style:TextStyle(color:jade,fontWeight:FontWeight.w700)),
+   if(tx.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:Text('No transactions recorded for this month. Bills and plans can still have outstanding amounts.')),
+   Card(child:Padding(padding:EdgeInsets.all(16),child:Column(children:[
+    lineItem('Income received',balance.income),lineItem('Spending',balance.expenses),
+    lineItem('Net savings transfers',balance.savingsNet),lineItem('Net reserve transfers',balance.reserveNet),
+    Divider(),lineItem('Available this month',balance.available),lineItem('Safe to spend',balance.safe),
+   ]))),
+   TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:Icon(Icons.info_outline),label:Text('Explain these balances')),
+   header('Check before closing'),
+   tile('Unpaid bills',balance.unpaidBills>0?'Due this month and still outstanding':'No outstanding bills due this month',money(balance.unpaidBills),
+    icon:Icons.receipt_long_outlined,onTap:()=>setState(()=>moreSection=0)),
+   tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
+   tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
+   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),icon:Icons.error_outline,tone:Colors.deepOrange)),
+   ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),icon:Icons.info_outline,tone:amber)),
+   if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No category budget issues in recorded spending.')),
+   header('Largest spending categories'),
+   ...review.rankedCategories.take(3).map((c)=>tile(c,'Recorded expenses',money(review.spending[c]!),icon:Icons.pie_chart_outline)),
+   if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No spending recorded.')),
+   SizedBox(height:12),Text('Review your records and compare with your actual cash or bank balance. This summary does not verify that every transaction has been entered.'),
+   SizedBox(height:12),SizedBox(width:double.infinity,child:FilledButton.icon(
+    onPressed:ended?()=>monthCloseForm(d):null,icon:Icon(Icons.fact_check_outlined),label:Text(closed?'Review close checks':'Continue to close checks'))),
+   if(!ended)Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text('Month-close checks are available after the month ends.')),
+  ]);
+ }
+
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d);
   final income=sumType(ts,'Income');
   final expenses=sumType(ts,'Expense');
   final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
-  final reserveNet=reserveNetForMonth(d,month);
-  final balance=MonthlyBalance(
-   income:income,expenses:expenses,savingsNet:saved,reserveNet:reserveNet,
-   unpaidBills:unpaidBills(d),
-   savingsGap:(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt(),
-   reserveHold:monthlyReserves(d),buffer:buffer(d));
+  final balance=monthlyBalance(d);
   final available=balance.available,safe=balance.safe;
   final categories=list(d,'categories');
   final visibleCategories=categories.where((c){
@@ -529,7 +577,7 @@ class _FinanceState extends State<FinanceScreen>{
    header('Allocations for ${monthLabel(selected)}'),
    ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?'Goal deleted':st(g,'name'),month,money(val(a,'amount')),onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
    if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:Text('After closing the month, allocate confirmed savings to your goals.')),
-   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>monthCloseForm(d),icon:Icon(Icons.fact_check_outlined),label:Text('Review and close ${monthLabel(selected)}'))
+   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:Icon(Icons.fact_check_outlined),label:Text('Review ${monthLabel(selected)}'))
   ]);
  }
  Widget more(Map<String,List<RowData>> d) {
@@ -541,6 +589,8 @@ class _FinanceState extends State<FinanceScreen>{
       Icons.receipt_long_outlined,0,count.toString()+' this month'),
     moreLink('Occasional expenses','Vacations, insurance, gifts and future expense reserves',
       Icons.beach_access_outlined,1,list(d,'reserves').length.toString()+' reserves'),
+    moreLink('Monthly review','Review spending, commitments and month-close checks',
+      Icons.fact_check_outlined,4,monthLabel(selected)),
     moreLink('Year overview','Income, spending and savings across the year',
       Icons.bar_chart_rounded,2,selected.year.toString()),
     moreLink('Backups & settings','Export, restore and adjust your local data',
@@ -556,6 +606,7 @@ class _FinanceState extends State<FinanceScreen>{
    case 0:section=moreBills(d);break;
    case 1:section=moreReserves(d);break;
    case 2:section=moreYear(d);break;
+   case 4:section=monthlyReview(d);break;
    default:section=moreBackups(d);
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -1148,6 +1199,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
