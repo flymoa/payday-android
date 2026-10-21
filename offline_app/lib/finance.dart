@@ -49,3 +49,38 @@ BillPaymentDraft prepareBillPayment({
  billId: code,
  amountCents: billOutstanding(billAmountCents,alreadyPaidCents),
 );
+
+
+/// Money in a reserve is ring-fenced cash, not a new expense.
+/// Opening funded money was already put aside before recording began.
+int reserveBalance({required int opening,required int deposits,required int withdrawals}) =>
+ opening+deposits-withdrawals;
+
+/// Positive amount is removed from spendable cash; withdrawals reverse that transfer.
+int reserveNetSetAside({required int deposits,required int withdrawals})=>deposits-withdrawals;
+
+/// Remaining monthly amount to ring-fence after this month's actual deposits.
+/// An explicit reserve transfer must not also be counted as an ordinary expense.
+int reserveAdditionalHold({
+ required int target,
+ required int fundedBeforeMonth,
+ required int netContributedThisMonth,
+ required DateTime due,
+ required DateTime month,
+}){
+ if(DateTime(due.year,due.month).isBefore(DateTime(month.year,month.month)))return 0;
+ final expected=monthlyReserveTopUp(target,fundedBeforeMonth,due,month);
+ return (expected-netContributedThisMonth).clamp(0,100000000000);
+}
+
+/// The following month's suggested contribution uses the *new* funded balance.
+int reserveNextMonthTopUp({
+ required int target,
+ required int currentlyFunded,
+ required DateTime due,
+ required DateTime selectedMonth,
+}){
+ final next=DateTime(selectedMonth.year,selectedMonth.month+1);
+ if(DateTime(due.year,due.month).isBefore(next))return 0;
+ return monthlyReserveTopUp(target,currentlyFunded,due,next);
+}
