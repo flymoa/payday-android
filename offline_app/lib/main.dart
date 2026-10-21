@@ -37,9 +37,9 @@ class _FinanceState extends State<FinanceScreen>{
  void refresh(){if(mounted)setState(()=>data=store.snapshot());}
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
- Future<void> execute(Future<void> Function() fn)async{
-  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Saved on this phone.')));}
-  catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Could not save: $e')));}
+ Future<bool> execute(Future<void> Function() fn)async{
+  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Saved on this phone.')));return true;}
+  catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Could not save: $e')));return false;}
  }
  List<RowData> list(Map<String,List<RowData>> d,String table)=>d[table]??[];
  List<RowData> monthTransactions(Map<String,List<RowData>> d)=>list(d,'transactions').where((t)=>st(t,'date').startsWith(month)).toList()..sort((a,b)=>st(b,'date').compareTo(st(a,'date')));
@@ -226,13 +226,34 @@ class _FinanceState extends State<FinanceScreen>{
   final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:Text(title),content:const Text('This permanently removes the selected local record.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Delete'))]));
   if(ok==true)await execute(action);
  }
- Future<void> sheet(String title,Widget Function(BuildContext,StateSetter) builder) async{
-  await showModalBottomSheet(context:context,isScrollControlled:true,showDragHandle:true,backgroundColor:Colors.white,
-    builder:(c)=>Padding(padding:EdgeInsets.fromLTRB(18,0,18,MediaQuery.of(c).viewInsets.bottom+26),
-    child:SingleChildScrollView(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
-     Text(title,style:const TextStyle(fontSize:23,color:ink,fontWeight:FontWeight.bold)),const SizedBox(height:18),
-     StatefulBuilder(builder:builder),
-    ]))));
+ /// Scrollable form with a fixed action area that clears Android's system bar.
+ Future<void> sheet(String title,Widget Function(BuildContext,StateSetter) builder,
+  {Widget Function(BuildContext,StateSetter)? footer}) async{
+  await showModalBottomSheet(
+   context:context,isScrollControlled:true,useSafeArea:true,
+   showDragHandle:true,backgroundColor:Colors.white,
+   constraints:BoxConstraints(maxHeight:MediaQuery.sizeOf(context).height*0.92),
+   builder:(c)=>AnimatedPadding(
+    duration:const Duration(milliseconds:180),curve:Curves.easeOut,
+    padding:EdgeInsets.only(bottom:MediaQuery.viewInsetsOf(c).bottom),
+    child:SafeArea(top:false,bottom:true,child:Padding(
+     padding:const EdgeInsets.symmetric(horizontal:18),
+     child:StatefulBuilder(builder:(c,rebuild)=>Column(
+      mainAxisSize:MainAxisSize.min,children:[
+       Padding(padding:const EdgeInsets.only(bottom:12),
+        child:Align(alignment:Alignment.centerLeft,
+         child:Text(title,style:const TextStyle(fontSize:23,color:ink,fontWeight:FontWeight.bold)))),
+       Flexible(child:SingleChildScrollView(
+        keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
+        padding:EdgeInsets.only(bottom:footer==null?24:12),
+        child:builder(c,rebuild))),
+       if(footer!=null)Padding(padding:const EdgeInsets.fromLTRB(0,6,0,14),
+        child:SizedBox(width:double.infinity,child:footer(c,rebuild))),
+      ],
+     )),
+    )),
+   ),
+  );
  }
  Widget field(TextEditingController c,String label,{bool number=false,int lines=1})=>Padding(padding:const EdgeInsets.only(bottom:12),
   child:TextField(controller:c,maxLines:lines,keyboardType:number?const TextInputType.numberWithOptions(decimal:true):TextInputType.text,
@@ -260,13 +281,19 @@ class _FinanceState extends State<FinanceScreen>{
    DropdownButtonFormField<String>(key:ValueKey(type),initialValue:cats.contains(category)?category:cats.first,decoration:const InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
    const SizedBox(height:12),field(amt,'Amount (MAD)',number:true),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
    Row(children:[const Icon(Icons.today,size:18),TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text(dayKey(date)))]),
-   SizedBox(width:double.infinity,child:FilledButton(onPressed:()async{
-    final cents=amount(amt);if(cents==null){inputError('Enter a positive amount.');return;}
-    await execute(()=>store.saveTransaction(id:existing==null?null:val(existing,'id'),date:dayKey(date),type:type,category:category,amount:cents,description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()));
-    if(c.mounted)Navigator.pop(c);
-   },child:const Text('Save locally'))),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete this transaction?',()=>store.removeTransaction(val(existing,'id')));},child:const Text('Delete transaction',style:TextStyle(color:Colors.red)))
-  ]));
+  ]),footer:(c,rebuild)=>FilledButton.icon(
+   icon:const Icon(Icons.check_circle_outline),label:const Text('Save locally'),
+   onPressed:()async{
+    final cents=amount(amt);
+    if(cents==null){inputError('Enter a positive amount.');return;}
+    final success=await execute(()=>store.saveTransaction(
+      id:existing==null?null:val(existing,'id'),date:dayKey(date),
+      type:type,category:category,amount:cents,
+      description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()));
+    if(success&&c.mounted)Navigator.pop(c);
+   },
+  ));
  }
  Future<void> budgetForm(Map<String,List<RowData>> d,String category)async{
   final a=TextEditingController(text:mad(budgetFor(d,month,category)).toStringAsFixed(2));
