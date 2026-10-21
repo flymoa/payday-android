@@ -179,13 +179,15 @@ class _FinanceState extends State<FinanceScreen>{
       fontWeight:FontWeight.w700,fontSize:12)),
     ]),
     const SizedBox(height:9),
-    Row(children:[
-     Expanded(child:Text('${homeDigits(spent)} / ${homeDigits(limit)} MAD',
-      style:const TextStyle(color:homeText,fontSize:12))),
-     Text(isOver?'Over by ${homeDigits(spent-limit)} MAD':
+    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Expanded(flex:6,child:Text('${homeDigits(spent)} / ${homeDigits(limit)} MAD',
+      maxLines:2,style:const TextStyle(color:homeText,fontSize:12))),
+     const SizedBox(width:5),
+     Flexible(flex:5,child:Text(isOver?'Over by ${homeDigits(spent-limit)} MAD':
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} MAD left',
+      textAlign:TextAlign.end,softWrap:true,
       style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,
-       color:isOver?homeOver:homeText)),
+       color:isOver?homeOver:homeText))),
     ]),
     const SizedBox(height:11),
     ClipRRect(borderRadius:BorderRadius.circular(12),
