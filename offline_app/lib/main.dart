@@ -729,12 +729,12 @@ class _FinanceState extends State<FinanceScreen>{
       final result=await store.setBudget(budgetMonth,category,n);
       refresh();
       if(!c.mounted)return;
-      Navigator.pop(c);
-      if(result.fullyAssigned&&mounted){
-       await notice(context,'No more money to assign',
+      if(result.fullyAssigned){
+       await notice(c,'No more money to assign',
         'Your planned income for $budgetMonth is fully assigned. '
         'Reduce another category or increase planned income to assign more.');
       }
+      if(c.mounted)Navigator.pop(c);
      }on BudgetAssignmentException catch(e){
       if(c.mounted)await notice(c,'Budget limit reached',e.check.message);
      }catch(e){
