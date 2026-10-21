@@ -291,9 +291,63 @@ class _FinanceState extends State<FinanceScreen>{
  }
  Widget moreReserves(Map<String,List<RowData>> d){
   final reserves=list(d,'reserves');
+  final now=DateTime.now();
+  final todayMonth=monthKey(now);
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Occasional expense reserves',action:FilledButton.tonalIcon(onPressed:()=>reserveForm(null),icon:const Icon(Icons.add),label:const Text('New'))),
-   ...reserves.map((r)=>tile(st(r,'name'),'${st(r,'due')} · Funded ${money(val(r,'funded'))} / ${money(val(r,'target'))}','Top up ${money(monthlyReserveTopUp(val(r,'target'),val(r,'funded'),parseDay(st(r,'due')),monthFromKey(st(r,'start_month'))))}',icon:Icons.inventory_2_outlined,onTap:()=>reserveForm(r)))
+   header('Occasional expenses',subtitle:'Real money set aside, tracked separately from spending.',
+    action:IconButton.filledTonal(onPressed:()=>reserveForm(null),
+     icon:const Icon(Icons.add),tooltip:'Create a reserve')),
+   if(reserves.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(18),
+    child:Text('Create a reserve for a vacation, annual bill or future purchase. '
+      'Record each deposit to see progress and reduce your spendable cash.'))),
+   ...reserves.map((r){
+    final held=reserveFundedAt(d,r,todayMonth);
+    final needed=(val(r,'target')-held).clamp(0,val(r,'target')).toInt();
+    final contributed=reserveNetForMonth(d,todayMonth,reserveId:val(r,'id'));
+    final next=reserveNextMonthTopUp(
+      target:val(r,'target'),currentlyFunded:held,
+      due:parseDay(st(r,'due')),selectedMonth:now);
+    final goal=val(r,'target');
+    return Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(
+     crossAxisAlignment:CrossAxisAlignment.start,children:[
+      Row(children:[Expanded(child:Text(st(r,'name'),
+       style:const TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.w800))),
+       IconButton(onPressed:()=>reserveForm(r),tooltip:'Edit reserve goal',
+         icon:const Icon(Icons.edit_outlined)),
+      ]),
+      Text('Due ${st(r,'due')}',style:const TextStyle(color:Colors.black54,fontSize:12)),
+      const SizedBox(height:12),
+      Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[
+       Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        const Text('Put aside',style:TextStyle(color:Colors.black54,fontSize:12)),
+        Text(money(held),style:const TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:20)),
+       ]),
+       Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
+        const Text('Still needed',style:TextStyle(color:Colors.black54,fontSize:12)),
+        Text(money(needed),style:const TextStyle(color:ink,fontWeight:FontWeight.w800,fontSize:16)),
+       ]),
+      ]),
+      const SizedBox(height:10),
+      LinearProgressIndicator(value:goal==0?0:(held/goal).clamp(0,1).toDouble(),
+       minHeight:9,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
+      const SizedBox(height:10),
+      Text('Set aside this month: ${money(contributed)}',style:const TextStyle(fontSize:12)),
+      Text(next>0?'Suggested next month: ${money(next)}':
+       needed==0?'Target fully funded':'Next month: target due or overdue',
+       style:const TextStyle(fontSize:12,color:Colors.black54)),
+      const SizedBox(height:15),
+      Row(children:[
+       Expanded(child:FilledButton.icon(onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
+        icon:const Icon(Icons.add),label:const Text('Add money'))),
+       const SizedBox(width:9),
+       Expanded(child:OutlinedButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
+        icon:const Icon(Icons.remove),label:const Text('Take out'))),
+      ]),
+      Align(alignment:Alignment.centerRight,child:TextButton.icon(
+       onPressed:()=>reserveHistoryForm(r),
+       icon:const Icon(Icons.history),label:const Text('View transfer history'))),
+     ])));
+   }),
   ]);
  }
  Widget moreYear(Map<String,List<RowData>> d){
