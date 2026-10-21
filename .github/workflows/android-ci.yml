@@ -81,6 +81,26 @@ jobs:
           flutter build apk --debug \
             --dart-define="GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" \
             --dart-define="PAYDAY_TEST_SHEET_ID=1gpWUxFX4PI3fiImiiO_oz-nsLrx0ixHmQyx78MhcjmU"
+      - name: Verify compiled APK identity and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$apk"
+          aapt="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          apksigner="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$aapt"
+          test -x "$apksigner"
+          package="$("$aapt" dump badging "$apk" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n 1)"
+          test "$package" = "ma.payday.payday_mobile"
+          "$apksigner" verify "$apk"
+          apk_sha="$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-1 digest: *//p' | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d ':')"
+          key_sha="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey | sed -n 's/^.*SHA1: *//p' | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d ':')"
+          test -n "$apk_sha" && test "$apk_sha" = "$key_sha"
+          echo '### Verified installed APK identity' >> "$GITHUB_STEP_SUMMARY"
+          printf 'Android package: %s\\n' "$package" >> "$GITHUB_STEP_SUMMARY"
+          printf 'APK SHA-1: %s\\n' "$apk_sha" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Signing certificate matches the SHA-1 displayed above.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload test-only APK
         uses: actions/upload-artifact@v4
         with:
