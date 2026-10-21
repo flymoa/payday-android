@@ -19,6 +19,17 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Reuse stable development signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: payday-android-debug-signing-v1
+      - name: Ensure signing key exists
+        run: |
+          mkdir -p "$HOME/.android"
+          if [[ ! -s "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair -noprompt -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
       - name: Create isolated Android project
         working-directory: offline_app
         run: flutter create --platforms android --org ma.payday --project-name payday_local .
@@ -28,7 +39,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p = Path('android/app/src/main/AndroidManifest.xml')
-          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday Local"')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday Local" android:allowBackup="false" android:usesCleartextTraffic="false"')
           p.write_text(text)
           PY
       - name: Install dependencies
@@ -58,7 +69,7 @@ jobs:
           echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
           echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
           echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'APK signed with development key; do not use as production signing.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK uses cached development signing key; export a local backup before any reinstall.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: payday-local-offline-v1-apk
