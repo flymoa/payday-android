@@ -119,8 +119,14 @@ void main(){
   expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,'400');
   await tester.enterText(find.byType(TextField),'300');
   await tester.tap(find.text('Save budget'));await tester.pumpAndSettle();
-  expect(find.text('No more money to assign'),findsOneWidget);
+  for(var attempt=0;attempt<40&&find.text('No more money to assign').evaluate().isEmpty;attempt++){
+   await tester.pump(const Duration(milliseconds:50));
+  }
+  expect(find.text('No more money to assign'),findsOneWidget,
+   reason:tester.widgetList<Text>(find.byType(Text)).map((t)=>t.data??'').join(' | '));
   expect((await db.query('budgets',where:'category=?',whereArgs:['Groceries'])).single['amount'],30000);
+  await tester.tap(find.text('OK'));await tester.pumpAndSettle();
+  expect(find.byType(TextField),findsNothing);
   expect(tester.takeException(),isNull);
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
  });
