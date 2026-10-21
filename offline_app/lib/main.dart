@@ -320,8 +320,8 @@ class _FinanceState extends State<FinanceScreen>{
      Row(children:[
       Icon(Icons.account_balance_wallet_outlined,color:Color(0xffD7E2E6),size:20),
       SizedBox(width:8),
-      Text('Available this month',style:TextStyle(color:Color(0xffE2EAF0),fontSize:14)),
-      Spacer(),
+      Expanded(child:Text('Available this month',style:TextStyle(color:Color(0xffE2EAF0),fontSize:14))),
+      SizedBox(width:8),
       Icon(Icons.verified_user_outlined,color:homeCopper,size:21),
      ]),
      SizedBox(height:12),
