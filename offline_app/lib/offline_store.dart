@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'finance.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
 
@@ -11,6 +12,7 @@ const defaultCategories = <String,String>{
 const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
+ OfflineStore({Database? database}):_database=database;
  Database? _database;
  static Future<void> createReserveMovements(DatabaseExecutor d) async {
   await d.execute("CREATE TABLE reserve_movements("
@@ -69,9 +71,18 @@ class OfflineStore {
   if(id==null){await d.insert('transactions',values);}else{await d.update('transactions',values,where:'id=?',whereArgs:[id]);}
  }
  Future<void> removeTransaction(int id) async => (await db).delete('transactions',where:'id=?',whereArgs:[id]);
- Future<void> setBudget(String month,String category,int cents) async{
-  if(cents<0)throw ArgumentError('Negative budget');
-  await (await db).insert('budgets',{'month':month,'category':category,'amount':cents},conflictAlgorithm:ConflictAlgorithm.replace);
+ Future<BudgetAssignmentCheck> setBudget(String month,String category,int cents)async{
+  if(cents<0||cents>100000000000)throw ArgumentError('Invalid budget amount');
+  // Re-read and validate inside the same SQLite transaction as the write.
+  // A stale form or a second quick save cannot bypass the monthly cap.
+  return (await db).transaction((txn)async{
+   final rows=await txn.query('budgets',where:'month=?',whereArgs:[month]);
+   final check=checkBudgetAssignment(rows:rows,month:month,category:category,proposed:cents);
+   if(!check.allowed)throw BudgetAssignmentException(check);
+   await txn.insert('budgets',{'month':month,'category':category,'amount':cents},
+    conflictAlgorithm:ConflictAlgorithm.replace);
+   return check;
+  });
  }
  Future<void> saveGoal({int? id,required String name,required int target}) async{
   if(name.trim().isEmpty || target<=0) throw ArgumentError('Invalid goal');
@@ -218,3 +229,4 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+

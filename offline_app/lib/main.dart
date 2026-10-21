@@ -52,7 +52,8 @@ class _PaydayLocalState extends State<PaydayLocal> {
   builder:(context,child)=>PaydayOpening(child:child??const SizedBox.shrink()),
   home:FinanceScreen(initialData:widget.initialData,onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData});final ValueChanged<bool>? onToggleTheme;
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store});final ValueChanged<bool>? onToggleTheme;
+ final OfflineStore? store;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
  bool get isDark=>Theme.of(context).brightness==Brightness.dark;
@@ -69,7 +70,7 @@ class _FinanceState extends State<FinanceScreen>{
  String recordQuery='';
  String recordType='All';
  final search=TextEditingController();
- final store=OfflineStore();
+ late final store=widget.store??OfflineStore();
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
@@ -436,12 +437,17 @@ class _FinanceState extends State<FinanceScreen>{
  }
  Widget budgets(Map<String,List<RowData>> d){
   final categories=list(d,'categories'),ts=monthTransactions(d);
-  final planned=categories.fold(0,(n,c)=>n+budgetFor(d,month,st(c,'name')));
+  final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
-   Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(planned+goal),Icons.pie_chart_outline)]),
-   if(inc>0)Card(child:Padding(padding:EdgeInsets.all(16),child:Text('Unassigned income: ${money(inc-planned-goal)}',style:TextStyle(fontWeight:FontWeight.bold,color:inc-planned-goal>=0?jade:Colors.deepOrange)))),
+   Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.pie_chart_outline)]),
+   Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
+    inc==0&&assigned==0?'Set planned income to start assigning your budget.':
+    inc==assigned?'No more money to assign. Your income is fully assigned.':
+    assigned>inc?'Over assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
+    'Available to assign: ${money(inc-assigned)}',
+    style:TextStyle(fontWeight:FontWeight.bold,color:inc-assigned>=0?jade:Colors.deepOrange)))),
    tile('Income plan','Expected monthly income',money(inc),icon:Icons.payments_outlined,onTap:()=>budgetForm(d,'Income plan')),
    tile('Savings goal','Monthly savings target',money(goal),icon:Icons.savings_outlined,onTap:()=>budgetForm(d,'Savings goal')),
    header('Spending categories'),
@@ -698,9 +704,45 @@ class _FinanceState extends State<FinanceScreen>{
   ));
  }
  Future<void> budgetForm(Map<String,List<RowData>> d,String category)async{
-  final a=TextEditingController(text:mad(budgetFor(d,month,category)).toStringAsFixed(2));
-  await sheet('$category · $month',(c,rebuild)=>Column(children:[field(a,'Budget amount (MAD)',number:true),
-   SizedBox(width:double.infinity,child:FilledButton(onPressed:()async{final n=amount(a,allowZero:true);if(n==null){inputError('Enter a valid amount');return;}await execute(()=>store.setBudget(month,category,n));if(c.mounted)Navigator.pop(c);},child:Text('Save budget')))]));
+  final budgetMonth=month;
+  final original=budgetFor(d,budgetMonth,category);
+  final a=TextEditingController(text:mad(original).toStringAsFixed(2));
+  final initial=checkBudgetAssignment(rows:list(d,'budgets'),month:budgetMonth,
+   category:category,proposed:original);
+  var saving=false;
+  Future<void> notice(BuildContext c,String title,String message)async{
+   await showDialog<void>(context:c,builder:(dialog)=>AlertDialog(title:Text(title),content:Text(message),
+    actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:Text('OK'))]));
+  }
+  await sheet('$category · $budgetMonth',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    if(category!='Income plan')Padding(padding:EdgeInsets.only(bottom:12),
+     child:Text('Maximum total for this category: ${money(initial.maximum)}',
+      style:TextStyle(color:muted,fontWeight:FontWeight.w600))),
+    field(a,'Budget amount (MAD)',number:true),
+   ]),footer:(c,rebuild)=>FilledButton(
+    onPressed:saving?null:()async{
+     final n=amount(a,allowZero:true);
+     if(n==null){await notice(c,'Check the amount','Enter a valid amount with at most two decimal places.');return;}
+     rebuild(()=>saving=true);
+     try{
+      final result=await store.setBudget(budgetMonth,category,n);
+      refresh();
+      if(!c.mounted)return;
+      Navigator.pop(c);
+      if(result.fullyAssigned&&mounted){
+       await notice(context,'No more money to assign',
+        'Your planned income for $budgetMonth is fully assigned. '
+        'Reduce another category or increase planned income to assign more.');
+      }
+     }on BudgetAssignmentException catch(e){
+      if(c.mounted)await notice(c,'Budget limit reached',e.check.message);
+     }catch(e){
+      if(c.mounted)await notice(c,'Could not save budget','$e');
+     }finally{
+      if(c.mounted)rebuild(()=>saving=false);
+     }
+    },child:Text(saving?'Saving…':'Save budget')));
  }
  Future<void> categoryForm() async{
   final name=TextEditingController();var group='Essential';
@@ -932,4 +974,5 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 

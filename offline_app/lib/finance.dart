@@ -118,3 +118,65 @@ bool matchesRecord(Map<String,Object?> row,String query,String type) {
  return text.isEmpty||['description','category','note','bill_id','date']
   .any((key)=>(row[key]?.toString()??'').toLowerCase().contains(text));
 }
+
+
+/// All category budgets and the monthly savings goal share the income plan.
+/// Existing amounts are replaced when editing; months and years stay isolated.
+int assignedBudgetCents(Iterable<Map<String,Object?>> rows,String month) =>
+ rows.where((r)=>r['month']==month&&r['category']!='Income plan')
+  .fold<int>(0,(sum,r)=>sum+(r['amount'] as num).toInt());
+
+String _budgetMoney(int cents) =>
+ '${cents~/100}.${(cents%100).toString().padLeft(2,'0')} MAD';
+
+class BudgetAssignmentCheck {
+ const BudgetAssignmentCheck({required this.income,required this.assigned,
+  required this.otherAssigned,required this.proposed,required this.incomeEdit});
+ final int income,assigned,otherAssigned,proposed;
+ final bool incomeEdit;
+ bool get allowed=>assigned<=income;
+ int get remaining=>income-assigned;
+ int get maximum=>(income-otherAssigned).clamp(0,100000000000).toInt();
+ int get exceededBy=>(assigned-income).clamp(0,100000000000).toInt();
+ bool get fullyAssigned=>allowed&&income>0&&remaining==0;
+ String get message {
+  if(incomeEdit) {
+   return 'Planned income cannot be lower than your assigned budget. '
+    'Minimum planned income: ${_budgetMoney(assigned)}. '
+    'You are short by ${_budgetMoney(exceededBy)}.';
+  }
+  if(otherAssigned>income) {
+   return 'Other budgets already exceed planned income by '
+    '${_budgetMoney(otherAssigned-income)}. Reduce those budgets or '
+    'increase planned income before saving this category.';
+  }
+  final intro=income==0?'Set planned income before assigning money. ': 
+   maximum==0?'No more money to assign. ':'';
+  return '${intro}Maximum total for this category: ${_budgetMoney(maximum)}. '
+   'You exceeded this limit by ${_budgetMoney(exceededBy)}.';
+ }
+}
+
+BudgetAssignmentCheck checkBudgetAssignment({
+ required Iterable<Map<String,Object?>> rows,required String month,
+ required String category,required int proposed,
+}) {
+ if(proposed<0||proposed>100000000000)throw ArgumentError('Invalid budget amount');
+ final chosen=rows.where((r)=>r['month']==month).toList();
+ final income=chosen.where((r)=>r['category']=='Income plan')
+  .fold<int>(0,(sum,r)=>sum+(r['amount'] as num).toInt());
+ final existing=chosen.where((r)=>r['category']==category)
+  .fold<int>(0,(sum,r)=>sum+(r['amount'] as num).toInt());
+ final assigned=assignedBudgetCents(chosen,month);
+ final incomeEdit=category=='Income plan';
+ final other=incomeEdit?assigned:assigned-existing;
+ return BudgetAssignmentCheck(income:incomeEdit?proposed:income,
+  assigned:incomeEdit?assigned:other+proposed,
+  otherAssigned:other,proposed:proposed,incomeEdit:incomeEdit);
+}
+
+class BudgetAssignmentException implements Exception {
+ const BudgetAssignmentException(this.check);
+ final BudgetAssignmentCheck check;
+ @override String toString()=>check.message;
+}
