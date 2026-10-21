@@ -32,6 +32,7 @@ class _FinanceState extends State<FinanceScreen>{
  late Future<Map<String,List<RowData>>> data=store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
+ int? moreSection; // null means More menu; index selects the opened section.
  final purchase=TextEditingController(text:'200');
  @override void dispose(){purchase.dispose();store.close();super.dispose();}
  void refresh(){if(mounted)setState(()=>data=store.snapshot());}
@@ -98,11 +99,11 @@ class _FinanceState extends State<FinanceScreen>{
     case 3:screen=savings(d);break;
     default:screen=more(d);
    }
-   return SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,4,16,100),children:[navMonth(),screen]));
+   return SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=4 || moreSection==0 || moreSection==2) navMonth(),screen]));
   }),
   floatingActionButton:page==0||page==1?FloatingActionButton.extended(backgroundColor:jade,foregroundColor:Colors.white,
    onPressed:()=>transactionForm(null),icon:const Icon(Icons.add),label:const Text('Add entry')):null,
-  bottomNavigationBar:NavigationBar(selectedIndex:page,onDestinationSelected:(n)=>setState(()=>page=n),destinations:const [
+  bottomNavigationBar:NavigationBar(selectedIndex:page,onDestinationSelected:(n)=>setState(() {page=n;moreSection=null;}),destinations:const [
     NavigationDestination(icon:Icon(Icons.space_dashboard_outlined),selectedIcon:Icon(Icons.space_dashboard),label:'Home'),
     NavigationDestination(icon:Icon(Icons.receipt_long_outlined),selectedIcon:Icon(Icons.receipt_long),label:'Records'),
     NavigationDestination(icon:Icon(Icons.tune_outlined),selectedIcon:Icon(Icons.tune),label:'Budgets'),
@@ -198,28 +199,88 @@ class _FinanceState extends State<FinanceScreen>{
    const SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>monthCloseForm(d),icon:const Icon(Icons.fact_check_outlined),label:Text('Review and close ${monthLabel(selected)}'))
   ]);
  }
- Widget more(Map<String,List<RowData>> d){
+ Widget more(Map<String,List<RowData>> d) {
+  if(moreSection==null) {
+   final count=list(d,'bills').where((b)=>st(b,'due').startsWith(month)).length;
+   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    header('More tools',subtitle:'Select a section to see its details.'),
+    moreLink('Bills & payments','Due dates, outstanding balances and partial payments',
+      Icons.receipt_long_outlined,0,count.toString()+' this month'),
+    moreLink('Occasional expenses','Vacations, insurance, gifts and future expense reserves',
+      Icons.beach_access_outlined,1,list(d,'reserves').length.toString()+' reserves'),
+    moreLink('Year overview','Income, spending and savings across the year',
+      Icons.bar_chart_rounded,2,selected.year.toString()),
+    moreLink('Backups & settings','Export, restore and adjust your local data',
+      Icons.settings_outlined,3,'Stored only on this phone'),
+    const SizedBox(height:15),
+    const Padding(padding:EdgeInsets.all(8),child:Text(
+      'All your financial records stay on this device, with no Google account or internet required.',
+      style:TextStyle(color:Colors.black54,fontSize:12))),
+   ]);
+  }
+  Widget section;
+  switch(moreSection) {
+   case 0:section=moreBills(d);break;
+   case 1:section=moreReserves(d);break;
+   case 2:section=moreYear(d);break;
+   default:section=moreBackups(d);
+  }
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
+    icon:const Icon(Icons.arrow_back),label:const Text('Back to More')),
+   section,
+  ]);
+ }
+ Widget moreLink(String name,String description,IconData symbol,int section,String summary)=>
+  Card(clipBehavior:Clip.antiAlias,child:InkWell(
+   onTap:()=>setState(()=>moreSection=section),
+   child:Padding(padding:const EdgeInsets.all(16),child:Row(children:[
+    Container(width:48,height:48,
+     decoration:BoxDecoration(color:jade.withValues(alpha:.10),borderRadius:BorderRadius.circular(14)),
+     child:Icon(symbol,color:jade)),
+    const SizedBox(width:14),
+    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text(name,style:const TextStyle(fontWeight:FontWeight.w800,color:ink,fontSize:16)),
+     const SizedBox(height:4),Text(description,style:const TextStyle(color:Colors.black54,fontSize:12)),
+     const SizedBox(height:7),Text(summary,style:const TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
+    ])),
+    const Icon(Icons.chevron_right,color:Colors.black45)
+   ])),
+  ));
+ Widget moreBills(Map<String,List<RowData>> d){
   final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
-  final reserves=list(d,'reserves');
-  final tx=list(d,'transactions');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Bills',subtitle:'Attach the Bill ID when recording an expense',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:const Icon(Icons.add),label:const Text('New'))),
    ...bills.where((b)=>st(b,'due').startsWith(month)).map((b){final remain=billOutstanding(val(b,'amount'),billPaid(d,b));
     return tile(st(b,'name'),'${st(b,'due')} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
    }),
-   if(!bills.any((b)=>st(b,'due').startsWith(month)))const Padding(padding:EdgeInsets.all(8),child:Text('No bills due in this month.')),
+   if(!bills.any((b)=>st(b,'due').startsWith(month)))const Padding(padding:EdgeInsets.all(8),child:Text('No bills due in this month.'))
+  ]);
+ }
+ Widget moreReserves(Map<String,List<RowData>> d){
+  final reserves=list(d,'reserves');
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Occasional expense reserves',action:FilledButton.tonalIcon(onPressed:()=>reserveForm(null),icon:const Icon(Icons.add),label:const Text('New'))),
-   ...reserves.map((r)=>tile(st(r,'name'),'${st(r,'due')} · Funded ${money(val(r,'funded'))} / ${money(val(r,'target'))}','Top up ${money(monthlyReserveTopUp(val(r,'target'),val(r,'funded'),parseDay(st(r,'due')),monthFromKey(st(r,'start_month'))))}',icon:Icons.inventory_2_outlined,onTap:()=>reserveForm(r))),
+   ...reserves.map((r)=>tile(st(r,'name'),'${st(r,'due')} · Funded ${money(val(r,'funded'))} / ${money(val(r,'target'))}','Top up ${money(monthlyReserveTopUp(val(r,'target'),val(r,'funded'),parseDay(st(r,'due')),monthFromKey(st(r,'start_month'))))}',icon:Icons.inventory_2_outlined,onTap:()=>reserveForm(r)))
+  ]);
+ }
+ Widget moreYear(Map<String,List<RowData>> d){
+  final tx=list(d,'transactions');
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Year overview',subtitle:'${selected.year} totals from local transactions'),
    ...List.generate(12,(i){final m=monthKey(DateTime(selected.year,i+1));
     final rows=tx.where((r)=>st(r,'date').startsWith(m));
     final inc=sumType(rows,'Income'),exp=sumType(rows,'Expense'),savings=sumType(rows,'Savings out')-sumType(rows,'Savings in');
     return Card(child:ListTile(title:Text(monthLabel(DateTime(selected.year,i+1))),subtitle:Text('Income ${money(inc)} · Spent ${money(exp)}'),trailing:Text('Saved ${money(savings)}')));
-   }),
+   })
+  ]);
+ }
+ Widget moreBackups(Map<String,List<RowData>> d){
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Privacy & local backups',subtitle:'No sign-in, no cloud connection and no financial data upload'),
    const Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
    Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportBackup,icon:const Icon(Icons.ios_share),label:const Text('Export backup'))),const SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:const Icon(Icons.file_open),label:const Text('Restore')))]),
-   const SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:const Text('Settings & cash buffer')),
+   const SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:const Text('Settings & cash buffer'))
   ]);
  }
  Future<void> confirmDelete(String title,Future<void> Function() action) async {
