@@ -84,3 +84,15 @@ int reserveNextMonthTopUp({
  if(DateTime(due.year,due.month).isBefore(next))return 0;
  return monthlyReserveTopUp(target,currentlyFunded,due,next);
 }
+
+
+/// Visual budget status for the Home dashboard. Unbudgeted spending is not
+/// silently treated as healthy, and exactly 100% remains at the limit.
+enum CategoryBudgetStatus { withinBudget, nearLimit, overBudget, unbudgeted }
+
+CategoryBudgetStatus categoryBudgetStatus(int spent,int budget){
+ if(budget<=0)return CategoryBudgetStatus.unbudgeted;
+ if(spent>budget)return CategoryBudgetStatus.overBudget;
+ if(spent*100>=budget*85)return CategoryBudgetStatus.nearLimit;
+ return CategoryBudgetStatus.withinBudget;
+}
