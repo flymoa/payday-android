@@ -33,6 +33,9 @@ jobs:
       - name: Create isolated Android project
         working-directory: offline_app
         run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Apply approved PAYDAY launcher artwork
+        working-directory: offline_app
+        run: python3 tool/apply_brand.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |
@@ -75,3 +78,4 @@ jobs:
           name: payday-local-offline-v1-apk
           path: offline_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+
