@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/finance.dart';
 import 'package:flutter/material.dart';
 import 'package:payday_local/brand.dart';
+import 'package:payday_local/main.dart';
 
 void main(){
  test('money input preserves exact centimes and rejects silent rounding',(){
@@ -31,4 +32,27 @@ void main(){
    expect(find.byType(Image),findsOneWidget);
   });
  }
+ for(final brightness in Brightness.values){
+  testWidgets('all main tabs fit a narrow ${brightness.name} phone',(tester)async{
+   await tester.binding.setSurfaceSize(const Size(320,800));
+   addTearDown(()=>tester.binding.setSurfaceSize(null));
+   final month=monthKey(DateTime.now());
+   final fixture=<String,List<RowData>>{
+    'categories':[{'name':'Groceries','group_name':'Essential'}],
+    'transactions':[{'id':1,'type':'Income','category':'Salary','date':'$month-01','amount':700000},
+     {'id':2,'type':'Expense','category':'Groceries','description':'Market','date':'$month-02','amount':20000}],
+    'budgets':[{'month':month,'category':'Groceries','amount':60000}],
+   };
+   await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),
+    home:FinanceScreen(initialData:Future.value(fixture))));
+   await tester.pumpAndSettle();
+   expect(tester.takeException(),isNull);
+   for(final label in ['Records','Budgets','Savings','More','Home']){
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(),isNull,reason:label);
+   }
+  });
+ }
+
 }
