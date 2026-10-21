@@ -9,6 +9,29 @@ void main() {
   expect(billOutstanding(250000,100000),150000);
   expect(billOutstanding(250000,300000),0);
  });
+ test('bill payment prefill copies the bill and defaults to its full amount',(){
+  final draft=prepareBillPayment(
+   name:'October rent',category:'Housing',code:'B0123',
+   billAmountCents:250000,alreadyPaidCents:0,
+  );
+  expect(draft.type,'Expense');
+  expect(draft.category,'Housing');
+  expect(draft.description,'October rent');
+  expect(draft.billId,'B0123');
+  expect(draft.amountCents,250000);
+ });
+ test('bill payment prefill uses only the unpaid remainder',(){
+  final draft=prepareBillPayment(
+   name:'Electricity',category:'Utilities',code:'B0124',
+   billAmountCents:47000,alreadyPaidCents:20000,
+  );
+  expect(draft.amountCents,27000);
+  final paid=prepareBillPayment(
+   name:'Electricity',category:'Utilities',code:'B0124',
+   billAmountCents:47000,alreadyPaidCents:47000,
+  );
+  expect(paid.amountCents,0);
+ });
  test('goals do not create new savings',(){
   final pool=savingsPool(opening:10000,transferredOut:120000,transferredIn:20000,confirmedExtra:30000);
   expect(pool,140000);
