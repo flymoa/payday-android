@@ -9,6 +9,9 @@ import 'offline_store.dart';
 
 void main() {WidgetsFlutterBinding.ensureInitialized();runApp(const PaydayLocal());}
 const ink=Color(0xff163A38), jade=Color(0xff087D6B), cream=Color(0xffF5F6F1), amber=Color(0xffC7852E);
+const homeNavy=Color(0xff202E40), homeCopper=Color(0xffF0CA94);
+const homeText=Color(0xff344B45), homeGreen=Color(0xff2C8979);
+const homeNear=Color(0xffD2A15A), homeOver=Color(0xffCA554A);
 typedef RowData=Map<String,Object?>;
 String st(RowData row,String key)=>row[key]?.toString()??'';
 int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
@@ -103,14 +106,126 @@ class _FinanceState extends State<FinanceScreen>{
    Icon(icon,color:color),const SizedBox(height:12),Text(title,style:const TextStyle(color:Colors.black54,fontSize:12)),
    const SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(value,style:const TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
   ]))));
+
+ // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
+ String homeDigits(int cents){
+  final value=mad(cents.abs()).toStringAsFixed(2).split('.');
+  final whole=value[0],parts=<String>[];
+  for(var end=whole.length;end>0;end-=3){
+   final begin=end-3>0?end-3:0;
+   parts.insert(0,whole.substring(begin,end));
+  }
+  return '${cents<0?'−':''}${parts.join(',')}.${value[1]}';
+ }
+ String homeMonthName(){
+  const names=['January','February','March','April','May','June',
+   'July','August','September','October','November','December'];
+  return '${names[selected.month-1]} ${selected.year}';
+ }
+ Widget homeSummary(String label,int value,IconData icon,Color tint,Color iconBg){
+  return Expanded(child:Container(
+   padding:const EdgeInsets.all(13),
+   decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(19),
+    border:Border.all(color:const Color(0xffE4EAE6))),
+   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Container(width:38,height:38,decoration:BoxDecoration(color:iconBg,
+     borderRadius:BorderRadius.circular(12)),child:Icon(icon,color:tint,size:20)),
+    const SizedBox(height:11),
+    Text(label,maxLines:2,style:const TextStyle(color:Color(0xff53645E),fontSize:12,height:1.2)),
+    const SizedBox(height:8),
+    FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+     child:Row(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.baseline,
+      textBaseline:TextBaseline.alphabetic,children:[
+      Text(homeDigits(value),style:const TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:homeNavy)),
+      const SizedBox(width:5),
+      const Text('MAD',style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
+     ])),
+   ]),
+  ));
+ }
+ Widget homeQuickAction(String label,IconData icon,Color bg,Color tint,VoidCallback onPressed){
+  return Expanded(child:InkWell(
+   borderRadius:BorderRadius.circular(15),onTap:onPressed,
+   child:Padding(padding:const EdgeInsets.symmetric(vertical:4),child:Column(children:[
+    Container(width:52,height:52,decoration:BoxDecoration(color:bg,
+     borderRadius:BorderRadius.circular(16)),child:Icon(icon,color:tint,size:24)),
+    const SizedBox(height:7),
+    Text(label,maxLines:2,textAlign:TextAlign.center,
+     style:const TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:homeText)),
+   ])),
+  ));
+ }
+ Widget homeCategory(String category,int spent,int limit){
+  final status=categoryBudgetStatus(spent,limit);
+  final isOver=status==CategoryBudgetStatus.overBudget;
+  final isNear=status==CategoryBudgetStatus.nearLimit;
+  final isUnbudgeted=status==CategoryBudgetStatus.unbudgeted;
+  final statusColor=isOver?homeOver:(isNear||isUnbudgeted)?homeNear:homeGreen;
+  final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
+  final description=isOver?'Over budget':
+    isUnbudgeted?'No budget set':isNear?'Near limit':'${(spent*100/limit).round()}% used';
+  return Container(
+   margin:const EdgeInsets.only(bottom:10),padding:const EdgeInsets.all(15),
+   decoration:BoxDecoration(color:Colors.white,borderRadius:BorderRadius.circular(19),
+    border:Border.all(color:isOver?const Color(0xffE9BEB8):const Color(0xffE5EBE7))),
+   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[
+     Expanded(child:Text(category,style:const TextStyle(color:Color(0xff263D39),
+      fontWeight:FontWeight.w700,fontSize:14))),
+     if(isOver)const Padding(padding:EdgeInsets.only(right:4),
+      child:Icon(Icons.error_outline,color:homeOver,size:17)),
+     Text(description,style:TextStyle(color:isOver?homeOver:
+      (isNear||isUnbudgeted)?const Color(0xff996522):homeText,
+      fontWeight:FontWeight.w700,fontSize:12)),
+    ]),
+    const SizedBox(height:9),
+    Row(children:[
+     Expanded(child:Text('${homeDigits(spent)} / ${homeDigits(limit)} MAD',
+      style:const TextStyle(color:homeText,fontSize:12))),
+     Text(isOver?'Over by ${homeDigits(spent-limit)} MAD':
+      isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} MAD left',
+      style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,
+       color:isOver?homeOver:homeText)),
+    ]),
+    const SizedBox(height:11),
+    ClipRRect(borderRadius:BorderRadius.circular(12),
+     child:LinearProgressIndicator(value:progress,minHeight:9,
+      color:statusColor,
+      backgroundColor:isOver?const Color(0xffF4D9D4):const Color(0xffE9F0EB))),
+    if(isOver)Padding(padding:const EdgeInsets.only(top:10),
+      child:Text('Exceeded your budget by ${homeDigits(spent-limit)} MAD '
+       '(${((spent/limit-1)*100).round()}% over).',
+       style:const TextStyle(color:homeOver,fontSize:12))),
+   ]),
+  );
+ }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
   IconButton(onPressed:()=>shift(-1),icon:const Icon(Icons.chevron_left)),
   Text(monthLabel(selected),style:const TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
   IconButton(onPressed:()=>shift(1),icon:const Icon(Icons.chevron_right)),
  ]);
  @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:const Row(children:[Icon(Icons.wallet_outlined,color:jade),SizedBox(width:10),Text('PAYDAY',style:TextStyle(fontWeight:FontWeight.w900,letterSpacing:1.2)),Text(' LOCAL',style:TextStyle(fontSize:13,color:jade))]),
-   actions:[IconButton(tooltip:'Reload local records',onPressed:refresh,icon:const Icon(Icons.refresh))]),
+  backgroundColor:page==0?const Color(0xffF8FAF8):null,
+  appBar:AppBar(toolbarHeight:page==0?72:56,titleSpacing:16,
+   title:Row(children:[
+    Container(width:44,height:44,alignment:Alignment.center,
+     decoration:BoxDecoration(color:homeNavy,borderRadius:BorderRadius.circular(14)),
+     child:const Text('P',style:TextStyle(fontSize:27,color:homeCopper,
+      fontWeight:FontWeight.w900))),
+    const SizedBox(width:11),
+    const Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+     Text('PAYDAY',style:TextStyle(color:homeNavy,fontSize:20,
+      fontWeight:FontWeight.w900,letterSpacing:.8)),
+     Text('Personal finance',style:TextStyle(color:homeText,fontSize:11)),
+    ]),
+   ]),
+   actions:[Padding(padding:const EdgeInsets.only(right:15),
+    child:Container(decoration:BoxDecoration(color:Colors.white,shape:BoxShape.circle,
+     border:Border.all(color:const Color(0xffDEE7E1))),
+     child:IconButton(tooltip:'Refresh local records',onPressed:refresh,
+      icon:const Icon(Icons.refresh,color:homeNavy)),
+    ))]),
+
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Text('Local database error: ${snap.error}'));
    if(!snap.hasData)return const Center(child:CircularProgressIndicator());
@@ -123,9 +238,9 @@ class _FinanceState extends State<FinanceScreen>{
     case 3:screen=savings(d);break;
     default:screen=more(d);
    }
-   return SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=4 || moreSection==0 || moreSection==2) navMonth(),screen]));
+   return SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
   }),
-  floatingActionButton:page==0||page==1?FloatingActionButton.extended(backgroundColor:jade,foregroundColor:Colors.white,
+  floatingActionButton:page==1?FloatingActionButton.extended(backgroundColor:jade,foregroundColor:Colors.white,
    onPressed:()=>transactionForm(null),icon:const Icon(Icons.add),label:const Text('Add entry')):null,
   bottomNavigationBar:NavigationBar(selectedIndex:page,onDestinationSelected:(n)=>setState(() {page=n;moreSection=null;}),destinations:const [
     NavigationDestination(icon:Icon(Icons.space_dashboard_outlined),selectedIcon:Icon(Icons.space_dashboard),label:'Home'),
@@ -135,53 +250,139 @@ class _FinanceState extends State<FinanceScreen>{
     NavigationDestination(icon:Icon(Icons.grid_view_outlined),selectedIcon:Icon(Icons.grid_view),label:'More'),
   ]),
  );
+
  Widget home(Map<String,List<RowData>> d){
-  final ts=monthTransactions(d),inc=sumType(ts,'Income'),spent=sumType(ts,'Expense'),out=sumType(ts,'Savings out'),back=sumType(ts,'Savings in');
+  final ts=monthTransactions(d);
+  final income=sumType(ts,'Income');
+  final expenses=sumType(ts,'Expense');
+  final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final reserveNet=reserveNetForMonth(d,month);
-  final available=inc-spent-out+back-reserveNet;
-  final plan=budgetFor(d,month,'Savings goal');
-  final gap=(plan-out+back).clamp(0,1000000000).toInt();
-  final safe=freeAfterPlan(income:inc,expenses:spent+reserveNet,transferredOut:out,transferredIn:back,unpaidBills:unpaidBills(d),savingsGap:gap,reserves:monthlyReserves(d),buffer:buffer(d));
-  final cat=list(d,'categories');
-  final leftDays=DateTime(selected.year,selected.month+1,0).day-(DateTime.now().year==selected.year&&DateTime.now().month==selected.month?DateTime.now().day-1:0);
+  final available=income-expenses-saved-reserveNet;
+  final savingsGap=(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt();
+  final safe=freeAfterPlan(income:income,expenses:expenses+reserveNet,
+   transferredOut:sumType(ts,'Savings out'),transferredIn:sumType(ts,'Savings in'),
+   unpaidBills:unpaidBills(d),savingsGap:savingsGap,
+   reserves:monthlyReserves(d),buffer:buffer(d));
+  final categories=list(d,'categories');
+  final visibleCategories=categories.where((c){
+   final name=st(c,'name');
+   return budgetFor(d,month,name)>0 ||
+    ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==name);
+  }).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Your money, in focus',subtitle:'Everything stored locally · ${monthLabel(selected)}'),
-   Card(color:ink,child:Padding(padding:const EdgeInsets.all(22),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    const Text('Available this month',style:TextStyle(color:Colors.white70)),
-    const SizedBox(height:8),Text(money(available),style:const TextStyle(color:Colors.white,fontSize:30,fontWeight:FontWeight.bold)),
-    const Divider(color:Colors.white24,height:25),
-    Row(children:[Expanded(child:Text('Safe after bills, goals and buffer',style:TextStyle(color:Colors.white.withValues(alpha:.78)))),
-     Text(money(safe),style:const TextStyle(color:Colors.white,fontSize:16,fontWeight:FontWeight.bold))])
-   ]))),
-   Row(children:[metric('Income',money(inc),Icons.south_west),metric('Spent',money(spent),Icons.north_east,color:amber)]),
-   Row(children:[metric('Savings moved',money(out-back),Icons.savings_outlined),metric('Unpaid bills',money(unpaidBills(d)),Icons.event_note_outlined,color:amber)]),
-   Card(child:ListTile(
-    leading:const Icon(Icons.inventory_2_outlined,color:jade),
-    title:const Text('Set aside in reserves'),
-    subtitle:const Text('Ring-fenced cash this month · not an expense'),
-    trailing:Text(money(reserveNet),style:const TextStyle(fontWeight:FontWeight.w800,color:ink)),
-    onTap:()=>setState((){page=4;moreSection=1;}),
-   )),
-   header('Monthly categories',subtitle:'Budgets follow your selected month and year',action:TextButton(onPressed:()=>setState(()=>page=2),child:const Text('Edit'))),
-   ...cat.map((c){final name=st(c,'name'),planned=budgetFor(d,month,name),paid=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-    if(planned==0&&paid==0)return const SizedBox.shrink();
-    final fraction=planned<=0?0.0:(paid/planned).clamp(0,1).toDouble();
-    return Card(child:Padding(padding:const EdgeInsets.all(15),child:Column(children:[
-      Row(children:[Expanded(child:Text(name,style:const TextStyle(fontWeight:FontWeight.bold))),Text('${money(paid)} / ${money(planned)}',style:const TextStyle(fontSize:12))]),
-      const SizedBox(height:9),LinearProgressIndicator(value:fraction,minHeight:7,borderRadius:BorderRadius.circular(8),color:paid>planned&&planned>0?Colors.deepOrange:jade,backgroundColor:cream),
-      const SizedBox(height:6),Align(alignment:Alignment.centerRight,child:Text(planned==0?'Set budget':paid>planned?'Over by ${money(paid-planned)}':'Left ${money(planned-paid)}',style:TextStyle(color:paid>planned&&planned>0?Colors.deepOrange:Colors.black54,fontSize:12))),
-    ])));
+   const SizedBox(height:8),
+   Container(padding:const EdgeInsets.symmetric(horizontal:8,vertical:6),
+    decoration:BoxDecoration(color:Colors.white,
+     border:Border.all(color:const Color(0xffDEE7E1)),
+     borderRadius:BorderRadius.circular(20)),
+    child:Row(children:[
+     IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),
+      icon:const Icon(Icons.chevron_left,color:homeNavy)),
+     Expanded(child:Row(mainAxisAlignment:MainAxisAlignment.center,children:[
+      const Icon(Icons.calendar_today_outlined,color:homeText,size:17),
+      const SizedBox(width:8),
+      Flexible(child:FittedBox(fit:BoxFit.scaleDown,
+       child:Text(homeMonthName(),style:const TextStyle(color:homeNavy,
+        fontWeight:FontWeight.w700,fontSize:16)))),
+     ])),
+     IconButton(tooltip:'Next month',onPressed:()=>shift(1),
+      icon:const Icon(Icons.chevron_right,color:homeNavy)),
+    ])),
+   const SizedBox(height:16),
+   Container(width:double.infinity,padding:const EdgeInsets.all(21),
+    decoration:BoxDecoration(color:homeNavy,
+     borderRadius:BorderRadius.circular(24)),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     const Row(children:[
+      Icon(Icons.account_balance_wallet_outlined,color:Color(0xffD7E2E6),size:20),
+      SizedBox(width:8),
+      Text('Available this month',style:TextStyle(color:Color(0xffE2EAF0),fontSize:14)),
+      Spacer(),
+      Icon(Icons.verified_user_outlined,color:homeCopper,size:21),
+     ]),
+     const SizedBox(height:12),
+     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+      child:Row(mainAxisSize:MainAxisSize.min,
+       crossAxisAlignment:CrossAxisAlignment.baseline,
+       textBaseline:TextBaseline.alphabetic,children:[
+        Text(homeDigits(available),
+         style:const TextStyle(color:Colors.white,fontSize:32,fontWeight:FontWeight.w900)),
+        const SizedBox(width:9),
+        const Text('MAD',style:TextStyle(color:homeCopper,fontSize:16,fontWeight:FontWeight.w800)),
+       ])),
+     const SizedBox(height:8),
+     const Text('After spending, savings and reserves',
+      style:TextStyle(color:Color(0xffCDD9DE),fontSize:12)),
+     const Divider(color:Color(0xff475A6C),height:30),
+     const Text('Safe after bills and planned savings',
+      style:TextStyle(color:Color(0xffD0DCE1),fontSize:12)),
+     const SizedBox(height:5),
+     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+      child:Row(mainAxisSize:MainAxisSize.min,children:[
+       Text(homeDigits(safe),style:const TextStyle(color:Colors.white,
+        fontSize:21,fontWeight:FontWeight.w800)),
+       const SizedBox(width:7),
+       const Text('MAD',style:TextStyle(color:homeCopper,fontSize:12,fontWeight:FontWeight.w700)),
+      ])),
+    ])),
+   const SizedBox(height:22),
+   const Text('Monthly overview',style:TextStyle(color:homeNavy,fontSize:19,
+    fontWeight:FontWeight.w800)),
+   const SizedBox(height:12),
+   Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    homeSummary('Income this month',income,Icons.south_west,
+     const Color(0xff278777),const Color(0xffEAF4EF)),
+    const SizedBox(width:10),
+    homeSummary('Spent this month',expenses,Icons.north_east,
+     const Color(0xffC28250),const Color(0xffFBF0E8)),
+   ]),
+   const SizedBox(height:10),
+   Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    homeSummary('Saved this month',saved,Icons.savings_outlined,
+     const Color(0xff5D77AA),const Color(0xffEDF1FA)),
+    const SizedBox(width:10),
+    homeSummary('Reserved this month',reserveNet,Icons.event_repeat_outlined,
+     const Color(0xff9170AE),const Color(0xffF3EDFA)),
+   ]),
+   const SizedBox(height:22),
+   const Text('Quick actions',style:TextStyle(color:homeNavy,fontSize:19,
+    fontWeight:FontWeight.w800)),
+   const SizedBox(height:11),
+   Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    homeQuickAction('Expense',Icons.north_east,
+     const Color(0xffFBF0E8),const Color(0xffC28250),()=>transactionForm(null)),
+    homeQuickAction('Income',Icons.south_west,
+     const Color(0xffEAF4EF),const Color(0xff278777),
+     ()=>transactionForm(null,initialType:'Income')),
+    homeQuickAction('Save',Icons.savings_outlined,
+     const Color(0xffEDF1FA),const Color(0xff5D77AA),
+     ()=>setState(()=>page=3)),
+    homeQuickAction('Reserve',Icons.event_repeat_outlined,
+     const Color(0xffF3EDFA),const Color(0xff9170AE),
+     ()=>setState((){page=4;moreSection=1;})),
+   ]),
+   const SizedBox(height:24),
+   const Divider(color:Color(0xffE1E9E3)),
+   const SizedBox(height:12),
+   const Text('Spending by category',style:TextStyle(color:homeNavy,
+    fontSize:19,fontWeight:FontWeight.w800)),
+   const SizedBox(height:5),
+   const Text('Your monthly budget progress',
+    style:TextStyle(color:homeText,fontSize:12)),
+   const SizedBox(height:13),
+   ...visibleCategories.map((c){
+    final name=st(c,'name');
+    final planned=budgetFor(d,month,name);
+    final paid=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name)
+     .fold(0,(n,t)=>n+val(t,'amount'));
+    return homeCategory(name,paid,planned);
    }),
-   if(cat.every((c)=>budgetFor(d,month,st(c,'name'))==0))const Padding(padding:EdgeInsets.all(10),child:Text('No category budgets yet. Open Budgets to plan this month.')),
-   header('Before you buy',subtitle:'Simple cash-based spending check'),
-   Card(child:Padding(padding:const EdgeInsets.all(15),child:Column(children:[
-    TextField(controller:purchase,keyboardType:const TextInputType.numberWithOptions(decimal:true),decoration:const InputDecoration(labelText:'Purchase amount (MAD)',prefixIcon:Icon(Icons.shopping_bag_outlined))),
-    const SizedBox(height:12),Builder(builder:(context){final v=double.tryParse(purchase.text.replaceAll(',','.'));final amount=v==null?0:(v*100).round();return Text(amount<=0?'Enter an amount to compare.':amount<=safe?'Within available money · ${money(safe-amount)} remains':'Above safe spending by ${money(amount-safe)}',style:TextStyle(fontWeight:FontWeight.bold,color:amount<=safe?jade:amber));}),
-    TextButton(onPressed:()=>setState((){}),child:const Text('Check amount'))
-   ]))),
-   if(leftDays>0)Padding(padding:const EdgeInsets.all(8),child:Text('Approximate daily safe allowance: ${money((safe.clamp(0,1000000000)/leftDays).floor())} · ${leftDays} days',style:const TextStyle(color:ink))),
-   header('Recent transactions'),...ts.take(4).map((r)=>recordTile(r)),
-   if(ts.isEmpty)const Text('No transactions yet. Tap Add entry to start.'),
+   if(visibleCategories.isEmpty)Container(width:double.infinity,
+    padding:const EdgeInsets.all(15),
+    decoration:BoxDecoration(color:Colors.white,
+     borderRadius:BorderRadius.circular(18)),
+    child:const Text('No spending or category budgets for this month.',
+     style:TextStyle(color:homeText))),
   ]);
  }
  Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?st(t,'category'):st(t,'description'),'${st(t,'date')} · ${st(t,'category')} · $type',money(val(t,'amount')),icon:type=='Income'?Icons.call_received:type.startsWith('Savings')?Icons.savings_outlined:Icons.call_made,tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
@@ -411,7 +612,7 @@ class _FinanceState extends State<FinanceScreen>{
   return (d*100).round();
  }
  void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));}
- Future<void> transactionForm(RowData? existing,{RowData? payBill}) async{
+ Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType}) async{
   final d=await store.snapshot();if(!mounted)return;
   final prefill=payBill==null?null:prepareBillPayment(
     name:st(payBill,'name'),
@@ -429,7 +630,7 @@ class _FinanceState extends State<FinanceScreen>{
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
   final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
   final amt=TextEditingController(text:existing==null?(prefill==null?'':mad(prefill.amountCents).toStringAsFixed(2)):mad(val(existing,'amount')).toStringAsFixed(2));
-  var type=existing==null?(prefill?.type??'Expense'):st(existing,'type');
+  var type=existing==null?(prefill?.type??initialType??'Expense'):st(existing,'type');
   var category=existing==null?(prefill?.category??'Groceries'):st(existing,'category');
   if(!cats.contains(category))category=cats.first;
   var date=existing==null?DateTime.now():parseDay(st(existing,'date'));
