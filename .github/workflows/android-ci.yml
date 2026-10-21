@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      GOOGLE_WEB_CLIENT_ID: ${{ inputs.web_client_id || vars.PAYDAY_GOOGLE_WEB_CLIENT_ID }}
+      GOOGLE_WEB_CLIENT_ID: ${{ inputs.web_client_id || vars.PAYDAY_GOOGLE_WEB_CLIENT_ID || '735410421842-9gjsuft9cns8256lepc6pv0vqe3qefng.apps.googleusercontent.com' }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
