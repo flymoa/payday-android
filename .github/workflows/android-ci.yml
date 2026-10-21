@@ -14,13 +14,6 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - name: Generate Android project
-        run: flutter create --platforms=android --org=ma.payday --project-name=payday_mobile .
       - name: Restore development signing key
         uses: actions/cache@v4
         with:
@@ -45,8 +38,15 @@ jobs:
           test -n "$fingerprint"
           echo "SHA-1 fingerprint for this GitHub-built debug APK: $fingerprint"
           echo "### Payday Android — debug APK SHA-1" >> "$GITHUB_STEP_SUMMARY"
-          echo "`$fingerprint`" >> "$GITHUB_STEP_SUMMARY"
+          printf 'SHA-1: %s\n' "$fingerprint" >> "$GITHUB_STEP_SUMMARY"
           echo "Development only. The fingerprint may change if the Actions cache expires." >> "$GITHUB_STEP_SUMMARY"
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android project
+        run: flutter create --platforms=android --org=ma.payday --project-name=payday_mobile .
       - name: Harden Android manifest
         run: python3 tool/harden_android.py
       - name: Get dependencies
