@@ -1,6 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/finance.dart';
 void main() {
+ test('category budget colors use correct boundaries',(){
+  expect(categoryBudgetStatus(0,10000),CategoryBudgetStatus.withinBudget);
+  expect(categoryBudgetStatus(8499,10000),CategoryBudgetStatus.withinBudget);
+  expect(categoryBudgetStatus(8500,10000),CategoryBudgetStatus.nearLimit);
+  expect(categoryBudgetStatus(10000,10000),CategoryBudgetStatus.nearLimit);
+  expect(categoryBudgetStatus(10001,10000),CategoryBudgetStatus.overBudget);
+  expect(categoryBudgetStatus(2500,0),CategoryBudgetStatus.unbudgeted);
+ });
  test('month keys include year', () {
   expect(monthKey(DateTime(2026,1,31)), '2026-01');
   expect(monthKey(DateTime(2027,1,1)), '2027-01');
