@@ -103,6 +103,12 @@ class OfflineStore {
     if((old.first['funded'] as num).toInt()!=funded){
       throw StateError('Opening amount cannot be edited; log a deposit or withdrawal instead.');
     }
+    final net=await d.rawQuery(
+      "SELECT COALESCE(SUM(CASE WHEN kind='add' THEN amount ELSE -amount END),0) AS net FROM reserve_movements WHERE reserve_id=?",
+      [id]);
+    final fundedNow=funded+(net.single['net'] as num).toInt();
+    if(target<fundedNow)throw StateError(
+      'Target cannot be lower than the money currently in this reserve.');
     await d.update('reserves',v,where:'id=?',whereArgs:[id]);
   }
  }
@@ -142,6 +148,20 @@ class OfflineStore {
      'reserve_id':reserveId,'date':date,'kind':kind,
      'amount':amount,'note':note.trim(),
    });
+   // Backdated transfers must not make any point in the funding history negative
+   // or over its target; rollback the entire insertion when they do.
+   var running=(reserve['funded'] as num).toInt();
+   final chronological=await txn.query('reserve_movements',
+     columns:['kind','amount'],where:'reserve_id=?',whereArgs:[reserveId],
+     orderBy:'date ASC, id ASC');
+   for(final movement in chronological){
+    final delta=(movement['amount'] as num).toInt();
+    running+=(movement['kind']=='add'?delta:-delta);
+    if(running<0)throw StateError(
+      'Transfer would make the historical reserve balance negative.');
+    if(running>(reserve['target'] as num).toInt())throw StateError(
+      'Transfer would exceed the reserve target.');
+   }
   });
  }
  Future<void> removeReserve(int id) async {
