@@ -77,7 +77,11 @@ class _FinanceState extends State<FinanceScreen>{
  int? moreSection; // null means More menu; index selects the opened section.
  final purchase=TextEditingController(text:'200');
  @override void dispose(){purchase.dispose();search.dispose();store.close();super.dispose();}
- void refresh(){if(mounted)setState(()=>data=store.snapshot());}
+ void refresh(){
+  if(!mounted)return;
+  final next=store.snapshot();
+  setState((){data=next;});
+ }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
  Future<bool> execute(Future<void> Function() fn)async{
