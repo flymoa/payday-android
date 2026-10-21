@@ -47,10 +47,9 @@ class _PaydayLocalState extends State<PaydayLocal> {
  @override Widget build(BuildContext context)=>MaterialApp(
   debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
-  home:FinanceScreen(onToggleTheme:()=>setState(()=>mode=mode==ThemeMode.dark?
-   ThemeMode.light:ThemeMode.dark)));
+  home:FinanceScreen(onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData});final VoidCallback? onToggleTheme;
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData});final ValueChanged<bool>? onToggleTheme;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
  bool get isDark=>Theme.of(context).brightness==Brightness.dark;
@@ -140,9 +139,9 @@ class _FinanceState extends State<FinanceScreen>{
    title:Text(title,style:TextStyle(fontWeight:FontWeight.w700)),
    subtitle:Text(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:Text(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
- Widget metric(String title,String value,IconData icon,{Color color=const Color(0xff087F7C)})=>Expanded(child:Card(child:Padding(
+ Widget metric(String title,String value,IconData icon,{Color? color})=>Expanded(child:Card(child:Padding(
   padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Icon(icon,color:color),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
+   Icon(icon,color:color??jade),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
    SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
   ]))));
 
@@ -214,7 +213,7 @@ class _FinanceState extends State<FinanceScreen>{
      if(isOver)Padding(padding:EdgeInsets.only(right:4),
       child:Icon(Icons.error_outline,color:homeOver,size:17)),
      Text(description,style:TextStyle(color:isOver?homeOver:
-      (isNear||isUnbudgeted)?Color(0xff996522):homeText,
+      (isNear||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
       fontWeight:FontWeight.w700,fontSize:12)),
     ]),
     SizedBox(height:9),
@@ -249,7 +248,7 @@ class _FinanceState extends State<FinanceScreen>{
   appBar:AppBar(toolbarHeight:page==0?82:72,titleSpacing:8,
    title:PaydayBrand(compact:page!=0),centerTitle:true,
    actions:[IconButton(tooltip:isDark?'Use light appearance':'Use dark appearance',
-    onPressed:widget.onToggleTheme,
+    onPressed:widget.onToggleTheme==null?null:()=>widget.onToggleTheme!(!isDark),
     icon:Icon(isDark?Icons.light_mode_outlined:Icons.dark_mode_outlined))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Text('Local database error: ${snap.error}'));
