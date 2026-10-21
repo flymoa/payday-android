@@ -635,37 +635,43 @@ class _FinanceState extends State<FinanceScreen>{
       ]),
       Text('Due ${st(r,'due')}',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:12),
-      Wrap(spacing:20,runSpacing:12,children:[
-       Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text('Put aside',style:TextStyle(color:muted,fontSize:12)),
-        Text(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:20)),
-       ]),
-       Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
-        Text('Still needed',style:TextStyle(color:muted,fontSize:12)),
-        Text(money(needed),style:TextStyle(color:ink,fontWeight:FontWeight.w800,fontSize:16)),
-       ]),
-      ]),
-      SizedBox(height:10),
+      Text('Saved',style:TextStyle(color:muted,fontSize:12)),
+      SizedBox(height:4),
+      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+       child:Text(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:28))),
+      SizedBox(height:4),
+      Text('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:12)),
+      SizedBox(height:14),
       LinearProgressIndicator(value:goal==0?0:(held/goal).clamp(0,1).toDouble(),
-       minHeight:9,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
-      SizedBox(height:10),
-      Text(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade)),
-      SizedBox(height:6),
-      Text('Net set aside this month: ${money(contributed)}',style:TextStyle(fontSize:12)),
-      Text(!active?'Monthly guidance begins in ${monthLabel(start)}':next>0?'Suggested next month: ${money(next)}':
-       needed==0?'Target fully funded':'Next month: target due or overdue',
-       style:TextStyle(fontSize:12,color:muted)),
-      SizedBox(height:15),
-      Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-       FilledButton.icon(onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
-        icon:Icon(Icons.add),label:Text('Add money')),
-       SizedBox(height:8),
-       OutlinedButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
-        icon:Icon(Icons.remove),label:Text('Take out')),
+       minHeight:7,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
+      SizedBox(height:8),
+      Wrap(alignment:WrapAlignment.spaceBetween,spacing:16,runSpacing:4,children:[
+       Text('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:12)),
+       Text('${money(needed)} remaining',style:TextStyle(color:ink,fontWeight:FontWeight.w600,fontSize:12)),
       ]),
-      Align(alignment:Alignment.centerRight,child:TextButton.icon(
-       onPressed:()=>reserveHistoryForm(r),
-       icon:Icon(Icons.history),label:Text('View transfer history'))),
+      SizedBox(height:14),
+      Container(width:double.infinity,padding:EdgeInsets.all(12),
+       decoration:BoxDecoration(color:(overdue&&needed>0?Colors.deepOrange:jade).withValues(alpha:.07),
+        borderRadius:BorderRadius.circular(12)),
+       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Text(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade,fontSize:13)),
+        if(active&&!overdue&&needed>0&&next>0)...[
+         SizedBox(height:4),Text('Next month: ${money(next)} suggested',style:TextStyle(fontSize:12,color:muted)),
+        ],
+       ])),
+      if(contributed!=0)Padding(padding:EdgeInsets.only(top:8),
+       child:Text('Net added this month: ${money(contributed)}',style:TextStyle(fontSize:12,color:muted))),
+      SizedBox(height:16),
+      SizedBox(width:double.infinity,child:FilledButton.icon(
+       onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
+       icon:Icon(Icons.add),label:Text('Add money'))),
+      SizedBox(height:4),
+      Wrap(alignment:WrapAlignment.spaceBetween,spacing:12,children:[
+       TextButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
+        icon:Icon(Icons.remove,size:18),label:Text('Take out')),
+       TextButton.icon(onPressed:()=>reserveHistoryForm(r),
+        icon:Icon(Icons.history,size:18),label:Text('History')),
+      ]),
      ])));
    }),
   ]);
@@ -1142,6 +1148,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
