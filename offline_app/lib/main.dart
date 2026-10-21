@@ -140,7 +140,7 @@ class _FinanceState extends State<FinanceScreen>{
    title:Text(title,style:TextStyle(fontWeight:FontWeight.w700)),
    subtitle:Text(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:Text(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
- Widget metric(String title,String value,IconData icon,{Color color=jade})=>Expanded(child:Card(child:Padding(
+ Widget metric(String title,String value,IconData icon,{Color color=const Color(0xff087F7C)})=>Expanded(child:Card(child:Padding(
   padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Icon(icon,color:color),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
    SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
@@ -157,7 +157,7 @@ class _FinanceState extends State<FinanceScreen>{
   return '${cents<0?'−':''}${parts.join(',')}.${value[1]}';
  }
  String homeMonthName(){
-  names=['January','February','March','April','May','June',
+  const names=['January','February','March','April','May','June',
    'July','August','September','October','November','December'];
   return '${names[selected.month-1]} ${selected.year}';
  }
