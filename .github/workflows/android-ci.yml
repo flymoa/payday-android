@@ -58,6 +58,14 @@ jobs:
         run: python3 tool/harden_android.py
       - name: Get dependencies
         run: flutter pub get
+      - name: Confirm Google Sign-In compatibility version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(awk '/^  google_sign_in_android:$/ {found=1;next} found && /^    version:/ {gsub(/"/, "", $2); print $2; exit}' pubspec.lock)"
+          test "$version" = "7.2.7"
+          echo '### Google Sign-In compatibility trial' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Android implementation: 7.2.7 (temporary regression test).' >> "$GITHUB_STEP_SUMMARY"
       - name: Check Dart source
         run: flutter analyze
       - name: Run unit tests
@@ -104,6 +112,6 @@ jobs:
       - name: Upload test-only APK
         uses: actions/upload-artifact@v4
         with:
-          name: payday-demo-debug-test-copy
+          name: payday-demo-signin-compat-7_2_7
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 3
