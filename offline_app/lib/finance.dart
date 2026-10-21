@@ -1,0 +1,18 @@
+/// Pure finance calculations (amounts are integer centimes to avoid rounding drift).
+String monthKey(DateTime date) => '${date.year.toString().padLeft(4,'0')}-${date.month.toString().padLeft(2,'0')}';
+DateTime monthFromKey(String key) => DateTime(int.parse(key.substring(0,4)), int.parse(key.substring(5,7)));
+String dayKey(DateTime date) => '${monthKey(date)}-${date.day.toString().padLeft(2,'0')}';
+int toCents(String input) => ((double.tryParse(input.trim().replaceAll(',','.')) ?? double.nan)*100).round();
+double mad(int cents) => cents / 100.0;
+bool validMoney(int cents) => cents > 0 && cents <= 100000000000;
+int billOutstanding(int total, int payments) => (total-payments).clamp(0,total);
+int savingsPool({required int opening,required int transferredOut,required int transferredIn,required int confirmedExtra}) => opening+transferredOut-transferredIn+confirmedExtra;
+int availableAllocation(int pool,int allocated) => pool-allocated;
+int remainingBudget(int budget,int spent) => budget-spent;
+int monthlyReserveTopUp(int target,int funded,DateTime due,DateTime start) {
+ final remaining=(target-funded).clamp(0,100000000000);
+ final months=((due.year-start.year)*12+due.month-start.month+1).clamp(1,1000);
+ return (remaining / months).ceil();
+}
+int freeAfterPlan({required int income,required int expenses,required int transferredOut,required int transferredIn,required int unpaidBills,required int savingsGap,required int reserves,required int buffer}) =>
+ income-expenses-transferredOut+transferredIn-unpaidBills-savingsGap-reserves-buffer;
