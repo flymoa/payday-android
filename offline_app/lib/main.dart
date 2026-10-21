@@ -515,20 +515,122 @@ class _FinanceState extends State<FinanceScreen>{
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:const Text('Delete bill',style:TextStyle(color:Colors.red)))
   ]));
  }
+ Future<void> reserveMovementForm(RowData reserve,String kind) async {
+  final adding=kind=='add';
+  final d=await store.snapshot();if(!mounted)return;
+  final balance=reserveFundedAt(d,reserve,monthKey(DateTime.now()));
+  final needed=(val(reserve,'target')-balance).clamp(0,val(reserve,'target')).toInt();
+  final amountController=TextEditingController();
+  final noteController=TextEditingController();
+  var date=DateTime.now();
+  await sheet(adding?'Put money aside':'Take money out',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text(st(reserve,'name'),style:const TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
+    const SizedBox(height:7),
+    Text('Currently set aside: ${money(balance)}',
+      style:const TextStyle(color:jade,fontWeight:FontWeight.bold)),
+    Text(adding?'Still needed: ${money(needed)}':
+      'Money returned to spendable cash when you take it out.',
+      style:const TextStyle(color:Colors.black54,fontSize:12)),
+    const SizedBox(height:16),
+    field(amountController,'Amount (MAD)',number:true),
+    field(noteController,'Note (optional)'),
+    Row(children:[const Icon(Icons.calendar_today_outlined,size:18),
+     TextButton.icon(icon:const Icon(Icons.edit_calendar_outlined),
+      onPressed:()async{
+       final picked=await showDatePicker(context:c,initialDate:date,
+        firstDate:DateTime(2000),lastDate:DateTime.now());
+       if(picked!=null)rebuild(()=>date=picked);
+      },
+      label:Text('Transfer date: ${dayKey(date)}'),
+     ),
+    ]),
+    const Padding(padding:EdgeInsets.only(top:8),
+     child:Text('This is a transfer between spendable cash and your reserve, '
+       'not an ordinary expense. Record the actual purchase separately when it occurs.',
+       style:TextStyle(color:Colors.black54,fontSize:12))),
+   ]),footer:(c,rebuild)=>FilledButton.icon(
+    icon:Icon(adding?Icons.savings_outlined:Icons.undo),
+    label:Text(adding?'Record money set aside':'Record withdrawal'),
+    onPressed:()async{
+     final cents=amount(amountController);
+     if(cents==null)return inputError('Enter a valid positive amount.');
+     if(adding&&cents>needed)return inputError('Amount exceeds the remaining target.');
+     if(!adding&&cents>balance)return inputError('Amount exceeds the saved balance.');
+     final success=await execute(()=>store.recordReserveMovement(
+      reserveId:val(reserve,'id'),date:dayKey(date),kind:kind,
+      amount:cents,note:noteController.text));
+     if(success&&c.mounted)Navigator.pop(c);
+    },
+   ));
+ }
+ Future<void> reserveHistoryForm(RowData reserve) async {
+  final d=await store.snapshot();if(!mounted)return;
+  final history=reserveHistory(d,val(reserve,'id'));
+  await sheet('Reserve transfer history',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text(st(reserve,'name'),style:const TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
+    const SizedBox(height:7),
+    Text('Opening funds: ${money(val(reserve,'funded'))}',
+      style:const TextStyle(color:Colors.black54)),
+    const SizedBox(height:10),
+    if(history.isEmpty)const Text('No deposits or withdrawals recorded yet.'),
+    ...history.map((m)=>ListTile(
+     contentPadding:EdgeInsets.zero,
+     leading:Icon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
+       color:st(m,'kind')=='add'?jade:amber),
+     title:Text(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
+     subtitle:Text('${st(m,'date')}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
+     trailing:Text('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
+       style:TextStyle(fontWeight:FontWeight.w800,
+         color:st(m,'kind')=='add'?jade:amber)),
+    )),
+    const SizedBox(height:10),
+    const Text('To correct a previous transfer, record an opposite transfer. '
+      'This keeps a dated history of money moving in and out.',
+      style:TextStyle(color:Colors.black54,fontSize:12)),
+   ]));
+ }
  Future<void> reserveForm(RowData? existing)async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
   final target=TextEditingController(text:existing==null?'':mad(val(existing,'target')).toStringAsFixed(2));
   final funded=TextEditingController(text:existing==null?'0':mad(val(existing,'funded')).toStringAsFixed(2));
   var due=existing==null?DateTime(DateTime.now().year+1,1):parseDay(st(existing,'due'));
   var start=existing==null?DateTime.now():monthFromKey(st(existing,'start_month'));
-  await sheet(existing==null?'New expense reserve':'Edit expense reserve',(c,rebuild)=>Column(children:[
-   field(name,'Reserve name'),field(target,'Target (MAD)',number:true),field(funded,'Already funded (MAD)',number:true),
-   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:due,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>due=p);},child:Text('Due: ${dayKey(due)}')),
-   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:start,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>start=p);},child:Text('Start month: ${monthKey(start)}')),
-   FilledButton(onPressed:()async{final t=amount(target),f=amount(funded,allowZero:true);if(t==null||f==null||due.isBefore(DateTime(start.year,start.month)))return inputError('Check target, funded and dates');
-     await execute(()=>store.saveReserve(id:existing==null?null:val(existing,'id'),name:name.text,target:t,funded:f,due:dayKey(due),startMonth:monthKey(start)));if(c.mounted)Navigator.pop(c);},child:const Text('Save reserve')),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete reserve?',()=>store.removeReserve(val(existing,'id')));},child:const Text('Delete reserve',style:TextStyle(color:Colors.red)))
-  ]));
+  await sheet(existing==null?'Create a reserve':'Edit reserve target',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+   field(name,'Reserve name (e.g. Vacation)'),
+   field(target,'Total target (MAD)',number:true),
+   if(existing==null)field(funded,'Already put aside before using Payday (MAD)',number:true),
+   if(existing!=null)Padding(padding:const EdgeInsets.only(bottom:10),
+     child:Text('Original opening funds: ${money(val(existing,'funded'))}. '
+      'Use Add money / Take out to record changes.',
+      style:const TextStyle(color:Colors.black54,fontSize:12))),
+   if(existing==null)const Padding(padding:EdgeInsets.only(bottom:10),child:Text(
+     'Opening funds are money already saved before this app. '
+     'They are not deducted again from cash. New deposits must use Add money.',
+     style:TextStyle(color:Colors.black54,fontSize:12))),
+   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:due,
+    firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>due=p);},
+    child:Text('Due: ${dayKey(due)}')),
+   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:start,
+    firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>start=p);},
+    child:Text('Start month: ${monthKey(start)}')),
+   if(existing!=null)TextButton(onPressed:()async{
+     Navigator.pop(c);await confirmDelete('Delete reserve?',()=>store.removeReserve(val(existing,'id')));
+    },child:const Text('Delete reserve',style:TextStyle(color:Colors.red))),
+  ]),footer:(c,rebuild)=>FilledButton(
+   onPressed:()async{
+    final t=amount(target),f=amount(funded,allowZero:true);
+    if(t==null||f==null||f>t || due.isBefore(DateTime(start.year,start.month))){
+     return inputError('Check the target, opening funds and dates.');
+    }
+    final success=await execute(()=>store.saveReserve(
+     id:existing==null?null:val(existing,'id'),
+     name:name.text,target:t,funded:f,due:dayKey(due),startMonth:monthKey(start)));
+    if(success&&c.mounted)Navigator.pop(c);
+   },child:const Text('Save reserve')),
+  );
  }
  Future<void> monthCloseForm(Map<String,List<RowData>> d)async{
   final current=list(d,'month_closes').firstWhere((r)=>st(r,'month')==month,orElse:()=>{});
