@@ -55,9 +55,33 @@ class _FinanceState extends State<FinanceScreen>{
  }
  int allocated(Map<String,List<RowData>> d)=>list(d,'allocations').fold(0,(n,x)=>n+val(x,'amount'));
  int buffer(Map<String,List<RowData>> d)=>int.tryParse(st(list(d,'settings').firstWhere((x)=>st(x,'key')=='buffer',orElse:()=>{}),'value'))??20000;
+ /// Reserve history is independent from expenses and savings goals.
+ List<RowData> reserveHistory(Map<String,List<RowData>> d,int reserveId){
+  final rows=list(d,'reserve_movements').where((r)=>val(r,'reserve_id')==reserveId).toList();
+  rows.sort((a,b){final date=st(b,'date').compareTo(st(a,'date'));return date!=0?date:val(b,'id').compareTo(val(a,'id'));});
+  return rows;
+ }
+ int reserveNetForMonth(Map<String,List<RowData>> d,String key,{int? reserveId}){
+  return list(d,'reserve_movements').where((r)=>st(r,'date').startsWith(key) &&
+   (reserveId==null || val(r,'reserve_id')==reserveId)).fold(0,(sum,r)=>
+     sum+(st(r,'kind')=='add'?val(r,'amount'):-val(r,'amount')));
+ }
+ int reserveFundedAt(Map<String,List<RowData>> d,RowData reserve,String thruMonth){
+  final id=val(reserve,'id');
+  final lastDay=dayKey(DateTime(monthFromKey(thruMonth).year,monthFromKey(thruMonth).month+1,0));
+  return val(reserve,'funded')+list(d,'reserve_movements')
+   .where((r)=>val(r,'reserve_id')==id && st(r,'date').compareTo(lastDay)<=0)
+   .fold(0,(sum,r)=>sum+(st(r,'kind')=='add'?val(r,'amount'):-val(r,'amount')));
+ }
  int monthlyReserves(Map<String,List<RowData>> d){
-  return list(d,'reserves').where((r)=>st(r,'start_month').compareTo(month)<=0&&st(r,'due').substring(0,7).compareTo(month)>=0)
-   .fold(0,(n,r)=>n+monthlyReserveTopUp(val(r,'target'),val(r,'funded'),parseDay(st(r,'due')),monthFromKey(st(r,'start_month'))));
+  final chosen=monthFromKey(month);
+  final preceding=monthKey(DateTime(chosen.year,chosen.month-1));
+  return list(d,'reserves').where((r)=>st(r,'start_month').compareTo(month)<=0 &&
+    st(r,'due').substring(0,7).compareTo(month)>=0)
+   .fold(0,(sum,r)=>sum+reserveAdditionalHold(
+    target:val(r,'target'),fundedBeforeMonth:reserveFundedAt(d,r,preceding),
+    netContributedThisMonth:reserveNetForMonth(d,month,reserveId:val(r,'id')),
+    due:parseDay(st(r,'due')),month:chosen));
  }
  int unpaidBills(Map<String,List<RowData>> d){
   return list(d,'bills').where((b)=>st(b,'due').startsWith(month)).fold(0,(n,b)=>n+billOutstanding(val(b,'amount'),billPaid(d,b)));
@@ -113,10 +137,11 @@ class _FinanceState extends State<FinanceScreen>{
  );
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d),inc=sumType(ts,'Income'),spent=sumType(ts,'Expense'),out=sumType(ts,'Savings out'),back=sumType(ts,'Savings in');
-  final available=inc-spent-out+back;
+  final reserveNet=reserveNetForMonth(d,month);
+  final available=inc-spent-out+back-reserveNet;
   final plan=budgetFor(d,month,'Savings goal');
   final gap=(plan-out+back).clamp(0,1000000000).toInt();
-  final safe=freeAfterPlan(income:inc,expenses:spent,transferredOut:out,transferredIn:back,unpaidBills:unpaidBills(d),savingsGap:gap,reserves:monthlyReserves(d),buffer:buffer(d));
+  final safe=freeAfterPlan(income:inc,expenses:spent+reserveNet,transferredOut:out,transferredIn:back,unpaidBills:unpaidBills(d),savingsGap:gap,reserves:monthlyReserves(d),buffer:buffer(d));
   final cat=list(d,'categories');
   final leftDays=DateTime(selected.year,selected.month+1,0).day-(DateTime.now().year==selected.year&&DateTime.now().month==selected.month?DateTime.now().day-1:0);
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -130,6 +155,13 @@ class _FinanceState extends State<FinanceScreen>{
    ]))),
    Row(children:[metric('Income',money(inc),Icons.south_west),metric('Spent',money(spent),Icons.north_east,color:amber)]),
    Row(children:[metric('Savings moved',money(out-back),Icons.savings_outlined),metric('Unpaid bills',money(unpaidBills(d)),Icons.event_note_outlined,color:amber)]),
+   Card(child:ListTile(
+    leading:const Icon(Icons.inventory_2_outlined,color:jade),
+    title:const Text('Set aside in reserves'),
+    subtitle:const Text('Ring-fenced cash this month · not an expense'),
+    trailing:Text(money(reserveNet),style:const TextStyle(fontWeight:FontWeight.w800,color:ink)),
+    onTap:()=>setState((){page=4;moreSection=1;}),
+   )),
    header('Monthly categories',subtitle:'Budgets follow your selected month and year',action:TextButton(onPressed:()=>setState(()=>page=2),child:const Text('Edit'))),
    ...cat.map((c){final name=st(c,'name'),planned=budgetFor(d,month,name),paid=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
     if(planned==0&&paid==0)return const SizedBox.shrink();
@@ -452,7 +484,7 @@ class _FinanceState extends State<FinanceScreen>{
   final ts=monthTransactions(d);
   final inc=sumType(ts,'Income'),spent=sumType(ts,'Expense'),saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final currentMonth=DateTime(DateTime.now().year,DateTime.now().month);
-  final available=(inc-spent-saved-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
+  final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
   await sheet('Close ${monthLabel(selected)}',(c,rebuild)=>Column(children:[
    Text('Estimated available extra: ${money(available)}\nOnly extra savings beyond recorded transfers should be entered.'),
    const SizedBox(height:8),CheckboxListTile(value:checked,onChanged:(v)=>rebuild(()=>checked=v??false),title:const Text('All transactions checked')),
