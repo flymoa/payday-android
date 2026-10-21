@@ -1,0 +1,66 @@
+name: Payday Local — standalone offline APK
+on:
+  push:
+    branches: [payday-local-offline-v1]
+  pull_request:
+    paths:
+      - 'offline_app/**'
+      - '.github/workflows/payday-offline-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Create isolated Android project
+        working-directory: offline_app
+        run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Rename Android launcher
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday Local"')
+          p.write_text(text)
+          PY
+      - name: Install dependencies
+        working-directory: offline_app
+        run: flutter pub get
+      - name: Static analysis
+        working-directory: offline_app
+        run: flutter analyze
+      - name: Logic tests
+        working-directory: offline_app
+        run: flutter test
+      - name: Build standalone release APK
+        working-directory: offline_app
+        run: flutter build apk --release
+      - name: Verify offline APK identity and permissions
+        working-directory: offline_app
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          test -s "$apk"
+          aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)"
+          "$aapt" dump badging "$apk" | grep -q "package: name='ma.payday.payday_local'"
+          if "$aapt" dump permissions "$apk" | grep -q 'android.permission.INTERNET'; then
+            echo 'ERROR: offline APK requests INTERNET permission'
+            exit 1
+          fi
+          echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK signed with development key; do not use as production signing.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: payday-local-offline-v1-apk
+          path: offline_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
