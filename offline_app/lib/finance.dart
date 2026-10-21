@@ -180,3 +180,17 @@ class BudgetAssignmentException implements Exception {
  final BudgetAssignmentCheck check;
  @override String toString()=>check.message;
 }
+
+
+/// One source for the dashboard balances and their itemized explanation.
+/// Net transfers may be negative when money is withdrawn back into cash.
+class MonthlyBalance {
+ const MonthlyBalance({required this.income,required this.expenses,
+  required this.savingsNet,required this.reserveNet,required this.unpaidBills,
+  required this.savingsGap,required this.reserveHold,required this.buffer});
+ final int income,expenses,savingsNet,reserveNet,unpaidBills,savingsGap,reserveHold,buffer;
+ int get available=>income-expenses-savingsNet-reserveNet;
+ int get safe=>freeAfterPlan(income:income,expenses:expenses+reserveNet,
+  transferredOut:savingsNet,transferredIn:0,unpaidBills:unpaidBills,
+  savingsGap:savingsGap,reserves:reserveHold,buffer:buffer);
+}

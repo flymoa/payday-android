@@ -283,18 +283,61 @@ class _FinanceState extends State<FinanceScreen>{
   ]),
  );
 
+ Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
+  button:true,label:label,child:InkWell(onTap:onTap,
+   borderRadius:BorderRadius.circular(12),child:Padding(
+    padding:EdgeInsets.symmetric(vertical:4),child:child)));
+
+ Future<void> balanceDetails(MonthlyBalance balance,bool showSafe)async{
+  Widget calculation(String label,int amount,{bool total=false})=>Padding(
+   padding:EdgeInsets.symmetric(vertical:10),child:Row(
+    crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Expanded(child:Text(label,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w500))),
+     SizedBox(width:12),Flexible(child:Text('${amount>0&&!total?'+ ':''}${money(amount)}',
+      textAlign:TextAlign.right,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w600))),
+    ]));
+  await sheet(showSafe?'Safe to spend':'Available this month',(c,rebuild)=>Column(
+   crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Text(monthLabel(selected),style:TextStyle(color:muted)),
+    SizedBox(height:12),
+    Text('Based on recorded money for this month, not your bank account balance or planned income.'),
+    SizedBox(height:8),
+    calculation('Income received',balance.income),
+    calculation('Expenses recorded',-balance.expenses),
+    calculation('Net savings transfers',-balance.savingsNet),
+    calculation('Net reserve transfers',-balance.reserveNet),
+    Divider(),calculation('Available this month',balance.available,total:true),
+    if(showSafe)...[
+     calculation('Unpaid bills due this month',-balance.unpaidBills),
+     calculation('Savings goal still to fund',-balance.savingsGap),
+     calculation('Reserve contributions still to fund',-balance.reserveHold),
+     calculation('Cash buffer',-balance.buffer),
+     Divider(),calculation('Safe to spend',balance.safe,total:true),
+     if(balance.safe<0)Text('Your remaining commitments exceed available money by ${money(-balance.safe)}.'),
+     SizedBox(height:12),
+     Text('Paid bill amounts are already in expenses. Only unpaid amounts are held here. Savings and reserve transfers reduce the remaining amounts still to fund.'),
+     SizedBox(height:12),
+     Text('Category budgets are spending limits shown separately; their unused amounts are not deducted here. Check your category budget before a purchase.'),
+    ]else...[
+     SizedBox(height:12),Text('Positive transfers move money into savings or reserves; withdrawals add it back. Bills, remaining goals and your cash buffer are held in Safe to spend.'),
+    ],
+    SizedBox(height:16),Align(alignment:Alignment.centerRight,
+     child:TextButton(onPressed:()=>Navigator.pop(c),child:Text('Got it'))),
+   ]));
+ }
+
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d);
   final income=sumType(ts,'Income');
   final expenses=sumType(ts,'Expense');
   final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final reserveNet=reserveNetForMonth(d,month);
-  final available=income-expenses-saved-reserveNet;
-  final savingsGap=(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt();
-  final safe=freeAfterPlan(income:income,expenses:expenses+reserveNet,
-   transferredOut:sumType(ts,'Savings out'),transferredIn:sumType(ts,'Savings in'),
-   unpaidBills:unpaidBills(d),savingsGap:savingsGap,
-   reserves:monthlyReserves(d),buffer:buffer(d));
+  final balance=MonthlyBalance(
+   income:income,expenses:expenses,savingsNet:saved,reserveNet:reserveNet,
+   unpaidBills:unpaidBills(d),
+   savingsGap:(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt(),
+   reserveHold:monthlyReserves(d),buffer:buffer(d));
+  final available=balance.available,safe=balance.safe;
   final categories=list(d,'categories');
   final visibleCategories=categories.where((c){
    final name=st(c,'name');
@@ -325,12 +368,13 @@ class _FinanceState extends State<FinanceScreen>{
     decoration:BoxDecoration(color:Color(0xff0B2545),
      borderRadius:BorderRadius.circular(24)),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     balanceTap('Explain available balance',()=>balanceDetails(balance,false),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Row(children:[
       Icon(Icons.account_balance_wallet_outlined,color:Color(0xffD7E2E6),size:20),
       SizedBox(width:8),
       Expanded(child:Text('Available this month',style:TextStyle(color:Color(0xffE2EAF0),fontSize:14))),
       SizedBox(width:8),
-      Icon(Icons.verified_user_outlined,color:homeCopper,size:21),
+      Icon(Icons.info_outline,color:homeCopper,size:21),
      ]),
      SizedBox(height:12),
      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
@@ -343,10 +387,12 @@ class _FinanceState extends State<FinanceScreen>{
         Text('MAD',style:TextStyle(color:homeCopper,fontSize:16,fontWeight:FontWeight.w800)),
        ])),
      SizedBox(height:8),
-     Text('After spending, savings and reserves',
+     Text('After spending, savings and reserves · Tap for details',
       style:TextStyle(color:Color(0xffCDD9DE),fontSize:12)),
+     ])),
      Divider(color:Color(0xff475A6C),height:30),
-     Text('Safe after bills and planned savings',
+     balanceTap('Explain safe to spend',()=>balanceDetails(balance,true),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text('Safe to spend · Tap for details',
       style:TextStyle(color:Color(0xffD0DCE1),fontSize:12)),
      SizedBox(height:5),
      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
@@ -356,6 +402,7 @@ class _FinanceState extends State<FinanceScreen>{
        SizedBox(width:7),
        Text('MAD',style:TextStyle(color:homeCopper,fontSize:12,fontWeight:FontWeight.w700)),
       ])),
+     ])),
     ])),
    SizedBox(height:22),
    Text('Monthly overview',style:TextStyle(color:homeNavy,fontSize:19,
@@ -978,5 +1025,6 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 

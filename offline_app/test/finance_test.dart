@@ -1,6 +1,18 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/finance.dart';
 void main() {
+ test('balance explanation reconciles transfers and remaining commitments',(){
+  const b=MonthlyBalance(income:100000,expenses:20000,savingsNet:10000,
+   reserveNet:5000,unpaidBills:15000,savingsGap:10000,reserveHold:5000,buffer:2000);
+  expect(b.available,65000);
+  expect(b.safe,33000);
+ });
+ test('withdrawals add cash back and a shortfall stays visible',(){
+  const b=MonthlyBalance(income:0,expenses:10000,savingsNet:-3000,
+   reserveNet:-2000,unpaidBills:1000,savingsGap:0,reserveHold:0,buffer:2000);
+  expect(b.available,-5000);
+  expect(b.safe,-8000);
+ });
  test('category budget colors use correct boundaries',(){
   expect(categoryBudgetStatus(0,10000),CategoryBudgetStatus.withinBudget);
   expect(categoryBudgetStatus(8499,10000),CategoryBudgetStatus.withinBudget);
@@ -85,3 +97,4 @@ void main() {
   expect(freeAfterPlan(income:1000000,expenses:300000,transferredOut:100000,transferredIn:0,unpaidBills:200000,savingsGap:50000,reserves:30000,buffer:20000),300000);
  });
 }
+
