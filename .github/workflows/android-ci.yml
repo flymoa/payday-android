@@ -4,6 +4,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      web_client_id:
+        description: 'Google Web OAuth client ID (not Android client ID; not a secret)'
+        required: false
+        type: string
 permissions:
   contents: read
 
@@ -11,6 +16,8 @@ jobs:
   test-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    env:
+      GOOGLE_WEB_CLIENT_ID: ${{ inputs.web_client_id || vars.PAYDAY_GOOGLE_WEB_CLIENT_ID }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -55,11 +62,28 @@ jobs:
         run: flutter analyze
       - name: Run unit tests
         run: flutter test
-      - name: Compile debug APK (not configured for OAuth)
-        run: flutter build apk --debug
+      - name: Check Google OAuth build configuration
+        shell: bash
+        run: |
+          if [[ -z "$GOOGLE_WEB_CLIENT_ID" ]]; then
+            echo '### Google OAuth: NOT CONFIGURED' >> "$GITHUB_STEP_SUMMARY"
+            echo 'Provide a Web application client ID using Run workflow → web_client_id to enable sign-in.' >> "$GITHUB_STEP_SUMMARY"
+          elif [[ ! "$GOOGLE_WEB_CLIENT_ID" =~ ^[0-9]+-[A-Za-z0-9_-]+[.]apps[.]googleusercontent[.]com$ ]]; then
+            echo 'ERROR: Input does not look like a Google Web application OAuth client ID.'
+            exit 1
+          else
+            echo '### Google OAuth: Web client ID included' >> "$GITHUB_STEP_SUMMARY"
+            echo 'App targets the isolated Payday DEMO validation copy for all writes.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Compile debug APK for isolated DEMO test copy
+        shell: bash
+        run: |
+          flutter build apk --debug \
+            --dart-define="GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID" \
+            --dart-define="PAYDAY_TEST_SHEET_ID=1gpWUxFX4PI3fiImiiO_oz-nsLrx0ixHmQyx78MhcjmU"
       - name: Upload test-only APK
         uses: actions/upload-artifact@v4
         with:
-          name: payday-demo-debug-unconfigured
+          name: payday-demo-debug-test-copy
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 3
