@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'brand.dart';
+import 'opening.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -20,11 +21,12 @@ int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
 String money(int amount)=>'${mad(amount).toStringAsFixed(2)} MAD';
 DateTime parseDay(String text)=>DateTime.tryParse(text)??DateTime.now();
 class PaydayLocal extends StatefulWidget {
- const PaydayLocal({super.key});
+ const PaydayLocal({super.key,this.initialData});
+ final Future<Map<String,List<RowData>>>? initialData;
  @override State<PaydayLocal> createState()=>_PaydayLocalState();
 }
 class _PaydayLocalState extends State<PaydayLocal> {
- ThemeMode mode=ThemeMode.system;
+ ThemeMode mode=ThemeMode.light;
  ThemeData palette(Brightness brightness){
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:jade,brightness:brightness,
@@ -47,7 +49,8 @@ class _PaydayLocalState extends State<PaydayLocal> {
  @override Widget build(BuildContext context)=>MaterialApp(
   debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
-  home:FinanceScreen(onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
+  builder:(context,child)=>PaydayOpening(child:child??const SizedBox.shrink()),
+  home:FinanceScreen(initialData:widget.initialData,onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
 }
 class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData});final ValueChanged<bool>? onToggleTheme;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
