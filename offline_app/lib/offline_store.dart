@@ -241,8 +241,35 @@ class OfflineStore {
  Future<void> setSetting(String key,String value) async =>
    (await db).insert('settings',{'key':key,'value':value},conflictAlgorithm:ConflictAlgorithm.replace);
  Future<void> addCategory(String name,String group) async{
-  if(name.trim().isEmpty || !['Essential','Flexible'].contains(group))throw ArgumentError('Invalid category');
-  await (await db).insert('categories',{'name':name.trim(),'group_name':group});
+  final clean=name.trim(),normalized=name.trim().toLowerCase();
+  if(clean.isEmpty || !['Essential','Flexible','Income'].contains(group)||
+    ['income plan','savings goal','savings','uncategorized'].contains(normalized))throw ArgumentError('Choose a valid category name.');
+  const incomeDefaults=['salary','freelance','business','gifts','other income'];
+  if(group!='Income'&&incomeDefaults.contains(normalized))throw ArgumentError('This name belongs to income categories.');
+  await (await db).transaction((txn)async{
+   final duplicates=await txn.query('categories',where:'LOWER(TRIM(name))=?',whereArgs:[normalized]);
+   if(duplicates.isNotEmpty)throw StateError('A category with this name already exists.');
+   final hidden=await hiddenCategoryNames(txn);
+   if(group=='Income'&&incomeDefaults.contains(normalized)&&!hidden.contains(normalized))throw StateError('This income category already exists.');
+   await txn.insert('categories',{'name':clean,'group_name':group});
+   hidden.remove(normalized);
+   await txn.insert('settings',{'key':'hidden_categories','value':jsonEncode(hidden)},conflictAlgorithm:ConflictAlgorithm.replace);
+  });
+ }
+ static Future<List<String>> hiddenCategoryNames(DatabaseExecutor txn)async{
+  final rows=await txn.query('settings',where:'key=?',whereArgs:['hidden_categories']);
+  return rows.isEmpty?<String>[]:List<String>.from(jsonDecode(rows.single['value'] as String));
+ }
+ Future<void> deleteCategory(String name,{required String month})async{
+  final normalized=name.trim().toLowerCase();
+  if(normalized.isEmpty||['income plan','savings goal','savings','uncategorized'].contains(normalized))throw ArgumentError('This category cannot be deleted.');
+  await (await db).transaction((txn)async{
+   final hidden=await hiddenCategoryNames(txn);
+   if(!hidden.contains(normalized))hidden.add(normalized);
+   await txn.insert('settings',{'key':'hidden_categories','value':jsonEncode(hidden)},conflictAlgorithm:ConflictAlgorithm.replace);
+   await txn.delete('categories',where:'LOWER(TRIM(name))=?',whereArgs:[normalized]);
+   await txn.delete('budgets',where:'month=? AND LOWER(TRIM(category))=?',whereArgs:[month,normalized]);
+  });
  }
  Future<String> exportJson() async => const JsonEncoder.withIndent('  ').convert({
   'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
@@ -277,6 +304,7 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 

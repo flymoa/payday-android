@@ -443,7 +443,7 @@ class _FinanceState extends State<FinanceScreen>{
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d),balance=monthlyBalance(d);
   final recent=recentActivityRows(list(d,'transactions'),DateTime.now());
-  final categories=list(d,'categories').where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
+  final categories=spendingCategories(d).where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsets.only(top:23,bottom:12),child:Row(children:[
    Expanded(child:Text(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800))),TextButton(onPressed:tap,child:Text(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   final heroInk=paydaySand;
@@ -522,15 +522,33 @@ class _FinanceState extends State<FinanceScreen>{
     'No matching entries. Change the search or type filter.')),
   ]);
  }
+ List<String> hiddenCategories(Map<String,List<RowData>> d){
+  final row=list(d,'settings').where((r)=>st(r,'key')=='hidden_categories').firstOrNull;
+  return row==null?<String>[]:List<String>.from(jsonDecode(st(row,'value')));
+ }
+ List<String> categoryChoices(Map<String,List<RowData>> d,String type,{String? existing})=>transactionCategories(
+  type:type,configured:list(d,'categories').where((r)=>st(r,'group_name')!='Income').map((r)=>st(r,'name')),
+  incomeConfigured:list(d,'categories').where((r)=>st(r,'group_name')=='Income').map((r)=>st(r,'name')),
+  hidden:hiddenCategories(d),history:list(d,'transactions'),existingCategory:existing);
+ List<RowData> spendingCategories(Map<String,List<RowData>> d){
+  final rows=list(d,'categories').where((r)=>st(r,'group_name')!='Income').toList();
+  for(final b in list(d,'budgets').where((r)=>st(r,'month')==month&&val(r,'amount')>0)){
+   final name=st(b,'category');
+   if(!['Income plan','Savings goal'].contains(name)&&!rows.any((r)=>st(r,'name')==name)){
+    rows.add({'name':name,'group_name':'Previous category'});
+   }
+  }
+  return rows;
+ }
  Widget budgets(Map<String,List<RowData>> d){
-  final categories=list(d,'categories'),ts=monthTransactions(d);
+  final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
    OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:Text('Copy last month’s budget')),
    SizedBox(height:8),
-   Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.pie_chart_outline)]),
+   Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.check_circle_outline)]),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
     inc==0&&assigned==0?'Set planned income to start assigning your budget.':
     inc==assigned?'No more money to assign. Your income is fully assigned.':
@@ -821,9 +839,8 @@ class _FinanceState extends State<FinanceScreen>{
     inputError('This bill is fully paid. No remaining payment is due.');
     return;
   }
-  List<String> categoriesFor(String entry,{bool editing=false})=>transactionCategories(type:entry,
-   configured:list(d,'categories').map((x)=>st(x,'name')),history:list(d,'transactions'),
-   existingCategory:editing&&existing!=null?st(existing,'category'):null);
+  List<String> categoriesFor(String entry,{bool editing=false})=>categoryChoices(d,entry,
+   existing:editing&&existing!=null?st(existing,'category'):null);
   final desc=TextEditingController(text:existing==null?(prefill?.description??''):st(existing,'description'));
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
   final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
@@ -890,6 +907,14 @@ class _FinanceState extends State<FinanceScreen>{
       onPressed:()=>rebuild(()=>allCategories=true),child:Text('More',style:TextStyle(fontSize:11)))),
     ]);
    }),
+   if(type=='Income')Align(alignment:Alignment.centerLeft,child:TextButton.icon(
+    icon:PaydayAppIcon(Icons.tune_outlined),label:Text('Manage income categories'),
+    onPressed:submitting?null:()async{
+     await incomeCategoriesForm();
+     final fresh=await store.snapshot();
+     if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
+      if(!cats.contains(category))category=cats.first;});
+    })),
    SizedBox(height:20),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
    Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}')))]),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
@@ -960,6 +985,13 @@ class _FinanceState extends State<FinanceScreen>{
      child:Text('Maximum total for this category: ${money(initial.maximum)}',
       style:TextStyle(color:muted,fontWeight:FontWeight.w600))),
     field(a,'Budget amount (MAD)',number:true),
+    if(category=='Income plan')TextButton.icon(onPressed:()=>incomeCategoriesForm(),
+     icon:PaydayAppIcon(Icons.tune_outlined),label:Text('Manage income categories')),
+    if(!['Income plan','Savings goal'].contains(category))TextButton.icon(
+     icon:PaydayAppIcon(Icons.delete_outline),label:Text('Delete category'),
+     onPressed:saving?null:()async{
+      if(await deleteCategoryPrompt(category,budgetMonth)&&c.mounted)Navigator.pop(c);
+     }),
    ]),footer:(c,rebuild)=>FilledButton(
     onPressed:saving?null:()async{
      final n=amount(a,allowZero:true);
@@ -984,10 +1016,41 @@ class _FinanceState extends State<FinanceScreen>{
      }
     },child:Text(saving?'Saving…':'Save budget')));
  }
- Future<void> categoryForm() async{
-  final name=TextEditingController();var group='Essential';
-  await sheet('New category',(c,rebuild)=>Column(children:[field(name,'Name'),DropdownButtonFormField<String>(initialValue:group,items:['Essential','Flexible'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)group=v;}),
-   SizedBox(height:12),FilledButton(onPressed:()async{final saveSucceeded=await execute(()=>store.addCategory(name.text,group));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Add category'))]));
+ Future<bool> deleteCategoryPrompt(String name,String categoryMonth)async{
+  final confirmed=await showDialog<bool>(context:context,builder:(dialog)=>AlertDialog(
+   title:Text('Delete $name?'),
+   content:Text('Remove this category from new entries and clear its budget for $categoryMonth. Existing records and other months’ budgets stay unchanged.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:Text('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:Text('Delete category'))]));
+  if(confirmed!=true)return false;
+  return execute(()=>store.deleteCategory(name,month:categoryMonth));
+ }
+ Future<void> incomeCategoriesForm()async{
+  var data=await store.snapshot();if(!mounted)return;
+  await sheet('Income categories',(c,rebuild)=>Column(children:[
+   Text('Add income sources or remove categories you no longer use. Existing records keep their category.'),
+   ...categoryChoices(data,'Income').where((name)=>name!='Uncategorized').map((name)=>ListTile(
+    leading:PaydayCategoryIcon(name),title:Text(name),trailing:IconButton(
+     tooltip:'Delete $name',icon:PaydayAppIcon(Icons.delete_outline),onPressed:()async{
+      if(await deleteCategoryPrompt(name,month)){
+       final fresh=await store.snapshot();if(c.mounted)rebuild(()=>data=fresh);
+      }
+     }))),
+  ]),footer:(c,rebuild)=>FilledButton.icon(icon:PaydayAppIcon(Icons.add),label:Text('Add income category'),
+   onPressed:()async{
+    await categoryForm(income:true);
+    final fresh=await store.snapshot();if(c.mounted)rebuild(()=>data=fresh);
+   }));
+ }
+ Future<void> categoryForm({bool income=false}) async{
+  final name=TextEditingController();var group=income?'Income':'Essential';var saving=false;
+  await sheet(income?'New income category':'New category',(c,rebuild)=>Column(children:[field(name,'Name'),
+   if(!income)DropdownButtonFormField<String>(initialValue:group,items:['Essential','Flexible'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)group=v;}),
+   SizedBox(height:12),FilledButton(onPressed:saving?null:()async{
+    rebuild(()=>saving=true);
+    final success=await execute(()=>store.addCategory(name.text,group));
+    if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>saving=false);}}
+   },child:Text(saving?'Saving…':'Add category'))]));
  }
  Future<void> goalForm(RowData? existing) async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':mad(val(existing,'target')).toStringAsFixed(2));
@@ -1039,9 +1102,11 @@ class _FinanceState extends State<FinanceScreen>{
   var date=existing==null?DateTime.now():parseDay(st(existing,'due'));
   var category=existing==null?'Housing':st(existing,'category');
   final d=await store.snapshot();if(!mounted)return;
+  final billCategories=categoryChoices(d,'Expense',existing:existing==null?null:category);
+  if(!billCategories.contains(category))category=billCategories.first;
   await sheet(existing==null?'Add bill':'Edit bill',(c,rebuild)=>Column(children:[
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount (MAD)',number:true),field(note,'Note'),
-   DropdownButtonFormField<String>(initialValue:category,items:list(d,'categories').map((x)=>DropdownMenuItem(value:st(x,'name'),child:Text(st(x,'name')))).toList(),onChanged:(v){if(v!=null)category=v;}),
+   DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:Text(name))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Save bill')),
    if(existing!=null)Column(children:[
@@ -1261,6 +1326,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
