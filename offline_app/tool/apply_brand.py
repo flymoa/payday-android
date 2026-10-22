@@ -37,7 +37,7 @@ for target in res.glob('values*/styles.xml'):
     for style in tree.getroot().findall('style'):
         if style.get('name') not in ['LaunchTheme', 'NormalTheme']:
             continue
-        style.set('parent', '@android:style/Theme.Light.NoTitleBar')
+        style.set('parent', 'Theme.AppCompat.DayNight.NoActionBar')
         values = {
             'android:windowBackground': '@drawable/launch_background',
             'android:statusBarColor': '#FBF6EA',

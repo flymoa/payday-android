@@ -55,6 +55,11 @@ jobs:
       - name: Apply approved PAYDAY launcher artwork
         working-directory: offline_app
         run: python3 tool/apply_brand.py
+      - name: Configure device authentication and screen privacy
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_app_lock.py
+          python3 tool/configure_app_lock.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |
@@ -93,6 +98,7 @@ jobs:
             echo 'ERROR: offline APK requests INTERNET permission'
             exit 1
           fi
+          grep -q 'android.permission.USE_BIOMETRIC' "$RUNNER_TEMP/payday-permissions.txt" || { echo "::error::Device authentication permission missing"; exit 1; }
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
           "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/payday-apk-certs.txt"
           cat "$RUNNER_TEMP/payday-apk-certs.txt"

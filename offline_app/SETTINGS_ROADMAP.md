@@ -1,21 +1,36 @@
 # PAYDAY settings
 
-Home's logo opens a partial-width left settings drawer. More > Settings opens
-the same drawer. It contains Light/Dark/System appearance, currency, money
-settings and backups. A close control, scrim tap, swipe and Android Back close it.
-Opening branding is always enabled; legacy opening/reduce-motion preferences
-are ignored and removed on the next preferences save. Android accessibility
-settings still control reduced motion. There are no app animation toggles.
+Home's P logo is the only settings entry. It opens a partial-width left drawer.
+More contains financial tools only. Opening by an edge swipe is disabled; the
+close control, scrim tap, closing swipe and Android Back still close the drawer.
+Opening branding is always enabled; Android reduced-motion settings are respected.
+There are no app animation toggles.
 
-Stage 2: one base currency, MAD, EUR, GBP or USD (US dollar). Defaults and older
-backups without a currency stay MAD. Currency and theme persist atomically in
-the existing settings table, travel in backups and reload before first frame.
-All financial screens and entry labels use the selected currency. Calculations
-continue in integer minor units; no rates, conversion, network or additional
-permissions are introduced. Every currency change requires a plain-language
-confirmation showing that 100 old units become 100 new units. Cancel and save
-failure preserve both active and stored values. Financial records are untouched.
+Appearance and base currency (MAD, EUR, GBP, USD) persist in the existing local
+settings table. Currency changes require explicit confirmation that numbers are
+not converted. Records and financial calculations continue in integer minor units.
 
-Later stages cover translated languages and layouts, app locking, storage and
-backup encryption, local reminders and About/help. Keep permission requests
-contextual and preserve PAYDAY's visual identity.
+Security stage: optional App lock, off until explicitly enabled. Enabling and
+disabling require successful Android device authentication. Fingerprint/face
+support and PIN/pattern/password fallback are handled by local_auth 3.0.2 and
+Android; PAYDAY never stores or receives those credentials. The branded lock
+screen covers the Navigator, including open forms and dialogs, on a cold start
+or whenever the enabled app loses the foreground. Authentication cancellation
+or error never unlocks it. Android Back is consumed while locked; form state is
+preserved for successful unlocking. Secure-window flags block screenshots and
+recent-app capture while enabled. Native privacy setup must succeed to unlock.
+Startup cannot open records if reading security preferences fails; retry is shown.
+
+App lock is specific to this installation. Backups omit its flag and restore
+preserves the current phone's lock policy, ignoring any imported lock flag.
+Preferences remain atomic. Authentication or storage failures keep the previous
+policy. Existing records, DB version 2 and backup schema 2 are preserved.
+
+App lock is an access gate, not database or backup encryption. Remaining stages:
+language translations and layout direction, encrypted storage/backups, local
+reminders and About/help. Keep permission requests contextual and preserve the
+PAYDAY identity. CI uses the permanent signing certificate for in-place updates.
+
+Native setup references:
+https://pub.dev/packages/local_auth
+https://pub.dev/packages/local_auth_android

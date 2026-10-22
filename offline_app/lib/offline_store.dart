@@ -285,10 +285,15 @@ class OfflineStore {
    await txn.delete('budgets',where:'month=? AND LOWER(TRIM(category))=?',whereArgs:[month,normalized]);
   });
  }
- Future<String> exportJson() async => const JsonEncoder.withIndent('  ').convert({
-  'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
-  'tables':await snapshot()
- });
+ Future<String> exportJson() async {
+  final tables=await snapshot();
+  // Authentication policy belongs to this installation, never to a shared backup.
+  tables['settings']=tables['settings']!.where((r)=>r['key']!='app_lock_enabled').toList();
+  return const JsonEncoder.withIndent('  ').convert({
+   'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
+   'tables':tables
+  });
+ }
  Future<void> importJson(String contents) async{
   final raw=jsonDecode(contents);
   if(raw is! Map || raw['format']!='payday-local' ||
@@ -304,14 +309,17 @@ class OfflineStore {
   }
   final d=await db;
   await d.transaction((txn) async{
+   final localLock=await txn.query('settings',where:'key=?',whereArgs:['app_lock_enabled']);
    // Restoring is one SQLite transaction: either all tables change or none do.
    for(final table in localTables.reversed) {await txn.delete(table);}
    for(final name in localTables){
     for(final item in (legacy && name=='reserve_movements' ? <dynamic>[] : tables[name] as List)){
      if(item is! Map)throw const FormatException('Invalid backup record');
+     if(name=='settings'&&item['key']=='app_lock_enabled')continue;
      await txn.insert(name,Map<String,Object?>.from(item));
     }
    }
+   for(final row in localLock){await txn.insert('settings',row);}
    // Export reminders belong to this installation, not the imported file.
    await txn.delete('settings',where:'key IN (?, ?)',whereArgs:['last_backup_export','backup_snooze_until']);
   });

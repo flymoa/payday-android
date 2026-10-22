@@ -28,7 +28,7 @@ Local backups exported by v1.1.0 use schema v2 and include reserve transfers; im
 
 ## Storage and privacy
 
-All finance data is saved to a private on-device SQLite database. No Google Sign-In, Sheets API, analytics, network client, or Internet permission is required by the release APK. App-level SQLCipher encryption, PIN/biometric gate, multi-device sync and automated cloud backups are **not** included. Android system backup is disabled in the generated release manifest.
+All finance data is saved to a private on-device SQLite database. No Google Sign-In, Sheets API, analytics, network client, or Internet permission is required by the release APK. An optional device-authentication app lock is available from the Home logo → Settings → Security. It uses Android's biometric or device screen-lock prompt. It hides the app when leaving the foreground and blocks screenshots while enabled. It is an access gate, not database encryption. App-level SQLCipher encryption, multi-device sync and automated cloud backups are **not** included. Android system backup is disabled in the generated release manifest.
 
 **Important:** Local data is lost if Android app data is cleared, or the app is uninstalled, unless you first export a backup. Treat the JSON backup as sensitive information and store it securely. Do not share it publicly.
 
@@ -38,7 +38,7 @@ Visit the [GitHub Actions runs](https://github.com/flymoa/payday-android/actions
 
 This is a **first functional build**, not a certified production financial application. No real data has been imported. The app starts with the categories and three example savings-goal definitions, but **no financial transactions**.
 
-For future versions, use a permanent private signing keystore rather than relying on CI's development-key cache. Export a backup first before uninstalling or changing signing identities.
+Published updates use the permanent PAYDAY signing certificate. CI blocks APK publication if the certificate or application identity changes. Install updates in place; do not uninstall. Keep exported backups separate and secure.
 
 ## Source
 
@@ -47,6 +47,8 @@ For future versions, use a permanent private signing keystore rather than relyin
 ```bash
 cd offline_app
 flutter create --platforms android --org ma.payday --project-name payday_local .
+python tool/apply_brand.py
+python tool/configure_app_lock.py
 flutter pub get
 flutter test
 flutter build apk --release

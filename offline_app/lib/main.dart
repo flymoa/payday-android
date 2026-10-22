@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'app_lock.dart';
 import 'app_preferences.dart';
 import 'month_usage_bar.dart';
 import 'add_button.dart';
@@ -16,12 +18,28 @@ import 'package:share_plus/share_plus.dart';
 import 'finance.dart';
 import 'offline_store.dart';
 
-void main()async{
+void main(){
  WidgetsFlutterBinding.ensureInitialized();
- final store=OfflineStore();
- var preferences=const AppPreferences();
- try{preferences=await store.loadAppPreferences();}catch(_){preferences=const AppPreferences();}
- runApp(PaydayLocal(store:store,initialPreferences:preferences));
+ runApp(const PaydayStartup());
+}
+/// Never show financial screens if security preferences could not be read.
+class PaydayStartup extends StatefulWidget{
+ const PaydayStartup({super.key,this.store});
+ final OfflineStore? store;
+ @override State<PaydayStartup> createState()=>_PaydayStartupState();
+}
+class _PaydayStartupState extends State<PaydayStartup>{
+ late final store=widget.store??OfflineStore();
+ late Future<AppPreferences> preferences=store.loadAppPreferences();
+ @override Widget build(BuildContext context)=>FutureBuilder<AppPreferences>(future:preferences,builder:(context,snapshot){
+  if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!);
+  return MaterialApp(debugShowCheckedModeBanner:false,home:Scaffold(backgroundColor:paydaySand,
+   body:SafeArea(child:Center(child:Padding(padding:const EdgeInsets.all(24),child:snapshot.hasError?
+    Column(mainAxisSize:MainAxisSize.min,children:[
+     const Text('Could not read your app settings. Your records have not been opened.',textAlign:TextAlign.center),
+     const SizedBox(height:16),FilledButton(onPressed:()=>setState(()=>preferences=store.loadAppPreferences()),child:const Text('Try again')),
+    ]):const CircularProgressIndicator())))));
+ });
 }
 const ink=Color(0xff12261F), jade=paydayEmerald, cream=paydaySand, amber=Color(0xff986318);
 const homeNavy=Color(0xff12261F), homeCopper=paydaySaffron;
@@ -34,9 +52,10 @@ String money(int amount)=>formatMoney(amount,'MAD');
 DateTime parseDay(String text)=>DateTime.tryParse(text)??DateTime.now();
 class PaydayLocal extends StatefulWidget {
  const PaydayLocal({super.key,this.initialData,this.store,
-  this.initialPreferences=const AppPreferences(),this.preferencesWriter});
+  this.initialPreferences=const AppPreferences(),this.preferencesWriter,this.appLockController});
  final OfflineStore? store;
  final AppPreferences initialPreferences;
+ final AppLockController? appLockController;
  final Future<void> Function(AppPreferences)? preferencesWriter;
  final Future<Map<String,List<RowData>>>? initialData;
  @override State<PaydayLocal> createState()=>_PaydayLocalState();
@@ -46,16 +65,34 @@ class _PaydayLocalState extends State<PaydayLocal> {
  late final localStore=widget.store??OfflineStore();
  final messengerKey=GlobalKey<ScaffoldMessengerState>();
  bool savingPreferences=false;
+ late final appLock=widget.appLockController??AppLockController(enabled:preferences.appLock);
+ late final lockRoutes=AppLockRouteGuard(appLock);
+ @override void initState(){super.initState();unawaited(appLock.initializePrivacy());}
+ @override void dispose(){lockRoutes.dispose();appLock.dispose();super.dispose();}
  ThemeMode get mode=>preferences.appearance;
  Future<bool> savePreferences(AppPreferences next)async{
   if(savingPreferences)return false;
   savingPreferences=true;
+  final lockChanged=next.appLock!=preferences.appLock;
+  var privacyChanged=false;
   try{
+   if(lockChanged){
+    final allowed=await appLock.authorize(next.appLock?'Enable PAYDAY app lock':'Turn off PAYDAY app lock');
+    if(!mounted)return false;
+    if(!allowed){
+     messengerKey.currentState?.showSnackBar(SnackBar(content:Text(appLock.error??'App lock was not changed.')));
+     return false;
+    }
+    privacyChanged=true;
+    await appLock.configurePrivacy(next.appLock);
+   }
    await (widget.preferencesWriter??localStore.saveAppPreferences)(next);
    if(!mounted)return false;
    setState(()=>preferences=next);
+   if(lockChanged)appLock.setEnabled(next.appLock);
    return true;
   }catch(_){
+   if(privacyChanged){try{await appLock.configurePrivacy(preferences.appLock);}catch(_){appLock.lockNow();}}
    messengerKey.currentState?.showSnackBar(const SnackBar(content:Text('Could not save preferences. Please try again.')));
    return false;
   }finally{savingPreferences=false;}
@@ -92,10 +129,10 @@ class _PaydayLocalState extends State<PaydayLocal> {
   );
  }
  @override Widget build(BuildContext context)=>MaterialApp(
-  scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
+  navigatorObservers:[lockRoutes],scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
   builder:(context,child){
-   return PaydayOpening(child:child??const SizedBox.shrink());
+   return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
   },
   home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,
    onPreferencesChanged:savePreferences,onToggleTheme:(dark){
@@ -322,11 +359,12 @@ class _FinanceState extends State<FinanceScreen>{
   canPop:page!=4||moreSection==null,
   onPopInvokedWithResult:(didPop,result){
    if(!didPop&&mounted&&page==4&&moreSection!=null){
-    setState(()=>moreSection=moreSection==5?3:null);
+    setState(()=>moreSection=null);
    }
   },child:Scaffold(
   key:scaffoldKey,
-  drawer:Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
+  drawerEnableOpenDragGesture:false,
+  drawer:page==0?Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
    backgroundColor:cream,child:SafeArea(child:Column(children:[
     Padding(padding:EdgeInsets.fromLTRB(16,12,4,8),child:Row(children:[
      if(drawerBackups)IconButton(tooltip:'Back to Settings',onPressed:()=>setState(()=>drawerBackups=false),icon:PaydayAppIcon(Icons.arrow_back)),
@@ -337,9 +375,9 @@ class _FinanceState extends State<FinanceScreen>{
      if(snap.hasError)return Center(child:Text('Could not load settings.'));
      if(!snap.hasData)return Center(child:CircularProgressIndicator());
      return ListView(key:ValueKey('drawer-$drawerBackups'),padding:EdgeInsets.fromLTRB(12,0,12,24),
-      children:[drawerBackups?moreBackups(snap.data!):appSettings(snap.data!,inDrawer:true)]);
+      children:[drawerBackups?moreBackups(snap.data!):appSettings(snap.data!)]);
     })),
-   ]))),
+   ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
    title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:'Open settings',padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -665,8 +703,6 @@ class _FinanceState extends State<FinanceScreen>{
       Icons.fact_check_outlined,4,monthLabel(selected)),
     moreLink('Year overview','Income, spending and savings across the year',
       Icons.bar_chart_rounded,2,selected.year.toString()),
-    moreLink('Settings','Appearance, preferences and local data',
-      Icons.settings_outlined,3,widget.preferences.appearanceLabel),
     SizedBox(height:15),
     Padding(padding:EdgeInsets.all(8),child:Text(
       'All your financial records stay on this device, with no Google account or internet required.',
@@ -679,18 +715,17 @@ class _FinanceState extends State<FinanceScreen>{
    case 1:section=moreReserves(d);break;
    case 2:section=moreYear(d);break;
    case 4:section=monthlyReview(d);break;
-   case 5:section=moreBackups(d);break;
-   default:section=appSettings(d);
+   default:section=const SizedBox.shrink();
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   TextButton.icon(onPressed:()=>setState(()=>moreSection=moreSection==5?3:null),
-    icon:PaydayAppIcon(Icons.arrow_back),label:Text(moreSection==5?'Back to Settings':'Back to More')),
+   TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
+    icon:PaydayAppIcon(Icons.arrow_back),label:Text('Back to More')),
    section,
   ]);
  }
  Widget moreLink(String name,String description,IconData symbol,int section,String summary)=>
   Card(clipBehavior:Clip.antiAlias,child:InkWell(
-   onTap:section==3?openSettingsDrawer:()=>setState(()=>moreSection=section),
+   onTap:()=>setState(()=>moreSection=section),
    child:Padding(padding:EdgeInsets.all(16),child:Row(children:[
     Container(width:48,height:48,
      decoration:BoxDecoration(color:jade.withValues(alpha:.10),borderRadius:BorderRadius.circular(14)),
@@ -862,7 +897,7 @@ class _FinanceState extends State<FinanceScreen>{
    Padding(padding:EdgeInsets.fromLTRB(4,18,4,8),child:Text(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
    Card(clipBehavior:Clip.antiAlias,child:Column(children:children)),
   ]);
- Widget appSettings(Map<String,List<RowData>> d,{bool inDrawer=false}){
+ Widget appSettings(Map<String,List<RowData>> d){
   final prefs=widget.preferences;
   final canChange=widget.onPreferencesChanged!=null&&!preferencesSaving;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -873,6 +908,12 @@ class _FinanceState extends State<FinanceScreen>{
      subtitle:Text(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?appearancePicker:null),
    ]),
+   settingsGroup('Security',[
+    SwitchListTile(key:ValueKey('app-lock-setting'),secondary:PaydayAppIcon(Icons.lock_outline),
+     title:Text('App lock'),subtitle:Text('Require your phone’s unlock when opening or returning to PAYDAY'),
+     value:prefs.appLock,onChanged:canChange?(value)=>changePreferences(prefs.copyWith(appLock:value)):null),
+    Padding(padding:EdgeInsets.fromLTRB(16,0,16,16),child:Text('Screenshots and recent-app previews are blocked while App lock is on. It does not encrypt your records or exported backups.',style:TextStyle(color:muted,fontSize:12))),
+   ]),
    settingsGroup('Money & data',[
     ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:Text('Currency'),
      subtitle:Text('${paydayCurrencies[currency]} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
@@ -882,7 +923,7 @@ class _FinanceState extends State<FinanceScreen>{
      onTap:()=>settingsForm(d)),
     ListTile(leading:PaydayAppIcon(Icons.ios_share),title:Text('Backups & data'),
      subtitle:Text(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
-     onTap:()=>setState((){if(inDrawer){drawerBackups=true;}else{moreSection=5;}})),
+     onTap:()=>setState(()=>drawerBackups=true)),
    ]),
    SizedBox(height:12),Padding(padding:EdgeInsets.symmetric(horizontal:4),
     child:Text('Preferences are saved on this phone. Currency changes do not convert amounts.',

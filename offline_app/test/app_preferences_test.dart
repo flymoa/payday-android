@@ -35,7 +35,7 @@ void main(){
    {'key':'app_reduce_motion','value':'1'}]]){
    final prefs=AppPreferences.fromRows(rows);
    expect(prefs.appearance,ThemeMode.light);expect(prefs.currency,'MAD');
-   expect(prefs.values.keys,unorderedEquals(['app_appearance','currency']));
+   expect(prefs.values.keys,unorderedEquals(['app_appearance','currency','app_lock_enabled']));
   }
  });
  test('preferences persist atomically and currency travels in backup without changing amounts',()async{
@@ -73,6 +73,7 @@ void main(){
   await tester.tap(find.text(name).last);await tester.pumpAndSettle();
  }
  Future<void> chooseCurrency(WidgetTester tester,String code)async{
+  await tester.ensureVisible(find.byKey(const ValueKey('currency-setting')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('currency-setting')));await tester.pumpAndSettle();
   await tester.tap(find.text(code).last);await tester.pumpAndSettle();
  }
@@ -88,7 +89,7 @@ void main(){
   final drawer=tester.getRect(find.byType(Drawer));
   expect(drawer.left,0);expect(drawer.width,lessThan(360));expect(drawer.width,greaterThan(250));
   expect(find.text('Opening animation'),findsNothing);expect(find.text('Reduce motion'),findsNothing);
-  expect(find.byType(SwitchListTile),findsNothing);
+  expect(find.text('App lock'),findsOneWidget);
   await chooseTheme(tester,'Dark');
   expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.dark);
   expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);

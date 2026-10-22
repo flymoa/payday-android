@@ -56,10 +56,7 @@ void main(){
     expect(find.byKey(overlay),findsNothing);
     expect(find.text('Salam'),findsNothing);
     expect(find.text('Plan today, enjoy tomorrow.'),findsOneWidget);
-    await tester.tap(find.text('More'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Settings'));await tester.pumpAndSettle();
-    await tester.tap(find.text('Settings'));await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-settings-logo')));await tester.pumpAndSettle();
     await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();

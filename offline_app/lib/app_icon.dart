@@ -94,6 +94,11 @@ class _AppPainter extends CustomPainter{
    c.drawArc(Rect.fromLTWH(3,3,18,18),0,4.71,false,p);path([Offset(12,3),Offset(12,12),Offset(21,12)]);path([Offset(16,2),Offset(16,8),Offset(22,8)],true);
   }else if(icon==Icons.account_balance_wallet_outlined){
    box(3,5,18,15);box(14,10,7,6,true);dot(17,13);l(5,5,17,2);
+  }else if(icon==Icons.lock_outline||icon==Icons.lock_open_outlined){
+   box(5,10,14,11);
+   final shackle=Path()..moveTo(8,10)..lineTo(8,7)..cubicTo(8,1,16,1,16,7);
+   if(icon==Icons.lock_outline){shackle.lineTo(16,10);}else{shackle.lineTo(16,8);}
+   c.drawPath(shackle,p);circle(12,15,1,true);l(12,16,12,18,true);
   }else if(icon==Icons.dark_mode_outlined){
    c.drawPath(Path()..moveTo(15,3)..cubicTo(3,1,0,19,12,21)..quadraticBezierTo(20,23,22,14)..cubicTo(15,18,9,10,15,3),p);dot(20,5);
   }else if(icon==Icons.light_mode_outlined){
