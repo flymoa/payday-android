@@ -75,6 +75,7 @@ void main(){
   await tester.enterText(find.widgetWithText(TextField,'Name'),'Consulting');
   await tester.tap(find.widgetWithText(FilledButton,'Add category').last);await tester.pumpAndSettle();
   expect(find.text('Consulting'),findsOneWidget);
+  await tester.ensureVisible(find.byTooltip('Delete Consulting'));await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Delete Consulting'));await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(FilledButton,'Delete category'));await tester.pumpAndSettle();
   expect(find.text('Consulting'),findsNothing);
