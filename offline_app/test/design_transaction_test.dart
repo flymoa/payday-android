@@ -20,9 +20,10 @@ void main(){
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(store:store,initialData:store.snapshot())));
    await tester.pumpAndSettle();
    // The raised button uses PAYDAY artwork, so use its existing semantic label.
-   final semantics=tester.ensureSemantics();addTearDown(semantics.dispose);
+   final semantics=tester.ensureSemantics();
    await tester.tap(find.bySemanticsLabel('Add transaction'));
    await tester.pumpAndSettle();
+   semantics.dispose();
    expect(find.text('Category'),findsOneWidget);
    Future<void> enter(String label,String value)async{
     final field=find.widgetWithText(TextField,label);
