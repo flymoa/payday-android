@@ -12,7 +12,7 @@ class MonthUsageBar extends StatelessWidget {
    child:ExcludeSemantics(child:TweenAnimationBuilder<double>(
     tween:Tween(begin:0,end:target),duration:const Duration(milliseconds:250),
     builder:(context,progress,child){
-     final last=progress>0?(progress*28).ceil()-1:-1;
+     final last=(progress*27).round();
      return SizedBox(height:27,child:Row(crossAxisAlignment:CrossAxisAlignment.end,
       children:List.generate(28,(i){
        final fill=(progress*28-i).clamp(0,1).toDouble();
@@ -20,8 +20,9 @@ class MonthUsageBar extends StatelessWidget {
         child:SizedBox(height:i==last?27:15,child:ClipRRect(
          borderRadius:BorderRadius.circular(4),child:Stack(fit:StackFit.expand,children:[
           ColoredBox(color:trackColor),
-          FractionallySizedBox(alignment:Alignment.centerLeft,widthFactor:fill,
-           child:ColoredBox(color:i==last?markerColor:fillColor)),
+          if(i==last)ColoredBox(key:const ValueKey('month-usage-marker'),color:markerColor)
+          else FractionallySizedBox(alignment:Alignment.centerLeft,widthFactor:fill,
+           child:ColoredBox(color:fillColor)),
          ])))));
       })));
     })));
