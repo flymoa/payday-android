@@ -51,7 +51,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
       Curves.easeOutCubic.transform(phase(t, start, end));
 
   Widget brandPart({required bool slogan})=>SizedBox(width:250,height:slogan?28:64,
-   child:FittedBox(fit:BoxFit.scaleDown,child:Text(slogan?'Every dirham, in control.':'Payday',
+   child:FittedBox(fit:BoxFit.scaleDown,child:Text(slogan?paydaySlogan:'Payday',
     style:TextStyle(fontFamily:slogan?'DMSans':'Bricolage',fontSize:slogan?17:52,
      fontWeight:slogan?FontWeight.w500:FontWeight.w800,
      color:Theme.of(context).brightness==Brightness.dark?paydaySand:paydayEmerald))));
@@ -84,7 +84,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
           value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
           child: Opacity(opacity: 1 - homeReveal,
             child: Material(key: const ValueKey('payday-opening-overlay'), color: background,
-              child: Semantics(label: 'PAYDAY. Every dirham, in control.',
+              child: Semantics(label: 'PAYDAY. $paydaySlogan',
                 child: ExcludeSemantics(child: Stack(children:[
                  Positioned(left:20,right:20,bottom:0,height:110,child:CustomPaint(painter:_OpeningWave(teal))),
                  Center(child: Stack(

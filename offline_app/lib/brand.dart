@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+const paydaySlogan = 'Plan today, enjoy tomorrow.';
+
 const paydayEmerald=Color(0xff0E5A47),paydaySaffron=Color(0xffF4A62A),paydaySand=Color(0xffFBF6EA);
 class PaydayMark extends StatelessWidget{
  const PaydayMark({super.key,this.size=48});
@@ -23,7 +25,7 @@ class _MarkPainter extends CustomPainter{
 class PaydayBrand extends StatelessWidget{
  const PaydayBrand({super.key,this.compact=false});
  final bool compact;
- @override Widget build(BuildContext context)=>Semantics(label:'PAYDAY. Every dirham, in control.',
+ @override Widget build(BuildContext context)=>Semantics(label:'PAYDAY. $paydaySlogan',
   child:ExcludeSemantics(child:Row(mainAxisSize:MainAxisSize.min,children:[
    PaydayMark(size:compact?35:42),const SizedBox(width:10),
    Text('Payday',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:compact?25:30,

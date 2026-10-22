@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/opening.dart';
+import 'package:payday_local/brand.dart';
 
 class _Probe extends StatefulWidget {
   const _Probe({required this.onCreate,required this.onTap});
@@ -21,6 +22,7 @@ void main(){
       var creates=0,taps=0;
       await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),
         home:PaydayOpening(child:Scaffold(body:_Probe(onCreate:()=>creates++,onTap:()=>taps++)))));
+      expect(find.text(paydaySlogan),findsOneWidget);
       expect(find.byKey(overlay),findsOneWidget);
       await tester.pump(const Duration(milliseconds:1600));
       expect(find.byKey(overlay),findsOneWidget);
@@ -52,6 +54,8 @@ void main(){
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.light);
     await tester.pumpAndSettle();
     expect(find.byKey(overlay),findsNothing);
+    expect(find.text('Salam'),findsNothing);
+    expect(find.text('Plan today,\nenjoy tomorrow.'),findsOneWidget);
     await tester.tap(find.byTooltip('Use dark appearance'));
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.dark);

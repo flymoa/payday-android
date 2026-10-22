@@ -277,7 +277,9 @@ class _FinanceState extends State<FinanceScreen>{
    title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(dayKey(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
-     Text('Salam',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:25)),
+     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+      child:Text(paydaySlogan.replaceFirst(', ', ',\n'),
+       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:20,height:1.05))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:const PaydayBrand(compact:true)),centerTitle:false,
    actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:Text('More')),
     IconButton(tooltip:isDark?'Use light appearance':'Use dark appearance',
