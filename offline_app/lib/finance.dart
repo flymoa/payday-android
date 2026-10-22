@@ -263,3 +263,15 @@ class MonthlyReview {
   return difference==0?a.compareTo(b):difference;
  });
 }
+
+
+/// Reminder dates describe successful export handoffs, not cloud verification.
+class BackupReminder {
+ BackupReminder({required this.now,required this.hasData,String? lastExport,String? snoozeUntil})
+  :lastExport=DateTime.tryParse(lastExport??''),snoozeUntil=DateTime.tryParse(snoozeUntil??'');
+ final DateTime now;
+ final bool hasData;
+ final DateTime? lastExport,snoozeUntil;
+ bool get due=>hasData&&(lastExport==null||lastExport!.isAfter(now)||now.difference(lastExport!)>=const Duration(days:7));
+ bool get visible=>due&&!(snoozeUntil?.isAfter(now)??false);
+}

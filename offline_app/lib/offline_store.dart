@@ -271,10 +271,13 @@ class OfflineStore {
      await txn.insert(name,Map<String,Object?>.from(item));
     }
    }
+   // Export reminders belong to this installation, not the imported file.
+   await txn.delete('settings',where:'key IN (?, ?)',whereArgs:['last_backup_export','backup_snooze_until']);
   });
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 

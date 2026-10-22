@@ -54,8 +54,9 @@ class _PaydayLocalState extends State<PaydayLocal> {
   builder:(context,child)=>PaydayOpening(child:child??const SizedBox.shrink()),
   home:FinanceScreen(initialData:widget.initialData,onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store});final ValueChanged<bool>? onToggleTheme;
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare});final ValueChanged<bool>? onToggleTheme;
  final OfflineStore? store;
+ final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
  bool get isDark=>Theme.of(context).brightness==Brightness.dark;
@@ -69,6 +70,7 @@ class _FinanceState extends State<FinanceScreen>{
  Color get homeGreen=>jade;
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
  bool writing=false;
+ bool exportingBackup=false;
  String recordQuery='';
  String recordType='All';
  final search=TextEditingController();
@@ -381,6 +383,33 @@ class _FinanceState extends State<FinanceScreen>{
   ]);
  }
 
+ BackupReminder backupReminder(Map<String,List<RowData>> d){
+  String? setting(String key)=>list(d,'settings').where((r)=>st(r,'key')==key).firstOrNull?['value']?.toString();
+  final hasData=['transactions','budgets','bills','goals','allocations','reserves','reserve_movements','month_closes']
+   .any((t)=>list(d,t).isNotEmpty);
+  return BackupReminder(now:DateTime.now(),hasData:hasData,
+   lastExport:setting('last_backup_export'),snoozeUntil:setting('backup_snooze_until'));
+ }
+ String backupDateLabel(BackupReminder reminder)=>reminder.lastExport==null?
+  'No export recorded yet':'Last export: ${dayKey(reminder.lastExport!.toLocal())}';
+ Future<void> snoozeBackup()async{
+  await execute(()=>store.setSetting('backup_snooze_until',DateTime.now().add(Duration(days:1)).toUtc().toIso8601String()));
+ }
+ Widget backupReminderCard(Map<String,List<RowData>> d){
+  final reminder=backupReminder(d);
+  if(!reminder.visible)return SizedBox.shrink();
+  return Padding(padding:EdgeInsets.only(top:16),child:Card(margin:EdgeInsets.zero,
+   child:Padding(padding:EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[PaydayAppIcon(Icons.ios_share,color:jade,size:20),SizedBox(width:8),
+     Expanded(child:Text('Keep a backup',style:TextStyle(fontWeight:FontWeight.w700)))]),
+    SizedBox(height:6),Text(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:12)),
+    SizedBox(height:4),Text('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:12,color:muted)),
+    Wrap(spacing:10,children:[TextButton(onPressed:exportingBackup?null:exportBackup,
+     child:Text(exportingBackup?'Exporting…':'Export backup')),
+     TextButton(onPressed:snoozeBackup,child:Text('Remind tomorrow'))]),
+   ]))));
+ }
+
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d);
   final income=sumType(ts,'Income');
@@ -455,6 +484,7 @@ class _FinanceState extends State<FinanceScreen>{
       ])),
      ])),
     ])),
+   backupReminderCard(d),
    SizedBox(height:22),
    Text('Monthly overview',style:TextStyle(color:homeNavy,fontSize:19,
     fontWeight:FontWeight.w800)),
@@ -735,8 +765,10 @@ class _FinanceState extends State<FinanceScreen>{
  Widget moreBackups(Map<String,List<RowData>> d){
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Privacy & local backups',subtitle:'No sign-in, no cloud connection and no financial data upload'),
+   Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text(backupDateLabel(backupReminder(d)),style:TextStyle(fontWeight:FontWeight.w700))),
+   Text('An export date records a successful handoff to your chosen app. Keep the exported JSON file somewhere safe.',style:TextStyle(color:muted,fontSize:12)),
    Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
-   Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore')))]),
+   Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportingBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore')))]),
    SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:Text('Settings & cash buffer'))
   ]);
  }
@@ -1169,14 +1201,35 @@ class _FinanceState extends State<FinanceScreen>{
    },child:Text('Save settings'))
   ]));
  }
+ Future<ShareResult> shareBackupFile(String contents)async{
+  final dir=await getTemporaryDirectory();
+  final f=File('${dir.path}/payday-local-backup-${DateTime.now().microsecondsSinceEpoch}.json');
+  await f.writeAsString(contents,flush:true);
+  return Share.shareXFiles([XFile(f.path)],text:'Payday Local backup — store this file privately');
+ }
  Future<void> exportBackup() async{
+  if(exportingBackup)return;
+  setState(()=>exportingBackup=true);
   try{
+   final started=DateTime.now().toUtc();
    final json=await store.exportJson();
-   final dir=await getTemporaryDirectory();
-   final f=File('${dir.path}/payday-local-backup-${dayKey(DateTime.now())}.json');
-   await f.writeAsString(json,flush:true);
-   await Share.shareXFiles([XFile(f.path)],text:'Payday Local backup — store this file privately');
-  }catch(e){inputError('Backup export failed: $e');}
+   final result=await (widget.backupShare??shareBackupFile)(json);
+   if(!mounted)return;
+   var completed=result.status==ShareResultStatus.success;
+   if(result.status==ShareResultStatus.unavailable){
+    completed=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+     title:Text('Did you save the backup?'),
+     content:Text('This device cannot confirm the export. Mark it complete only if you saved the JSON file.'),
+     actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Not saved')),
+      FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('I saved it'))]))??false;
+   }
+   if(!completed){if(mounted)inputError('Export not confirmed. Your backup reminder stays active.');return;}
+   await store.setSetting('last_backup_export',started.toIso8601String());
+   await store.setSetting('backup_snooze_until','');
+   refresh();
+   if(mounted)inputError('Backup exported. Keep the JSON file somewhere safe.');
+  }catch(e){if(mounted)inputError('Backup export failed: $e');}
+  finally{if(mounted)setState(()=>exportingBackup=false);}
  }
  Future<void> importBackup() async{
   try{
@@ -1193,6 +1246,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
