@@ -73,7 +73,7 @@ void main(){
   expect(find.text('Income categories'),findsOneWidget);
   await tester.tap(find.text('Add income category'));await tester.pumpAndSettle();
   await tester.enterText(find.widgetWithText(TextField,'Name'),'Consulting');
-  await tester.tap(find.widgetWithText(FilledButton,'Add category'));await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(FilledButton,'Add category').last);await tester.pumpAndSettle();
   expect(find.text('Consulting'),findsOneWidget);
   await tester.tap(find.byTooltip('Delete Consulting'));await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(FilledButton,'Delete category'));await tester.pumpAndSettle();
