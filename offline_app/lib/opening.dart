@@ -85,7 +85,9 @@ class _PaydayOpeningState extends State<PaydayOpening>
           child: Opacity(opacity: 1 - homeReveal,
             child: Material(key: const ValueKey('payday-opening-overlay'), color: background,
               child: Semantics(label: 'PAYDAY. Every dirham, in control.',
-                child: ExcludeSemantics(child: Center(child: Stack(
+                child: ExcludeSemantics(child: Stack(children:[
+                 Positioned(left:20,right:20,bottom:0,height:110,child:CustomPaint(painter:_OpeningWave(teal))),
+                 Center(child: Stack(
                   alignment: Alignment.center, clipBehavior: Clip.none, children: [
                     if (!_reduced) Transform.translate(
                       offset: const Offset(0, -25),
@@ -163,7 +165,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
                       )),
                     ),
                   ],
-                ))),
+                ))])),
               ),
             ),
           ),
@@ -180,3 +182,17 @@ class _WordReveal extends CustomClipper<Rect> {
   @override bool shouldReclip(_WordReveal oldClipper) => oldClipper.progress != progress;
 }
 
+
+class _OpeningWave extends CustomPainter{
+ const _OpeningWave(this.color);
+ final Color color;
+ @override void paint(Canvas c,Size size){
+  final width=size.width/28;
+  for(var i=0;i<28;i++){
+   final height=25+78*math.exp(-math.pow((i-10)/7,2));
+   final paint=Paint()..color=i==22?paydaySaffron:color.withValues(alpha:.38+.22*math.sin(i/7).abs());
+   c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(i*width,size.height-height,width*.60,height),const Radius.circular(4)),paint);
+  }
+ }
+ @override bool shouldRepaint(covariant _OpeningWave old)=>old.color!=color;
+}
