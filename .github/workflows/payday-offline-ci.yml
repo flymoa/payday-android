@@ -28,7 +28,7 @@ jobs:
           umask 077
           test -n "$KEYSTORE_BASE64" || { echo "::error::Permanent signing secret missing; refusing to generate a key."; exit 1; }
           test -n "$SIGNING_PASSWORD"
-          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/payday-release.p12"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/payday-release.p12"
           actual=$(keytool -exportcert -keystore "$RUNNER_TEMP/payday-release.p12" -storepass:env SIGNING_PASSWORD -alias payday | sha256sum | cut -d' ' -f1)
           test "$actual" = 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf || { echo "::error::Wrong signing certificate; APK publication blocked."; exit 1; }
       - name: Create isolated Android project
