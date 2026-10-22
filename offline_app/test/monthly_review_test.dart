@@ -39,7 +39,7 @@ void main(){
    final close=find.ancestor(of:find.text('Continue to close checks'),matching:find.byWidgetPredicate((w)=>w is FilledButton)).first;
    expect(tester.widget<FilledButton>(close).onPressed,isNull);
    expect(tester.takeException(),isNull);
-   await tester.ensureVisible(find.byTooltip('Previous month'));
+   await tester.ensureVisible(find.byTooltip('Previous month'));await tester.pumpAndSettle();
    await tester.tap(find.byTooltip('Previous month'));await tester.pumpAndSettle();
    expect(find.text('Ready to review'),findsOneWidget);
    expect(find.text('No transactions recorded for this month. Bills and plans can still have outstanding amounts.'),findsOneWidget);
