@@ -80,6 +80,19 @@ class _CategoryPainter extends CustomPainter {
    case 'debt payment':
     box(3,5,18,14,navy);line(3,9,21,9,teal);line(6,14,10,14,teal);
     path([Offset(14,13),Offset(17,16),Offset(21,12)],copper);break;
+   case 'income':
+    canvas.drawPath(Path()..moveTo(5,4)..lineTo(5,18)..quadraticBezierTo(5,21,8,21)..lineTo(19,21),navy);
+    path([Offset(19,4),Offset(9,14),Offset(9,8)],teal);
+    line(9,14,15,14,teal);dot(20,15);break;
+   case 'expense':
+    canvas.drawPath(Path()..moveTo(5,4)..lineTo(5,18)..quadraticBezierTo(5,21,8,21)..lineTo(19,21),navy);
+    path([Offset(9,14),Offset(19,4),Offset(13,4)],teal);
+    line(19,4,19,10,teal);dot(20,15);break;
+   case 'reserve':
+    box(3,5,18,16,navy,radius:3);line(3,10,21,10,teal);
+    line(8,3,8,7,teal);line(16,3,16,7,teal);
+    canvas.drawCircle(Offset(12,15),3.4,copper);
+    line(12,13,12,15,copper);line(12,15,14,16,copper);break;
    case 'salary':
    case 'income plan':
     box(3,9,18,12,navy);canvas.drawPath(Path()..moveTo(8,9)..lineTo(8,5)..lineTo(16,5)..lineTo(16,9),teal);
@@ -95,3 +108,4 @@ class _CategoryPainter extends CustomPainter {
  }
  @override bool shouldRepaint(covariant _CategoryPainter old)=>old.category!=category||old.dark!=dark;
 }
+

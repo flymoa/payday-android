@@ -16,7 +16,7 @@ void main(){
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();
-   expect(find.byType(PaydayCategoryIcon),findsNWidgets(categories.length));
+   expect(find.byType(PaydayCategoryIcon),findsNWidgets(categories.length+8));
    for(final c in categories){
     await tester.ensureVisible(find.text(c));await tester.pumpAndSettle();
     expect(tester.takeException(),isNull,reason:c);

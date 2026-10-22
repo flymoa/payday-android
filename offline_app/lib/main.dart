@@ -169,14 +169,13 @@ class _FinanceState extends State<FinanceScreen>{
    'July','August','September','October','November','December'];
   return '${names[selected.month-1]} ${selected.year}';
  }
- Widget homeSummary(String label,int value,IconData icon,Color tint,Color iconBg){
+ Widget homeSummary(String label,int value,String glyph){
   return Expanded(child:Container(
    padding:EdgeInsets.all(13),
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
     border:Border.all(color:line)),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Container(width:38,height:38,decoration:BoxDecoration(color:iconBg,
-     borderRadius:BorderRadius.circular(12)),child:Icon(icon,color:tint,size:20)),
+    PaydayCategoryIcon(glyph,size:38),
     SizedBox(height:11),
     Text(label,maxLines:2,style:TextStyle(color:muted,fontSize:12,height:1.2)),
     SizedBox(height:8),
@@ -190,12 +189,11 @@ class _FinanceState extends State<FinanceScreen>{
    ]),
   ));
  }
- Widget homeQuickAction(String label,IconData icon,Color bg,Color tint,VoidCallback onPressed){
+ Widget homeQuickAction(String label,String glyph,VoidCallback onPressed){
   return Expanded(child:InkWell(
    borderRadius:BorderRadius.circular(15),onTap:onPressed,
    child:Padding(padding:EdgeInsets.symmetric(vertical:4),child:Column(children:[
-    Container(width:52,height:52,decoration:BoxDecoration(color:bg,
-     borderRadius:BorderRadius.circular(16)),child:Icon(icon,color:tint,size:24)),
+    PaydayCategoryIcon(glyph,size:52),
     SizedBox(height:7),
     Text(label,maxLines:2,textAlign:TextAlign.center,
      style:TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:homeText)),
@@ -461,35 +459,27 @@ class _FinanceState extends State<FinanceScreen>{
     fontWeight:FontWeight.w800)),
    SizedBox(height:12),
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    homeSummary('Income this month',income,Icons.south_west,
-     Color(0xff278777),Color(0xffEAF4EF)),
+    homeSummary('Income this month',income,'income'),
     SizedBox(width:10),
-    homeSummary('Spent this month',expenses,Icons.north_east,
-     Color(0xffC28250),Color(0xffFBF0E8)),
+    homeSummary('Spent this month',expenses,'expense'),
    ]),
    SizedBox(height:10),
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    homeSummary('Saved this month',saved,Icons.savings_outlined,
-     Color(0xff5D77AA),Color(0xffEDF1FA)),
+    homeSummary('Saved this month',saved,'savings'),
     SizedBox(width:10),
-    homeSummary('Reserved this month',reserveNet,Icons.event_repeat_outlined,
-     Color(0xff9170AE),Color(0xffF3EDFA)),
+    homeSummary('Reserved this month',reserveNet,'reserve'),
    ]),
    SizedBox(height:22),
    Text('Quick actions',style:TextStyle(color:homeNavy,fontSize:19,
     fontWeight:FontWeight.w800)),
    SizedBox(height:11),
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    homeQuickAction('Expense',Icons.north_east,
-     Color(0xffFBF0E8),Color(0xffC28250),()=>transactionForm(null)),
-    homeQuickAction('Income',Icons.south_west,
-     Color(0xffEAF4EF),Color(0xff278777),
+    homeQuickAction('Expense','expense',()=>transactionForm(null)),
+    homeQuickAction('Income','income',
      ()=>transactionForm(null,initialType:'Income')),
-    homeQuickAction('Save',Icons.savings_outlined,
-     Color(0xffEDF1FA),Color(0xff5D77AA),
+    homeQuickAction('Save','savings',
      ()=>setState(()=>page=3)),
-    homeQuickAction('Reserve',Icons.event_repeat_outlined,
-     Color(0xffF3EDFA),Color(0xff9170AE),
+    homeQuickAction('Reserve','reserve',
      ()=>setState((){page=4;moreSection=1;})),
    ]),
    SizedBox(height:24),
@@ -1202,6 +1192,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
