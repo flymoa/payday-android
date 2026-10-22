@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/main.dart';
-import 'package:payday_local/finance.dart';
 import 'package:payday_local/offline_store.dart';
 
 class RetryGoalStore extends OfflineStore {
