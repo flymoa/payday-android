@@ -339,7 +339,7 @@ class _FinanceState extends State<FinanceScreen>{
     case 3:screen=savings(d);break;
     default:screen=more(d);
    }
-   return SafeArea(child:ListView(padding:EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
+   return SafeArea(child:ListView(key:ValueKey('page-$page-section-$moreSection'),padding:EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
   }),
   bottomNavigationBar:SafeArea(top:false,child:Container(
    padding:EdgeInsets.fromLTRB(8,0,8,8),
