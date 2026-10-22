@@ -19,59 +19,38 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Restore existing key for migration only
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: payday-android-debug-signing-v1
-      - name: Load and verify fixed PAYDAY signing key
+      - name: Load permanent PAYDAY release key
         env:
-          PAYDAY_SIGNING_KEYSTORE_BASE64: ${{ secrets.PAYDAY_SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_BASE64: ${{ secrets.PAYDAY_SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.PAYDAY_SIGNING_BACKUP_PASSWORD }}
         run: |
           set -euo pipefail
           umask 077
-          mkdir -p "$HOME/.android"
-          if [[ -n "$PAYDAY_SIGNING_KEYSTORE_BASE64" ]]; then
-            printf '%s' "$PAYDAY_SIGNING_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
-          fi
-          if [[ ! -s "$HOME/.android/debug.keystore" ]]; then
-            echo "::error::PAYDAY signing key is missing. Restore the v2.0.2 key; never generate a replacement."
-            exit 1
-          fi
-          expected=5cad5224a0d873614f1999ea7182c97f34153c1f8a8c8df660d53ff555651bcb
-          actual=$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | cut -d' ' -f1)
-          echo "Recovered certificate SHA-256: $actual"
-          if [[ "$actual" != "$expected" ]]; then
-            echo "::error::Signing certificate does not match PAYDAY v2.0.2. APK publication blocked."
-            exit 1
-          fi
-          chmod 600 "$HOME/.android/debug.keystore"
-      - name: Prepare encrypted signing backup
-        id: signing_backup
-        env:
-          BACKUP_PASSWORD: ${{ secrets.PAYDAY_SIGNING_BACKUP_PASSWORD }}
-        run: |
-          set -euo pipefail
-          if [[ -z "$BACKUP_PASSWORD" ]]; then
-            echo "::notice::Set PAYDAY_SIGNING_BACKUP_PASSWORD and rerun to create an encrypted key backup."
-            exit 0
-          fi
-          umask 077
-          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 600000 -md sha256 \
-            -pass env:BACKUP_PASSWORD -in "$HOME/.android/debug.keystore" \
-            -out "$RUNNER_TEMP/payday-v2-signing.keystore.enc"
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Upload encrypted signing backup
-        if: steps.signing_backup.outputs.ready == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: payday-v2-signing-backup-encrypted
-          path: ${{ runner.temp }}/payday-v2-signing.keystore.enc
-          retention-days: 1
-          if-no-files-found: error
+          test -n "$KEYSTORE_BASE64" || { echo "::error::Permanent signing secret missing; refusing to generate a key."; exit 1; }
+          test -n "$SIGNING_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/payday-release.p12"
+          actual=$(keytool -exportcert -keystore "$RUNNER_TEMP/payday-release.p12" -storepass:env SIGNING_PASSWORD -alias payday | sha256sum | cut -d' ' -f1)
+          test "$actual" = 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf || { echo "::error::Wrong signing certificate; APK publication blocked."; exit 1; }
       - name: Create isolated Android project
         working-directory: offline_app
         run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Configure explicit release signing
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/build.gradle.kts')
+          text = p.read_text()
+          old = 'signingConfig = signingConfigs.getByName("debug")'
+          assert text.count(old) == 1, 'Flutter signing template changed; refusing to build'
+          new = '''signingConfig = signingConfigs.create("paydayRelease") {
+                  storeFile = file(System.getenv("PAYDAY_KEYSTORE_PATH"))
+                  storePassword = System.getenv("PAYDAY_SIGNING_PASSWORD")
+                  keyAlias = "payday"
+                  keyPassword = System.getenv("PAYDAY_SIGNING_PASSWORD")
+              }'''
+          p.write_text(text.replace(old, new))
+          PY
       - name: Apply approved PAYDAY launcher artwork
         working-directory: offline_app
         run: python3 tool/apply_brand.py
@@ -94,6 +73,9 @@ jobs:
         working-directory: offline_app
         run: flutter test
       - name: Build standalone release APK
+        env:
+          PAYDAY_KEYSTORE_PATH: ${{ runner.temp }}/payday-release.p12
+          PAYDAY_SIGNING_PASSWORD: ${{ secrets.PAYDAY_SIGNING_BACKUP_PASSWORD }}
         working-directory: offline_app
         run: flutter build apk --release
       - name: Verify offline APK identity and permissions
@@ -110,14 +92,22 @@ jobs:
           fi
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
           "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/payday-apk-certs.txt"
-          grep -Fxq 'Signer #1 certificate SHA-256 digest: 5cad5224a0d873614f1999ea7182c97f34153c1f8a8c8df660d53ff555651bcb' "$RUNNER_TEMP/payday-apk-certs.txt"
+          grep -Fxq 'Signer #1 certificate SHA-256 digest: 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf' "$RUNNER_TEMP/payday-apk-certs.txt"
           echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
           echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
           echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'APK certificate verified against PAYDAY v2.0.2; preserve the signing secret and encrypted backup.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK certificate verified against permanent PAYDAY release key.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: payday-local-offline-v1-apk
           path: offline_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
 
+      - name: Remove temporary signing key
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path(os.environ['RUNNER_TEMP'], 'payday-release.p12').unlink(missing_ok=True)
+          PY
