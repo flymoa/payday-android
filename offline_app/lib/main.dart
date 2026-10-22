@@ -37,7 +37,7 @@ class _PaydayStartupState extends State<PaydayStartup>{
    body:SafeArea(child:Center(child:Padding(padding:const EdgeInsets.all(24),child:snapshot.hasError?
     Column(mainAxisSize:MainAxisSize.min,children:[
      const Text('Could not read your app settings. Your records have not been opened.',textAlign:TextAlign.center),
-     const SizedBox(height:16),FilledButton(onPressed:()=>setState(()=>preferences=store.loadAppPreferences()),child:const Text('Try again')),
+     const SizedBox(height:16),FilledButton(onPressed:(){final next=store.loadAppPreferences();setState((){preferences=next;});},child:const Text('Try again')),
     ]):const CircularProgressIndicator())))));
  });
 }
