@@ -1,3 +1,4 @@
+import 'add_button.dart';
 import 'transaction_categories.dart';
 import 'app_icon.dart';
 import 'category_icon.dart';
@@ -304,10 +305,7 @@ class _FinanceState extends State<FinanceScreen>{
     Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:'Add transaction',child:
      Container(width:54,height:54,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(20),
       boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .10 : .20),blurRadius:14,offset:Offset(0,5))]),
-      padding:EdgeInsets.all(3),child:FilledButton(style:FilledButton.styleFrom(padding:EdgeInsets.zero,
-       minimumSize:Size(48,48),tapTargetSize:MaterialTapTargetSize.shrinkWrap,backgroundColor:paydaySaffron,foregroundColor:Color(0xff12261F),
-       shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(17))),onPressed:()=>transactionForm(null),
-       child:PaydayAppIcon(Icons.add,size:24,color:Color(0xff12261F)))))))),
+      padding:EdgeInsets.all(3),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
    ]))),
  );
@@ -444,6 +442,7 @@ class _FinanceState extends State<FinanceScreen>{
 
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d),balance=monthlyBalance(d);
+  final recent=recentActivityRows(list(d,'transactions'),DateTime.now());
   final categories=list(d,'categories').where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsets.only(top:23,bottom:12),child:Row(children:[
    Expanded(child:Text(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800))),TextButton(onPressed:tap,child:Text(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
@@ -474,19 +473,43 @@ class _FinanceState extends State<FinanceScreen>{
    if(categories.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No spending or category budgets for this month.')),
    ...categories.map((c){final name=st(c,'name');final spent=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name).fold(0,(n,t)=>n+val(t,'amount'));return homeCategory(name,spent,budgetFor(d,month,name));}),
    section('Recent activity','See all',()=>setState(()=>page=1)),
-   ...ts.take(3).map(recordTile),if(ts.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No entries recorded this month.')),
+   ...recent.map(recentActivityTile),if(recent.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:Text('No activity today or yesterday.')),
   ]);
  }
- Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?st(t,'category'):st(t,'description'),'${st(t,'date')} · ${st(t,'category')} · $type',money(val(t,'amount')),icon:type=='Income'?Icons.call_received:type.startsWith('Savings')?Icons.savings_outlined:Icons.call_made,tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
+ Widget recentActivityTile(RowData row){
+  final category=st(row,'category'),type=st(row,'type');
+  final title=st(row,'description').isEmpty?category:st(row,'description');
+  final outgoing=type=='Expense'||type=='Savings out';
+  return Material(color:Colors.transparent,child:InkWell(
+   borderRadius:BorderRadius.circular(14),onTap:()=>transactionForm(row),
+   child:Padding(padding:EdgeInsets.symmetric(vertical:10),child:Row(children:[
+    PaydayCategoryIcon(category,size:42),SizedBox(width:12),
+    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
+     SizedBox(height:3),Text('$category · ${recentActivityDay(st(row,'date'),DateTime.now())}',
+      style:TextStyle(fontSize:12,color:muted)),
+    ])),SizedBox(width:8),
+    ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.32),
+     child:FittedBox(fit:BoxFit.scaleDown,child:Text('${outgoing?'−':'+'}${money(val(row,'amount'))}',
+      style:TextStyle(fontWeight:FontWeight.w700,color:ink)))),
+   ]))));
+ }
+ Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?st(t,'category'):st(t,'description'),'${st(t,'date')} · ${st(t,'category')} · $type',money(val(t,'amount')),leading:PaydayCategoryIcon(st(t,'category')),tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
  Widget records(Map<String,List<RowData>> d){
   final all=monthTransactions(d);
   final ts=all.where((t)=>matchesRecord(t,recordQuery,recordType)).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Transactions',subtitle:'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
-    decoration:InputDecoration(hintText:'Search description, category or note',
-     prefixIcon:PaydayAppIcon(Icons.search),suffixIcon:recordQuery.isEmpty?null:IconButton(
-      tooltip:'Clear search',icon:PaydayAppIcon(Icons.close),onPressed:(){search.clear();setState(()=>recordQuery='');}))),
+    style:TextStyle(fontSize:13),
+    decoration:InputDecoration(hintText:'Search records',isDense:true,
+     contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
+     prefixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
+     suffixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
+     prefixIcon:Padding(padding:EdgeInsets.all(9),child:PaydayAppIcon(Icons.search,size:18,color:muted)),
+     suffixIcon:recordQuery.isEmpty?null:IconButton(
+      tooltip:'Clear search',visualDensity:VisualDensity.compact,icon:PaydayAppIcon(Icons.close,size:16),
+      onPressed:(){search.clear();setState(()=>recordQuery='');}))),
    SizedBox(height:10),
    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:
     ['All','Expense','Income','Savings out','Savings in'].map((type)=>Padding(
@@ -1238,6 +1261,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

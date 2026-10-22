@@ -275,3 +275,17 @@ class BackupReminder {
  bool get due=>hasData&&(lastExport==null||lastExport!.isAfter(now)||now.difference(lastExport!)>=const Duration(days:7));
  bool get visible=>due&&!(snoozeUntil?.isAfter(now)??false);
 }
+
+
+/// Home shows only the current and previous local calendar day, across months.
+List<Map<String,Object?>> recentActivityRows(Iterable<Map<String,Object?>> rows,DateTime now){
+ final today=dayKey(now),yesterday=dayKey(DateTime(now.year,now.month,now.day-1));
+ final selected=rows.where((r)=>r['date']==today||r['date']==yesterday).toList();
+ selected.sort((a,b){
+  final date=b['date'].toString().compareTo(a['date'].toString());
+  if(date!=0)return date;
+  return ((b['id'] as num?)?.toInt()??0).compareTo((a['id'] as num?)?.toInt()??0);
+ });
+ return selected;
+}
+String recentActivityDay(String date,DateTime now)=>date==dayKey(now)?'Today':'Yesterday';

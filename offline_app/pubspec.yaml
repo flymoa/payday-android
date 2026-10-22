@@ -1,7 +1,7 @@
 name: payday_local
 description: Fully offline personal finance tracker. No accounts or network services.
 publish_to: none
-version: 2.0.1+21
+version: 2.0.2+22
 environment:
   sdk: ">=3.8.0 <4.0.0"
 dependencies:
@@ -43,4 +43,5 @@ flutter:
     - family: DMSans
       fonts:
         - asset: assets/fonts/DMSans.ttf
+
 
