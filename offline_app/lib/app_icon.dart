@@ -46,7 +46,11 @@ class _AppPainter extends CustomPainter{
    for(final v in points.skip(1)){q.lineTo(v.dx,v.dy);}c.drawPath(q,copper?accent:p);
   }
   void dot(double x,double y)=>c.drawCircle(Offset(x,y),1,Paint()..color=accent.color);
-  if([Icons.space_dashboard,Icons.space_dashboard_outlined,Icons.grid_view,Icons.grid_view_outlined].contains(icon)){
+  if(icon==Icons.visibility_outlined||icon==Icons.visibility_off_outlined){
+   c.drawPath(Path()..moveTo(2,12)..quadraticBezierTo(12,0,22,12)..quadraticBezierTo(12,24,2,12),p);
+   circle(12,12,3,true);
+   if(icon==Icons.visibility_off_outlined)l(3,3,21,21);
+  }else if([Icons.space_dashboard,Icons.space_dashboard_outlined,Icons.grid_view,Icons.grid_view_outlined].contains(icon)){
    final more=icon==Icons.grid_view||icon==Icons.grid_view_outlined;
    box(3,3,7,more?7:10);box(14,3,7,more?7:6,true);
    box(3,more?14:17,7,more?7:4);box(14,more?14:13,7,more?7:8);

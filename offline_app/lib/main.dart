@@ -1,3 +1,5 @@
+import 'backup_cipher.dart';
+import 'backup_password_dialog.dart';
 import 'settings_pages.dart';
 import 'dart:async';
 import 'app_lock.dart';
@@ -140,11 +142,12 @@ class _PaydayLocalState extends State<PaydayLocal> {
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,
  this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
+ final BackupCipher? backupCipher;
  final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
@@ -160,6 +163,8 @@ class _FinanceState extends State<FinanceScreen>{
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
  bool writing=false;
  bool exportingBackup=false;
+ bool restoringBackup=false;
+ BackupCipher get backupCipher=>widget.backupCipher??const BackupCipher();
  bool preferencesSaving=false;
  final scaffoldKey=GlobalKey<ScaffoldState>();
  bool drawerBackups=false;
@@ -540,7 +545,7 @@ class _FinanceState extends State<FinanceScreen>{
      Expanded(child:Text('Keep a backup',style:TextStyle(fontWeight:FontWeight.w700)))]),
     SizedBox(height:6),Text(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:12)),
     SizedBox(height:4),Text('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:12,color:muted)),
-    Wrap(spacing:10,children:[TextButton(onPressed:exportingBackup?null:exportBackup,
+    Wrap(spacing:10,children:[TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
      child:Text(exportingBackup?'Exporting…':'Export backup')),
      TextButton(onPressed:snoozeBackup,child:Text('Remind tomorrow'))]),
    ]))));
@@ -624,7 +629,7 @@ class _FinanceState extends State<FinanceScreen>{
    SizedBox(height:10),
    ...ts.map(recordTile),
    if(ts.isEmpty)Padding(padding:EdgeInsets.all(24),child:Text(all.isEmpty?
-    'No entries for this month. Tap Add entry to record your first transaction.':
+    'No entries this month. Tap + to add your first transaction.':
     'No matching entries. Change the search or type filter.')),
   ]);
  }
@@ -658,7 +663,7 @@ class _FinanceState extends State<FinanceScreen>{
    Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
     inc==0&&assigned==0?'Set planned income to start assigning your budget.':
     inc==assigned?'No more money to assign. Your income is fully assigned.':
-    assigned>inc?'Over assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
+    assigned>inc?'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
     'Available to assign: ${money(inc-assigned)}',
     style:TextStyle(fontWeight:FontWeight.bold,color:inc-assigned>=0?jade:Colors.deepOrange)))),
    tile('Income plan','Expected monthly income',money(inc),leading:PaydayCategoryIcon('Income plan'),onTap:()=>budgetForm(d,'Income plan')),
@@ -743,11 +748,11 @@ class _FinanceState extends State<FinanceScreen>{
  Widget moreBills(Map<String,List<RowData>> d){
   final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Bills',subtitle:'Attach the Bill ID when recording an expense',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
+   header('Bills',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
    ...bills.where((b)=>st(b,'due').startsWith(month)).map((b){final remain=billOutstanding(val(b,'amount'),billPaid(d,b));
     return tile(st(b,'name'),'${st(b,'due')} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
    }),
-   if(!bills.any((b)=>st(b,'due').startsWith(month)))Padding(padding:EdgeInsets.all(8),child:Text('No bills due in this month.'))
+   if(!bills.any((b)=>st(b,'due').startsWith(month)))Padding(padding:EdgeInsets.all(8),child:Text('No bills due this month.'))
   ]);
  }
  Widget moreReserves(Map<String,List<RowData>> d){
@@ -935,11 +940,10 @@ class _FinanceState extends State<FinanceScreen>{
  }
  Widget moreBackups(Map<String,List<RowData>> d){
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Backups & data',subtitle:'No sign-in, no cloud connection and no financial data upload'),
+   header('Backups & data',action:IconButton(tooltip:'About backups',icon:PaydayAppIcon(Icons.info_outline,size:20),
+    onPressed:()=>showSettingsInfo(context,'Backups & data','New exports are password protected. Keep the password: PAYDAY cannot recover it. Older JSON backups still work. Restore replaces your records, but keeps this phone’s App lock setting. Records on this phone are not encrypted by PAYDAY. An export date confirms the handoff to your chosen app; keep the saved file somewhere safe.'))),
    Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text(backupDateLabel(backupReminder(d)),style:TextStyle(fontWeight:FontWeight.w700))),
-   Text('An export date records a successful handoff to your chosen app. Keep the exported JSON file somewhere safe.',style:TextStyle(color:muted,fontSize:12)),
-   Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
-   Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[OutlinedButton.icon(onPressed:exportingBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup')),SizedBox(height:8),OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore'))]),
+   Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[OutlinedButton.icon(onPressed:exportingBackup||restoringBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup')),SizedBox(height:8),OutlinedButton.icon(onPressed:exportingBackup||restoringBackup?null:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore'))]),
   ]);
  }
  Future<void> deleteTransactionWithUndo(int id)async{
@@ -956,7 +960,7 @@ class _FinanceState extends State<FinanceScreen>{
    if(!mounted)return;
    if(removed==null){inputError('This transaction was already removed.');return;}
    showTransactionUndo(removed);
-  }catch(e){if(mounted)inputError('Could not delete transaction: $e');}
+  }catch(e){if(mounted)inputError('Could not delete the transaction: $e');}
   finally{writing=false;}
  }
  void showTransactionUndo(RowData removed,{bool retry=false}){
@@ -1296,7 +1300,7 @@ class _FinanceState extends State<FinanceScreen>{
   final d=await store.snapshot();if(!mounted)return;
   final billCategories=categoryChoices(d,'Expense',existing:existing==null?null:category);
   if(!billCategories.contains(category))category=billCategories.first;
-  await sheet(existing==null?'Add bill':'Edit bill',(c,rebuild)=>Column(children:[
+  await sheet(existing==null?'Add a bill':'Edit bill',(c,rebuild)=>Column(children:[
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount ($currency)',number:true),field(note,'Note'),
    DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:Text(name))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
@@ -1453,9 +1457,9 @@ class _FinanceState extends State<FinanceScreen>{
    CheckboxListTile(value:balanced,onChanged:(v)=>rebuild(()=>balanced=v??false),title:Text('Cash balance checked')),
    field(opening,'Opening spendable cash ($currency)',number:true),field(extra,'Extra saved ($currency)',number:true),
    FilledButton(onPressed:()async{
-    if(!selected.isBefore(currentMonth))return inputError('The month must end before closing it.');
+    if(!selected.isBefore(currentMonth))return inputError('Wait until the month ends before closing it.');
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
-    if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete checks; extra must not exceed available cash.');
+    if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete the checks. Extra savings cannot exceed available cash.');
     final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:Text('Confirm month close'))
   ]));
@@ -1468,7 +1472,7 @@ class _FinanceState extends State<FinanceScreen>{
    field(b,'Cash buffer ($currency)',number:true),field(saved,'Opening savings ($currency)',number:true),
    Padding(padding:EdgeInsets.all(8),child:Text('Opening savings are money saved before using PAYDAY. Your cash buffer stays out of Safe to spend.')),
    FilledButton(onPressed:()async{
-    final bn=amount(b,allowZero:true),sn=amount(saved,allowZero:true);if(bn==null||sn==null)return inputError('Check amounts');
+    final bn=amount(b,allowZero:true),sn=amount(saved,allowZero:true);if(bn==null||sn==null)return inputError('Check the amounts.');
     final saveSucceeded=await execute(()async{await store.setSetting('buffer',bn.toString());await store.setSetting('opening_savings',sn.toString());});if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:Text('Save settings'))
   ]));
@@ -1480,11 +1484,13 @@ class _FinanceState extends State<FinanceScreen>{
   return Share.shareXFiles([XFile(f.path)],text:'Payday Local backup — store this file privately');
  }
  Future<void> exportBackup() async{
-  if(exportingBackup)return;
+  if(exportingBackup||restoringBackup)return;
   setState(()=>exportingBackup=true);
   try{
    final started=DateTime.now().toUtc();
-   final json=await store.exportJson();
+   final json=await showDialog<String>(context:context,barrierDismissible:false,builder:(_)=>BackupPasswordDialog(
+    creating:true,submit:(password)async=>backupCipher.seal(await store.exportJson(),password)));
+   if(json==null||!mounted)return;
    final result=await (widget.backupShare??shareBackupFile)(json);
    if(!mounted)return;
    var completed=result.status==ShareResultStatus.success;
@@ -1499,28 +1505,43 @@ class _FinanceState extends State<FinanceScreen>{
    await store.setSetting('last_backup_export',started.toIso8601String());
    await store.setSetting('backup_snooze_until','');
    refresh();
-   if(mounted)inputError('Backup exported. Keep the JSON file somewhere safe.');
+   if(mounted)inputError('Password-protected backup exported. Keep the file and password safe.');
   }catch(e){if(mounted)inputError('Backup export failed: $e');}
   finally{if(mounted)setState(()=>exportingBackup=false);}
  }
  Future<void> importBackup() async{
+  if(exportingBackup||restoringBackup)return;
+  setState(()=>restoringBackup=true);
   try{
    final picker=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['json']);
    if(picker==null)return;
    final file=picker.files.single;
+   if(file.size>BackupCipher.maxFileBytes||(file.path!=null&&await File(file.path!).length()>BackupCipher.maxFileBytes)){
+    throw const FormatException('This backup is too large.');
+   }
    final raw=file.path!=null?await File(file.path!).readAsString():file.bytes!=null?utf8.decode(file.bytes!):null;
-   if(raw==null)return inputError('Could not read the backup.');
+   if(raw==null)throw const FormatException('Could not read the backup.');
    if(!mounted)return;
+   String? plain=raw;
+   if(BackupCipher.isProtected(raw)){
+    plain=await showDialog<String>(context:context,barrierDismissible:false,builder:(_)=>BackupPasswordDialog(
+     creating:false,submit:(password)=>backupCipher.open(raw,password)));
+   }
+   if(plain==null||!mounted)return;
+   BackupCipher.validatePlain(plain);
+   final contents=plain;
    final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
-    title:Text('Restore Payday backup?'),content:Text('This replaces ALL records currently stored in this offline app. Export a backup first.'),
+    title:Text('Restore your PAYDAY backup?'),content:Text('This replaces all records on this phone. Export a backup first.'),
     actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Replace local data'))]));
    if(yes==true){
-    final restored=await execute(()=>store.importJson(raw));
+    final restored=await execute(()=>store.importJson(contents));
     if(restored&&mounted&&widget.onPreferencesChanged!=null){
      await widget.onPreferencesChanged!(await store.loadAppPreferences());
     }
    }
-  }catch(e){inputError('Restore failed: $e');}
+  }on FormatException catch(e){if(mounted)inputError(e.message);}
+  catch(_){if(mounted)inputError('Could not restore the backup. Please try again.');}
+  finally{if(mounted)setState(()=>restoringBackup=false);}
  }
 }
 

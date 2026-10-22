@@ -34,11 +34,27 @@ started, budgets/savings, backup restore, privacy and updating. Copy app details
 contains only the app name and release metadata. CI checks this metadata against
 pubspec.yaml so the displayed version cannot silently drift.
 
-App lock is an access gate, not database or backup encryption. Remaining stages:
-language translations and layout direction, encrypted storage/backups and local
+Backup stage: new exports use a versioned AES-256-GCM envelope with a fresh
+16-byte salt and 12-byte nonce from Random.secure. PBKDF2-HMAC-SHA256 uses
+600,000 iterations and a 256-bit key, on a worker isolate. Fixed version/cipher/
+KDF metadata is authenticated; unknown parameters and malformed lengths are
+rejected before key derivation. Plaintext is limited to 16 MiB; input files to
+24 MiB. Only ciphertext is written to the shared temporary file. Passwords are
+not saved; they cannot be recovered. Export requires confirmation of a password
+of at least 12 characters and acknowledgement that it has been saved. Passwords
+are preserved exactly (including Unicode and whitespace), with a 1024-byte cap.
+Restore supports legacy schema 1/2 JSON and never imports until decryption and
+replacement confirmation succeed. Existing atomic import and device-local lock
+policy remain unchanged. Wrong passwords/tampering leave records untouched.
+App lock is an access gate, not database encryption. Remaining stages:
+language translations and layout direction, encrypted local storage and local
 reminders. Keep permission requests contextual and preserve the
 PAYDAY identity. CI uses the permanent signing certificate for in-place updates.
 
 Native setup references:
 https://pub.dev/packages/local_auth
 https://pub.dev/packages/local_auth_android
+
+Backup implementation references:
+https://pub.dev/packages/cryptography
+https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html

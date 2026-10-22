@@ -6,7 +6,7 @@ import 'build_info.dart';
 
 const appLockExplanation='Use your phone’s fingerprint, face unlock, or screen lock to open or return to PAYDAY. '
  'Screenshots and recent-app previews are blocked while App lock is on. '
- 'It does not encrypt your records or exported backups.';
+ 'App lock does not encrypt your records. New backup exports have separate password protection.';
 
 Future<void> showSettingsInfo(BuildContext context,String title,String message)=>showDialog<void>(
  context:context,builder:(dialog)=>AlertDialog(title:Text(title),scrollable:true,
@@ -70,9 +70,9 @@ class AboutHelpPage extends StatelessWidget{
    topic(context,'Budgets & savings',Icons.pie_chart_outline,
     'Category budgets and the savings goal share your planned income. You cannot assign more than that plan. Assigning existing savings to a goal does not create new savings.'),
    topic(context,'Backups & restore',Icons.ios_share,
-    'Export a backup from Settings → Backups & data and keep the JSON file somewhere private. Restore replaces the records on this phone. This phone’s App lock setting stays unchanged.'),
+    'Export a password-protected backup from Settings → Backups & data. Keep the file and password safe: PAYDAY cannot recover the password. Older JSON backups can still be restored. Restore replaces records and keeps this phone’s App lock setting.'),
    topic(context,'Privacy & security',Icons.lock_outline,
-    'Your records stay on this phone. PAYDAY works without an account or internet connection. App lock controls access; it does not encrypt records or exported backups.'),
+    'Your records stay on this phone. PAYDAY works without an account or internet connection. App lock controls access. Records on this phone are not encrypted by PAYDAY. New backup exports are encrypted with a separate password you choose.'),
    topic(context,'Updating PAYDAY',Icons.history,
     'Install the newer PAYDAY APK over your existing app. Uninstalling removes local records. Export a backup before changing phones or uninstalling.'),
    const SizedBox(height:12),

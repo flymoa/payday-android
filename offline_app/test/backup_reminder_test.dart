@@ -1,3 +1,4 @@
+import 'package:payday_local/backup_cipher.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/offline_store.dart';
+class FakeBackupCipher extends BackupCipher{
+ @override Future<String> seal(String plain,String password)async=>'encrypted-only';
+}
 class BackupStore extends OfflineStore{
  BackupStore(Database db):super(database:db);
  @override Future<void> close()async{}
@@ -41,9 +45,13 @@ void main(){
     await tester.binding.setSurfaceSize(const Size(320,800));addTearDown(()=>tester.binding.setSurfaceSize(null));
     final store=BackupStore(db);var calls=0;
     await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(
-     store:store,initialData:store.snapshot(),backupShare:(json)async{calls++;return ShareResult('test',status);} )));
+     store:store,initialData:store.snapshot(),backupCipher:FakeBackupCipher(),backupShare:(json)async{expect(json,'encrypted-only');calls++;return ShareResult('test',status);} )));
     await tester.pumpAndSettle();await tester.ensureVisible(find.text('Export backup'));await tester.pumpAndSettle();
-    await tester.tap(find.text('Export backup'));
+    await tester.tap(find.text('Export backup'));await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('backup-password')),'A password saved safely');
+    await tester.enterText(find.byKey(const ValueKey('backup-password-confirm')),'A password saved safely');
+    await tester.tap(find.byKey(const ValueKey('backup-password-saved')));
+    await tester.tap(find.byKey(const ValueKey('backup-password-submit')));
     for(var i=0;i<30;i++){await tester.pump(const Duration(milliseconds:50));}
     expect(calls,1);
     final exported=await db.query('settings',where:'key=?',whereArgs:['last_backup_export']);
