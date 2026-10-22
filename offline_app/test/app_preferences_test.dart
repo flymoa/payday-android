@@ -90,6 +90,10 @@ void main(){
   await tester.tap(find.text('Backups & data'));await tester.pumpAndSettle();
   expect(find.text('Export backup'),findsOneWidget);expect(find.text('Restore'),findsOneWidget);
   expect(find.text('Back to Settings'),findsOneWidget);
+  await tester.binding.handlePopRoute();await tester.pumpAndSettle();
+  expect(find.text('Settings'),findsOneWidget);
+  await tester.binding.handlePopRoute();await tester.pumpAndSettle();
+  expect(find.text('More tools'),findsOneWidget);
   expect(tester.takeException(),isNull);
  });
  testWidgets('failed preference save keeps the active and saved appearance unchanged',(tester)async{

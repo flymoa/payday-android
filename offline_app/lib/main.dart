@@ -311,7 +311,13 @@ class _FinanceState extends State<FinanceScreen>{
   Text(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
   IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
- @override Widget build(BuildContext context)=>Scaffold(
+ @override Widget build(BuildContext context)=>PopScope<Object?>(
+  canPop:page!=4||moreSection==null,
+  onPopInvokedWithResult:(didPop,result){
+   if(!didPop&&mounted&&page==4&&moreSection!=null){
+    setState(()=>moreSection=moreSection==5?3:null);
+   }
+  },child:Scaffold(
   appBar:AppBar(toolbarHeight:76,titleSpacing:16,
    title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -347,7 +353,7 @@ class _FinanceState extends State<FinanceScreen>{
       padding:EdgeInsets.all(3),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
    ]))),
- );
+ ));
 
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
