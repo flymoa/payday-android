@@ -131,9 +131,10 @@ void main(){
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:saved));await tester.pumpAndSettle();
   expect(find.textContaining(' USD'),findsWidgets);
-  final semantics=tester.ensureSemantics();addTearDown(semantics.dispose);
+  final semantics=tester.ensureSemantics();
   await tester.tap(find.bySemanticsLabel('Add transaction'));await tester.pumpAndSettle();
   expect(find.text('Amount (USD)'),findsOneWidget);
+  semantics.dispose();
   expect(tester.takeException(),isNull);
  });
  testWidgets('failed saves keep both active and stored theme and currency',(tester)async{
