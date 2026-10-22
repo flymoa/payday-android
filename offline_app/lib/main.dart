@@ -1,3 +1,4 @@
+import 'category_icon.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'brand.dart';
@@ -141,9 +142,9 @@ class _FinanceState extends State<FinanceScreen>{
    Text(title,style:TextStyle(fontSize:23,fontWeight:FontWeight.w800,color:ink)),
    if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:Text(subtitle,style:TextStyle(color:muted)))
   ])),if(action!=null)action]));
- Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone})=>
+ Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading})=>
   Card(child:ListTile(contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:5),
-   leading:CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:Icon(icon,color:tone??jade,size:20)),
+   leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:Icon(icon,color:tone??jade,size:20)),
    title:Text(title,style:TextStyle(fontWeight:FontWeight.w700)),
    subtitle:Text(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:Text(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
@@ -217,6 +218,7 @@ class _FinanceState extends State<FinanceScreen>{
     border:Border.all(color:isOver?Color(0xffE9BEB8):line)),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[
+     PaydayCategoryIcon(category,size:34),SizedBox(width:10),
      Expanded(child:Text(category,style:TextStyle(color:ink,
       fontWeight:FontWeight.w700,fontSize:14))),
      if(isOver)Padding(padding:EdgeInsets.only(right:4),
@@ -551,12 +553,12 @@ class _FinanceState extends State<FinanceScreen>{
     assigned>inc?'Over assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
     'Available to assign: ${money(inc-assigned)}',
     style:TextStyle(fontWeight:FontWeight.bold,color:inc-assigned>=0?jade:Colors.deepOrange)))),
-   tile('Income plan','Expected monthly income',money(inc),icon:Icons.payments_outlined,onTap:()=>budgetForm(d,'Income plan')),
-   tile('Savings goal','Monthly savings target',money(goal),icon:Icons.savings_outlined,onTap:()=>budgetForm(d,'Savings goal')),
+   tile('Income plan','Expected monthly income',money(inc),leading:PaydayCategoryIcon('Income plan'),onTap:()=>budgetForm(d,'Income plan')),
+   tile('Savings goal','Monthly savings target',money(goal),leading:PaydayCategoryIcon('Savings goal'),onTap:()=>budgetForm(d,'Savings goal')),
    header('Spending categories'),
    ...categories.map((c){final name=st(c,'name'),b=budgetFor(d,month,name);
     final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-    return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),icon:Icons.tune,onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
+    return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),leading:PaydayCategoryIcon(name),onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
    }),
    SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:Icon(Icons.add),label:Text('Add category'))
   ]);
@@ -1200,6 +1202,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
