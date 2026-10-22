@@ -1,3 +1,4 @@
+import 'app_icon.dart';
 import 'category_icon.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -144,13 +145,13 @@ class _FinanceState extends State<FinanceScreen>{
   ])),if(action!=null)action]));
  Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading})=>
   Card(child:ListTile(contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:5),
-   leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:Icon(icon,color:tone??jade,size:20)),
+   leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:PaydayAppIcon(icon,color:tone??jade,size:20)),
    title:Text(title,style:TextStyle(fontWeight:FontWeight.w700)),
    subtitle:Text(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:Text(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
  Widget metric(String title,String value,IconData icon,{Color? color})=>Expanded(child:Card(child:Padding(
   padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Icon(icon,color:color??jade),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
+   PaydayAppIcon(icon,color:color??jade),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
    SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
   ]))));
 
@@ -220,7 +221,7 @@ class _FinanceState extends State<FinanceScreen>{
      Expanded(child:Text(category,style:TextStyle(color:ink,
       fontWeight:FontWeight.w700,fontSize:14))),
      if(isOver)Padding(padding:EdgeInsets.only(right:4),
-      child:Icon(Icons.error_outline,color:homeOver,size:17)),
+      child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
      Text(description,style:TextStyle(color:isOver?homeOver:
       (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
       fontWeight:FontWeight.w700,fontSize:12)),
@@ -249,16 +250,16 @@ class _FinanceState extends State<FinanceScreen>{
   );
  }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
-  IconButton(onPressed:()=>shift(-1),icon:Icon(Icons.chevron_left)),
+  IconButton(onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
   Text(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
-  IconButton(onPressed:()=>shift(1),icon:Icon(Icons.chevron_right)),
+  IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
  @override Widget build(BuildContext context)=>Scaffold(
   appBar:AppBar(toolbarHeight:page==0?82:72,titleSpacing:8,
    title:PaydayBrand(compact:page!=0),centerTitle:true,
    actions:[IconButton(tooltip:isDark?'Use light appearance':'Use dark appearance',
     onPressed:widget.onToggleTheme==null?null:()=>widget.onToggleTheme!(!isDark),
-    icon:Icon(isDark?Icons.light_mode_outlined:Icons.dark_mode_outlined))]),
+    icon:PaydayAppIcon(isDark?Icons.light_mode_outlined:Icons.dark_mode_outlined))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Text('Local database error: ${snap.error}'));
    if(!snap.hasData)return Center(child:CircularProgressIndicator());
@@ -274,13 +275,13 @@ class _FinanceState extends State<FinanceScreen>{
    return SafeArea(child:ListView(padding:EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
   }),
   floatingActionButton:page==1?FloatingActionButton.extended(backgroundColor:jade,foregroundColor:Colors.white,
-   onPressed:()=>transactionForm(null),icon:Icon(Icons.add),label:Text('Add entry')):null,
+   onPressed:()=>transactionForm(null),icon:PaydayAppIcon(Icons.add),label:Text('Add entry')):null,
   bottomNavigationBar:NavigationBar(selectedIndex:page,onDestinationSelected:(n)=>setState(() {page=n;moreSection=null;}),destinations:[
-    NavigationDestination(icon:Icon(Icons.space_dashboard_outlined),selectedIcon:Icon(Icons.space_dashboard),label:'Home'),
-    NavigationDestination(icon:Icon(Icons.receipt_long_outlined),selectedIcon:Icon(Icons.receipt_long),label:'Records'),
-    NavigationDestination(icon:Icon(Icons.tune_outlined),selectedIcon:Icon(Icons.tune),label:'Budgets'),
-    NavigationDestination(icon:Icon(Icons.savings_outlined),selectedIcon:Icon(Icons.savings),label:'Savings'),
-    NavigationDestination(icon:Icon(Icons.grid_view_outlined),selectedIcon:Icon(Icons.grid_view),label:'More'),
+    NavigationDestination(icon:PaydayAppIcon(Icons.space_dashboard_outlined),selectedIcon:PaydayAppIcon(Icons.space_dashboard),label:'Home'),
+    NavigationDestination(icon:PaydayAppIcon(Icons.receipt_long_outlined),selectedIcon:PaydayAppIcon(Icons.receipt_long),label:'Records'),
+    NavigationDestination(icon:PaydayAppIcon(Icons.tune_outlined),selectedIcon:PaydayAppIcon(Icons.tune),label:'Budgets'),
+    NavigationDestination(icon:PaydayAppIcon(Icons.savings_outlined),selectedIcon:PaydayAppIcon(Icons.savings),label:'Savings'),
+    NavigationDestination(icon:PaydayAppIcon(Icons.grid_view_outlined),selectedIcon:PaydayAppIcon(Icons.grid_view),label:'More'),
   ]),
  );
 
@@ -351,9 +352,9 @@ class _FinanceState extends State<FinanceScreen>{
      style:TextStyle(fontWeight:FontWeight.w700)))]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly review',subtitle:'Recorded activity for ${monthLabel(selected)}'),
-   Row(children:[IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),icon:Icon(Icons.chevron_left)),
+   Row(children:[IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
     Expanded(child:Text(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold))),
-    IconButton(tooltip:'Next month',onPressed:()=>shift(1),icon:Icon(Icons.chevron_right))]),
+    IconButton(tooltip:'Next month',onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right))]),
    Text(closed?'Month-close checks saved':ended?'Ready to review':'Month in progress',style:TextStyle(color:jade,fontWeight:FontWeight.w700)),
    if(tx.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:Text('No transactions recorded for this month. Bills and plans can still have outstanding amounts.')),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Column(children:[
@@ -361,7 +362,7 @@ class _FinanceState extends State<FinanceScreen>{
     lineItem('Net savings transfers',balance.savingsNet),lineItem('Net reserve transfers',balance.reserveNet),
     Divider(),lineItem('Available this month',balance.available),lineItem('Safe to spend',balance.safe),
    ]))),
-   TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:Icon(Icons.info_outline),label:Text('Explain these balances')),
+   TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:PaydayAppIcon(Icons.info_outline),label:Text('Explain these balances')),
    header('Check before closing'),
    tile('Unpaid bills',balance.unpaidBills>0?'Due this month and still outstanding':'No outstanding bills due this month',money(balance.unpaidBills),
     icon:Icons.receipt_long_outlined,onTap:()=>setState(()=>moreSection=0)),
@@ -375,7 +376,7 @@ class _FinanceState extends State<FinanceScreen>{
    if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No spending recorded.')),
    SizedBox(height:12),Text('Review your records and compare with your actual cash or bank balance. This summary does not verify that every transaction has been entered.'),
    SizedBox(height:12),SizedBox(width:double.infinity,child:FilledButton.icon(
-    onPressed:ended?()=>monthCloseForm(d):null,icon:Icon(Icons.fact_check_outlined),label:Text(closed?'Review close checks':'Continue to close checks'))),
+    onPressed:ended?()=>monthCloseForm(d):null,icon:PaydayAppIcon(Icons.fact_check_outlined),label:Text(closed?'Review close checks':'Continue to close checks'))),
    if(!ended)Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text('Month-close checks are available after the month ends.')),
   ]);
  }
@@ -402,16 +403,16 @@ class _FinanceState extends State<FinanceScreen>{
      borderRadius:BorderRadius.circular(20)),
     child:Row(children:[
      IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),
-      icon:Icon(Icons.chevron_left,color:homeNavy)),
+      icon:PaydayAppIcon(Icons.chevron_left,color:homeNavy)),
      Expanded(child:Row(mainAxisAlignment:MainAxisAlignment.center,children:[
-      Icon(Icons.calendar_today_outlined,color:homeText,size:17),
+      PaydayAppIcon(Icons.calendar_today_outlined,color:homeText,size:17),
       SizedBox(width:8),
       Flexible(child:FittedBox(fit:BoxFit.scaleDown,
        child:Text(homeMonthName(),style:TextStyle(color:homeNavy,
         fontWeight:FontWeight.w700,fontSize:16)))),
      ])),
      IconButton(tooltip:'Next month',onPressed:()=>shift(1),
-      icon:Icon(Icons.chevron_right,color:homeNavy)),
+      icon:PaydayAppIcon(Icons.chevron_right,color:homeNavy)),
     ])),
    SizedBox(height:16),
    Container(width:double.infinity,padding:EdgeInsets.all(21),
@@ -420,11 +421,11 @@ class _FinanceState extends State<FinanceScreen>{
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      balanceTap('Explain available balance',()=>balanceDetails(balance,false),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Row(children:[
-      Icon(Icons.account_balance_wallet_outlined,color:Color(0xffD7E2E6),size:20),
+      PaydayAppIcon(Icons.account_balance_wallet_outlined,color:Color(0xffD7E2E6),size:20),
       SizedBox(width:8),
       Expanded(child:Text('Available this month',style:TextStyle(color:Color(0xffE2EAF0),fontSize:14))),
       SizedBox(width:8),
-      Icon(Icons.info_outline,color:homeCopper,size:21),
+      PaydayAppIcon(Icons.info_outline,color:homeCopper,size:21),
      ]),
      SizedBox(height:12),
      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
@@ -514,8 +515,8 @@ class _FinanceState extends State<FinanceScreen>{
    header('Transactions',subtitle:'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
     decoration:InputDecoration(hintText:'Search description, category or note',
-     prefixIcon:Icon(Icons.search),suffixIcon:recordQuery.isEmpty?null:IconButton(
-      tooltip:'Clear search',icon:Icon(Icons.close),onPressed:(){search.clear();setState(()=>recordQuery='');}))),
+     prefixIcon:PaydayAppIcon(Icons.search),suffixIcon:recordQuery.isEmpty?null:IconButton(
+      tooltip:'Clear search',icon:PaydayAppIcon(Icons.close),onPressed:(){search.clear();setState(()=>recordQuery='');}))),
    SizedBox(height:10),
    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:
     ['All','Expense','Income','Savings out','Savings in'].map((type)=>Padding(
@@ -534,7 +535,7 @@ class _FinanceState extends State<FinanceScreen>{
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
-   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:Icon(Icons.copy_outlined),label:Text('Copy last month’s budget')),
+   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:Text('Copy last month’s budget')),
    SizedBox(height:8),
    Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.pie_chart_outline)]),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
@@ -550,7 +551,7 @@ class _FinanceState extends State<FinanceScreen>{
     final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
     return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),leading:PaydayCategoryIcon(name),onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
    }),
-   SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:Icon(Icons.add),label:Text('Add category'))
+   SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:Text('Add category'))
   ]);
  }
  Widget savings(Map<String,List<RowData>> d){
@@ -558,19 +559,19 @@ class _FinanceState extends State<FinanceScreen>{
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Savings & goals',subtitle:'Allocations divide your savings; they never add new savings'),
    Row(children:[metric('Total saved',money(pool),Icons.account_balance_wallet_outlined),metric('Unassigned',money(pool-used),Icons.savings_outlined)]),
-   header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:Icon(Icons.add),label:Text('New'))),
+   header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
    ...goals.map((g){final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));
     final target=val(g,'target');return Card(child:Padding(padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[Expanded(child:Text(st(g,'name'),style:TextStyle(fontWeight:FontWeight.w800))),IconButton(onPressed:()=>goalForm(g),icon:Icon(Icons.edit_outlined))]),
+    Row(children:[Expanded(child:Text(st(g,'name'),style:TextStyle(fontWeight:FontWeight.w800))),IconButton(onPressed:()=>goalForm(g),icon:PaydayAppIcon(Icons.edit_outlined))]),
     Text('${money(sum)} / ${money(target)}',style:TextStyle(color:muted)),
     SizedBox(height:9),LinearProgressIndicator(value:(sum/target).clamp(0,1).toDouble(),minHeight:8,borderRadius:BorderRadius.circular(8)),
     SizedBox(height:5),Text('Still needed: ${money((target-sum).clamp(0,target).toInt())}'),
-    Align(alignment:Alignment.centerRight,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:Icon(Icons.add),label:Text('Allocate'))),
+    Align(alignment:Alignment.centerRight,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:PaydayAppIcon(Icons.add),label:Text('Allocate'))),
    ])));}),
    header('Allocations for ${monthLabel(selected)}'),
    ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?'Goal deleted':st(g,'name'),month,money(val(a,'amount')),onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
    if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:Text('After closing the month, allocate confirmed savings to your goals.')),
-   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:Icon(Icons.fact_check_outlined),label:Text('Review ${monthLabel(selected)}'))
+   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:PaydayAppIcon(Icons.fact_check_outlined),label:Text('Review ${monthLabel(selected)}'))
   ]);
  }
  Widget more(Map<String,List<RowData>> d) {
@@ -604,7 +605,7 @@ class _FinanceState extends State<FinanceScreen>{
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
-    icon:Icon(Icons.arrow_back),label:Text('Back to More')),
+    icon:PaydayAppIcon(Icons.arrow_back),label:Text('Back to More')),
    section,
   ]);
  }
@@ -614,20 +615,20 @@ class _FinanceState extends State<FinanceScreen>{
    child:Padding(padding:EdgeInsets.all(16),child:Row(children:[
     Container(width:48,height:48,
      decoration:BoxDecoration(color:jade.withValues(alpha:.10),borderRadius:BorderRadius.circular(14)),
-     child:Icon(symbol,color:jade)),
+     child:PaydayAppIcon(symbol,color:jade)),
     SizedBox(width:14),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(name,style:TextStyle(fontWeight:FontWeight.w800,color:ink,fontSize:16)),
      SizedBox(height:4),Text(description,style:TextStyle(color:muted,fontSize:12)),
      SizedBox(height:7),Text(summary,style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
     ])),
-    Icon(Icons.chevron_right,color:Colors.black45)
+    PaydayAppIcon(Icons.chevron_right,color:Colors.black45)
    ])),
   ));
  Widget moreBills(Map<String,List<RowData>> d){
   final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Bills',subtitle:'Attach the Bill ID when recording an expense',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:Icon(Icons.add),label:Text('New'))),
+   header('Bills',subtitle:'Attach the Bill ID when recording an expense',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
    ...bills.where((b)=>st(b,'due').startsWith(month)).map((b){final remain=billOutstanding(val(b,'amount'),billPaid(d,b));
     return tile(st(b,'name'),'${st(b,'due')} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
    }),
@@ -641,7 +642,7 @@ class _FinanceState extends State<FinanceScreen>{
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Occasional expenses',subtitle:'Real money set aside, tracked separately from spending.',
     action:IconButton.filledTonal(onPressed:()=>reserveForm(null),
-     icon:Icon(Icons.add),tooltip:'Create a reserve')),
+     icon:PaydayAppIcon(Icons.add),tooltip:'Create a reserve')),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Text('How reserves work',style:TextStyle(fontWeight:FontWeight.bold)),
     SizedBox(height:8),Text('The monthly amount is a suggestion, not an automatic transfer. Tap Add money when you actually set it aside. Your recorded transfers reduce what is still needed this month.'),
@@ -675,7 +676,7 @@ class _FinanceState extends State<FinanceScreen>{
       Row(children:[Expanded(child:Text(st(r,'name'),
        style:TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.w800))),
        IconButton(onPressed:()=>reserveForm(r),tooltip:'Edit reserve goal',
-         icon:Icon(Icons.edit_outlined)),
+         icon:PaydayAppIcon(Icons.edit_outlined)),
       ]),
       Text('Due ${st(r,'due')}',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:12),
@@ -708,13 +709,13 @@ class _FinanceState extends State<FinanceScreen>{
       SizedBox(height:16),
       SizedBox(width:double.infinity,child:FilledButton.icon(
        onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
-       icon:Icon(Icons.add),label:Text('Add money'))),
+       icon:PaydayAppIcon(Icons.add),label:Text('Add money'))),
       SizedBox(height:4),
       Wrap(alignment:WrapAlignment.spaceBetween,spacing:12,children:[
        TextButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
-        icon:Icon(Icons.remove,size:18),label:Text('Take out')),
+        icon:PaydayAppIcon(Icons.remove,size:18),label:Text('Take out')),
        TextButton.icon(onPressed:()=>reserveHistoryForm(r),
-        icon:Icon(Icons.history,size:18),label:Text('History')),
+        icon:PaydayAppIcon(Icons.history,size:18),label:Text('History')),
       ]),
      ])));
    }),
@@ -735,7 +736,7 @@ class _FinanceState extends State<FinanceScreen>{
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Privacy & local backups',subtitle:'No sign-in, no cloud connection and no financial data upload'),
    Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
-   Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportBackup,icon:Icon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:Icon(Icons.file_open),label:Text('Restore')))]),
+   Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore')))]),
    SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:Text('Settings & cash buffer'))
   ]);
  }
@@ -843,10 +844,10 @@ class _FinanceState extends State<FinanceScreen>{
    SizedBox(height:12),
    DropdownButtonFormField<String>(isExpanded:true,key:ValueKey(type),initialValue:category,decoration:InputDecoration(labelText:'Category'),items:[...cats,if(!cats.contains('Salary'))'Salary',if(!cats.contains('Savings'))'Savings'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)category=v;}),
    SizedBox(height:12),field(amt,'Amount (MAD)',number:true),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
-   Row(children:[Icon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:Icon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}')))]),
+   Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}')))]),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
-   icon:Icon(Icons.check_circle_outline),label:Text(submitting?'Saving…':'Save locally'),
+   icon:PaydayAppIcon(Icons.check_circle_outline),label:Text(submitting?'Saving…':'Save locally'),
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}
@@ -998,7 +999,7 @@ class _FinanceState extends State<FinanceScreen>{
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(c.mounted)Navigator.pop(c);},child:Text('Save bill')),
    if(existing!=null)Column(children:[
     OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
-     icon:Icon(Icons.repeat),label:Text('Repeat next month')),
+     icon:PaydayAppIcon(Icons.repeat),label:Text('Repeat next month')),
     Text('Outstanding: ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))}',
       style:TextStyle(color:ink,fontWeight:FontWeight.w700)),
     SizedBox(height:8),
@@ -1008,7 +1009,7 @@ class _FinanceState extends State<FinanceScreen>{
        Navigator.pop(c);
        if(mounted)await transactionForm(null,payBill:existing);
       },
-     icon:Icon(Icons.payments_outlined),
+     icon:PaydayAppIcon(Icons.payments_outlined),
      label:Text(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
       ?'Bill fully paid':'Record payment'),
     )),
@@ -1036,8 +1037,8 @@ class _FinanceState extends State<FinanceScreen>{
     SizedBox(height:16),
     field(amountController,'Amount (MAD)',number:true),
     field(noteController,'Note (optional)'),
-    Row(children:[Icon(Icons.calendar_today_outlined,size:18),
-     TextButton.icon(icon:Icon(Icons.edit_calendar_outlined),
+    Row(children:[PaydayAppIcon(Icons.calendar_today_outlined,size:18),
+     TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),
       onPressed:()async{
        final picked=await showDatePicker(context:c,initialDate:date,
         firstDate:DateTime(2000),lastDate:DateTime.now());
@@ -1051,7 +1052,7 @@ class _FinanceState extends State<FinanceScreen>{
        'not an ordinary expense. Record the actual purchase separately when it occurs.',
        style:TextStyle(color:muted,fontSize:12))),
    ]),footer:(c,rebuild)=>FilledButton.icon(
-    icon:Icon(adding?Icons.savings_outlined:Icons.undo),
+    icon:PaydayAppIcon(adding?Icons.savings_outlined:Icons.undo),
     label:Text(adding?'Record money set aside':'Record withdrawal'),
     onPressed:()async{
      final cents=amount(amountController);
@@ -1078,7 +1079,7 @@ class _FinanceState extends State<FinanceScreen>{
     if(history.isEmpty)Text('No deposits or withdrawals recorded yet.'),
     ...history.map((m)=>ListTile(
      contentPadding:EdgeInsets.zero,
-     leading:Icon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
+     leading:PaydayAppIcon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
        color:st(m,'kind')=='add'?jade:amber),
      title:Text(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
      subtitle:Text('${st(m,'date')}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
@@ -1192,6 +1193,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

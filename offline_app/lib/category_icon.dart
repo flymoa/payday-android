@@ -12,17 +12,18 @@ class PaydayCategoryIcon extends StatelessWidget {
    padding:EdgeInsets.all(size*.20),
    decoration:BoxDecoration(shape:BoxShape.circle,
     color:dark?const Color(0xff173D43):const Color(0xffEAF3F0)),
-   child:CustomPaint(painter:_CategoryPainter(category.trim().toLowerCase(),dark))));
+   child:CustomPaint(painter:PaydayGlyphPainter(category.trim().toLowerCase(),dark))));
  }
 }
 
-class _CategoryPainter extends CustomPainter {
- const _CategoryPainter(this.category,this.dark);
+class PaydayGlyphPainter extends CustomPainter {
+ const PaydayGlyphPainter(this.category,this.dark,{this.foreground});
+ final Color? foreground;
  final String category;
  final bool dark;
  @override void paint(Canvas canvas,Size size){
   canvas.save();canvas.scale(size.width/24,size.height/24);
-  final navy=Paint()..color=dark?const Color(0xffE2EAF0):const Color(0xff0B2545)
+  final navy=Paint()..color=foreground??(dark?const Color(0xffE2EAF0):const Color(0xff0B2545))
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   final teal=Paint()..color=dark?const Color(0xff68C7BA):const Color(0xff16877D)
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
@@ -106,6 +107,7 @@ class _CategoryPainter extends CustomPainter {
   }
   canvas.restore();
  }
- @override bool shouldRepaint(covariant _CategoryPainter old)=>old.category!=category||old.dark!=dark;
+ @override bool shouldRepaint(covariant PaydayGlyphPainter old)=>old.category!=category||old.dark!=dark;
 }
+
 
