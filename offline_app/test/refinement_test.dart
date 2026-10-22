@@ -29,7 +29,7 @@ void main(){
     home:Scaffold(appBar:AppBar(title:const PaydayBrand(),actions:[IconButton(onPressed:(){},icon:const Icon(Icons.dark_mode))]))));
    await tester.pumpAndSettle();
    expect(tester.takeException(),isNull);
-   expect(find.byType(Image),findsOneWidget);
+   expect(find.byType(PaydayMark),findsOneWidget);
   });
  }
  for(final brightness in Brightness.values){
@@ -56,3 +56,4 @@ void main(){
  }
 
 }
+

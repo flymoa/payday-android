@@ -18,7 +18,7 @@ import xml.etree.ElementTree as ET
 res = Path('android/app/src/main/res')
 background = '''<?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item><shape android:shape="rectangle"><solid android:color="#F8F9F6" /></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="#FBF6EA" /></shape></item>
 </layer-list>
 '''
 for directory in ['drawable', 'drawable-v21']:
@@ -33,13 +33,13 @@ for directory in ['values', 'values-night']:
         style.set('parent', '@android:style/Theme.Light.NoTitleBar')
         values = {
             'android:windowBackground': '@drawable/launch_background',
-            'android:statusBarColor': '#F8F9F6',
-            'android:navigationBarColor': '#F8F9F6',
+            'android:statusBarColor': '#FBF6EA',
+            'android:navigationBarColor': '#FBF6EA',
             'android:windowLightStatusBar': 'true',
             'android:windowLightNavigationBar': 'true',
         }
         if style.get('name') == 'LaunchTheme':
-            values['android:windowSplashScreenBackground'] = '#F8F9F6'
+            values['android:windowSplashScreenBackground'] = '#FBF6EA'
             values['android:windowSplashScreenAnimatedIcon'] = '@mipmap/ic_launcher'
         for name, value in values.items():
             item = next((item for item in style.findall('item') if item.get('name') == name), None)
@@ -47,3 +47,4 @@ for directory in ['values', 'values-night']:
                 item = ET.SubElement(style, 'item', {'name': name})
             item.text = value
     tree.write(target, encoding='utf-8', xml_declaration=True)
+

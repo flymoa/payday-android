@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,7 +28,6 @@ class _PaydayOpeningState extends State<PaydayOpening>
   bool _started = false;
   bool _finished = false;
   bool _reduced = false;
-  static final _icon = MemoryImage(base64Decode(paydayIconBase64));
 
   @override
   void didChangeDependencies() {
@@ -52,29 +50,17 @@ class _PaydayOpeningState extends State<PaydayOpening>
   double smooth(double t, double start, double end) =>
       Curves.easeOutCubic.transform(phase(t, start, end));
 
-  /// Crop the original full lockup instead of retyping its custom wordmark,
-  /// gold triangle or slogan. Both themes use the approved source artwork.
-  Widget brandPart(ImageProvider image, {required bool slogan}) => SizedBox(
-    width: 220,
-    height: slogan ? 24 : 44,
-    child: ClipRect(child: OverflowBox(
-      alignment: Alignment.topLeft,
-      minWidth: 330, maxWidth: 330, minHeight: 102, maxHeight: 102,
-      child: Transform.translate(
-        offset: Offset(-103, slogan ? -72 : -26),
-        child: Image(image: image, width: 330, height: 102,
-          fit: BoxFit.fill, filterQuality: FilterQuality.high,
-          excludeFromSemantics: true),
-      ),
-    )),
-  );
+  Widget brandPart({required bool slogan})=>SizedBox(width:250,height:slogan?28:64,
+   child:FittedBox(fit:BoxFit.scaleDown,child:Text(slogan?'Every dirham, in control.':'Payday',
+    style:TextStyle(fontFamily:slogan?'DMSans':'Bricolage',fontSize:slogan?17:52,
+     fontWeight:slogan?FontWeight.w500:FontWeight.w800,
+     color:Theme.of(context).brightness==Brightness.dark?paydaySand:paydayEmerald))));
 
   @override
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final background = Theme.of(context).scaffoldBackgroundColor;
-    final image = dark ? PaydayBrand.dark : PaydayBrand.light;
-    final teal = dark ? const Color(0xff62D5C9) : const Color(0xff087F7C);
+    final teal = dark ? const Color(0xff8CC8AD) : const Color(0xff0E5A47);
     return AnimatedBuilder(animation: _controller, builder: (context, _) {
       final t = _controller.value;
       final exit = _reduced ? t : phase(t, .79, 1);
@@ -139,8 +125,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
                               child: Transform.rotate(angle: _reduced ? 0 : -.05236 * (1-icon),
                                 child: Transform.scale(scale: _reduced ? 1 : .92 + .08 * icon + .018 * math.sin(math.pi*icon),
                                   child: ClipRRect(borderRadius: BorderRadius.circular(25),
-                                    child: Image(image: _icon, width: 112, height: 112,
-                                      filterQuality: FilterQuality.high)),
+                                    child: const PaydayMark(size:112)),
                                 ),
                               ),
                             ),
@@ -150,17 +135,17 @@ class _PaydayOpeningState extends State<PaydayOpening>
                             child: Transform.translate(offset: Offset(0, _reduced ? 0 : 5 * (1-word)),
                               child: ClipRect(clipper: _WordReveal(_reduced ? 1 : word),
                                 child: Stack(children: [
-                                  brandPart(image, slogan: false),
+                                  brandPart(slogan: false),
                                   if (!_reduced && glint > 0 && glint < 1)
                                     Opacity(opacity: .4 * math.sin(math.pi*glint),
                                       child: ShaderMask(blendMode: BlendMode.srcIn,
                                         shaderCallback: (rect) => LinearGradient(
                                           begin: Alignment(-3+6*glint, -1),
                                           end: Alignment(-1+6*glint, 1),
-                                          colors: const [Colors.transparent, Color(0xffF0CA94), Colors.white, Colors.transparent],
+                                          colors: const [Colors.transparent, paydaySaffron, Colors.white, Colors.transparent],
                                           stops: const [0, .35, .5, 1],
                                         ).createShader(rect),
-                                        child: brandPart(image, slogan: false),
+                                        child: brandPart(slogan: false),
                                       ),
                                     ),
                                 ]),
@@ -171,7 +156,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
                           Opacity(opacity: _reduced ? 1 : slogan,
                             child: Transform.translate(
                               offset: Offset(0, _reduced ? 0 : 5*(1-slogan)),
-                              child: brandPart(image, slogan: true),
+                              child: brandPart(slogan: true),
                             ),
                           ),
                         ],
@@ -194,3 +179,4 @@ class _WordReveal extends CustomClipper<Rect> {
   @override Rect getClip(Size size) => Rect.fromLTWH(0, 0, size.width*progress, size.height);
   @override bool shouldReclip(_WordReveal oldClipper) => oldClipper.progress != progress;
 }
+
