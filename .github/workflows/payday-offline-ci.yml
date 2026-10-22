@@ -40,6 +40,7 @@ jobs:
           fi
           expected=5cad5224a0d873614f1999ea7182c97f34153c1f8a8c8df660d53ff555651bcb
           actual=$(keytool -exportcert -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sha256sum | cut -d' ' -f1)
+          echo "Recovered certificate SHA-256: $actual"
           if [[ "$actual" != "$expected" ]]; then
             echo "::error::Signing certificate does not match PAYDAY v2.0.2. APK publication blocked."
             exit 1
