@@ -81,6 +81,7 @@ void main(){
   addTearDown(()=>tester.binding.setSurfaceSize(null));
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(PaydayLocal(store:store));await tester.pumpAndSettle();
+  expect(find.byIcon(Icons.menu),findsNothing);
   final slogan=tester.widget<Text>(find.text(paydaySlogan));
   expect(slogan.maxLines,1);expect(slogan.style!.fontWeight,FontWeight.w700);
   await openSettings(tester);

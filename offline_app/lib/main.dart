@@ -330,7 +330,7 @@ class _FinanceState extends State<FinanceScreen>{
    backgroundColor:cream,child:SafeArea(child:Column(children:[
     Padding(padding:EdgeInsets.fromLTRB(16,12,4,8),child:Row(children:[
      if(drawerBackups)IconButton(tooltip:'Back to Settings',onPressed:()=>setState(()=>drawerBackups=false),icon:PaydayAppIcon(Icons.arrow_back)),
-     const Expanded(child:Align(alignment:Alignment.centerLeft,child:PaydayBrand(compact:true))),
+     const Expanded(child:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:PaydayBrand(compact:true))),
      IconButton(tooltip:'Close settings',onPressed:()=>scaffoldKey.currentState?.closeDrawer(),icon:PaydayAppIcon(Icons.close)),
     ])),
     Expanded(child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
@@ -340,7 +340,7 @@ class _FinanceState extends State<FinanceScreen>{
       children:[drawerBackups?moreBackups(snap.data!):appSettings(snap.data!,inDrawer:true)]);
     })),
    ]))),
-  appBar:AppBar(toolbarHeight:76,titleSpacing:16,
+  appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
    title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:'Open settings',padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(dayKey(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
