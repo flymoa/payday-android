@@ -96,7 +96,17 @@ jobs:
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
           "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/payday-apk-certs.txt"
           cat "$RUNNER_TEMP/payday-apk-certs.txt"
-          grep -Fxq 'Signer #1 certificate SHA-256 digest: 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf' "$RUNNER_TEMP/payday-apk-certs.txt" || { echo "::error::APK certificate mismatch; publication blocked"; exit 1; }
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path(os.environ['RUNNER_TEMP'], 'payday-apk-certs.txt').read_text()
+          marker = 'certificate SHA-256 digest: '
+          digests = {line.split(marker, 1)[1].strip().lower() for line in text.splitlines() if marker in line}
+          expected = '65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf'
+          if digests != {expected}:
+              raise SystemExit('::error::APK certificate mismatch or missing certificate; publication blocked')
+          print('Permanent PAYDAY signing certificate verified')
+          PY
           echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
           echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
           echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
