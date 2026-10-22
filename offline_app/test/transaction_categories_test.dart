@@ -6,6 +6,7 @@ void main(){
   {'type':'Income','category':'Salary'},
   {'type':'Income','category':'Consulting'},
   {'type':'Expense','category':'Pharmacy'},
+  {'type':'Expense','category':'Salary'},
   {'type':'Savings in','category':'Savings'},
   {'type':'Income','category':'Groceries'},
  ];

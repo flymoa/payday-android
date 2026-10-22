@@ -6,7 +6,7 @@ List<String> transactionCategories({required String type,
  bool matches(Map<String,Object?> row)=>group=='Savings'
   ?row['type'].toString().startsWith('Savings'):row['type']==type;
  final expenseNames=configured.map((s)=>s.trim().toLowerCase()).toSet();
- final used=history.where(matches).map((r)=>r['category']?.toString()??'').where((s)=>s.trim().isNotEmpty&&(group=='Expense'||!expenseNames.contains(s.trim().toLowerCase())||s=='Salary'||s=='Savings'));
+ final used=history.where(matches).map((r)=>r['category']?.toString()??'').where((s)=>s.trim().isNotEmpty&&((group=='Expense'?!['salary','freelance','business','gifts','savings','other income','income plan','savings goal'].contains(s.trim().toLowerCase()):!expenseNames.contains(s.trim().toLowerCase()))||s=='Salary'||s=='Savings'));
  final values=<String>{
   if(group=='Income')...['Salary','Freelance','Business','Gifts','Other income'],
   if(group=='Savings')'Savings',
