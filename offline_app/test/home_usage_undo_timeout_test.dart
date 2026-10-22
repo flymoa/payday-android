@@ -70,7 +70,7 @@ void main(){
    for(var i=0;i<20&&find.text('Undo').evaluate().isEmpty;i++){
     await tester.pump(const Duration(milliseconds:50));
    }
-   await tester.pump(const Duration(milliseconds:250));
+   await tester.pumpAndSettle();
    expect(find.text('Undo'),findsOneWidget);
    final snackbar=tester.widget<SnackBar>(find.byType(SnackBar));
    expect(snackbar.persist,isFalse);expect(snackbar.duration,const Duration(seconds:5));
