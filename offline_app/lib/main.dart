@@ -1,3 +1,4 @@
+import 'month_usage_bar.dart';
 import 'add_button.dart';
 import 'transaction_categories.dart';
 import 'app_icon.dart';
@@ -455,8 +456,8 @@ class _FinanceState extends State<FinanceScreen>{
       Row(children:[Expanded(child:Text('Available this month',style:TextStyle(color:Color(0xffB8D0BF),fontWeight:FontWeight.w700))),
        PaydayAppIcon(Icons.info_outline,color:heroInk,size:18)]),
       SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split('.').first,style:TextStyle(fontSize:48)),TextSpan(text:'.${homeDigits(balance.available).split('.').last} MAD',style:TextStyle(fontSize:23,color:Color(0xffB8D0BF)))]),style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
-      SizedBox(height:16),ExcludeSemantics(child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:List.generate(28,(i)=>Expanded(child:Container(
-       margin:EdgeInsets.only(right:3),height:i==20?27:15,decoration:BoxDecoration(color:i==20?paydaySaffron:heroInk.withValues(alpha:i<20 ? .55 : .18),borderRadius:BorderRadius.circular(4))))))),
+      SizedBox(height:16),MonthUsageBar(value:balance.usedFraction,
+       trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
       SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[Text('Spent ${money(balance.expenses)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600)),
        Text('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
      ])),
@@ -772,8 +773,11 @@ class _FinanceState extends State<FinanceScreen>{
  }
  void showTransactionUndo(RowData removed,{bool retry=false}){
   var restoring=false;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-   duration:Duration(seconds:10),
+  final messenger=ScaffoldMessenger.of(context);
+  messenger.clearSnackBars();
+  messenger.removeCurrentSnackBar();
+  messenger.showSnackBar(SnackBar(
+   persist:false,duration:Duration(seconds:5),
    content:Text(retry?'Could not restore. Tap Undo to retry.':'Transaction deleted.'),
    action:SnackBarAction(label:'Undo',onPressed:()async{
     if(restoring)return;
@@ -1326,6 +1330,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

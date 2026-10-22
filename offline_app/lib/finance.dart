@@ -191,6 +191,11 @@ class MonthlyBalance {
   required this.savingsGap,required this.reserveHold,required this.buffer});
  final int income,expenses,savingsNet,reserveNet,unpaidBills,savingsGap,reserveHold,buffer;
  int get available=>income-expenses-savingsNet-reserveNet;
+ /// Money released from savings/reserves is available to spend again.
+ int get fundsReceived=>income+(savingsNet<0?-savingsNet:0)+(reserveNet<0?-reserveNet:0);
+ int get fundsUsed=>expenses+(savingsNet>0?savingsNet:0)+(reserveNet>0?reserveNet:0);
+ double get usedFraction=>fundsUsed<=0?0:fundsReceived<=0?1:
+  (fundsUsed/fundsReceived).clamp(0,1).toDouble();
  int get safe=>freeAfterPlan(income:income,expenses:expenses+reserveNet,
   transferredOut:savingsNet,transferredIn:0,unpaidBills:unpaidBills,
   savingsGap:savingsGap,reserves:reserveHold,buffer:buffer);
@@ -289,3 +294,4 @@ List<Map<String,Object?>> recentActivityRows(Iterable<Map<String,Object?>> rows,
  return selected;
 }
 String recentActivityDay(String date,DateTime now)=>date==dayKey(now)?'Today':'Yesterday';
+

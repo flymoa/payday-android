@@ -1,0 +1,29 @@
+import 'package:flutter/material.dart';
+
+/// The existing segmented PAYDAY line, driven by this month's real usage.
+class MonthUsageBar extends StatelessWidget {
+ const MonthUsageBar({super.key,required this.value,required this.trackColor,
+  required this.fillColor,required this.markerColor});
+ final double value;
+ final Color trackColor,fillColor,markerColor;
+ @override Widget build(BuildContext context){
+  final target=value.clamp(0,1).toDouble();
+  return Semantics(label:'Money used this month',value:'${(target*100).round()}%',
+   child:ExcludeSemantics(child:TweenAnimationBuilder<double>(
+    tween:Tween(begin:0,end:target),duration:const Duration(milliseconds:250),
+    builder:(context,progress,child){
+     final last=progress>0?(progress*28).ceil()-1:-1;
+     return SizedBox(height:27,child:Row(crossAxisAlignment:CrossAxisAlignment.end,
+      children:List.generate(28,(i){
+       final fill=(progress*28-i).clamp(0,1).toDouble();
+       return Expanded(child:Padding(padding:const EdgeInsets.only(right:3),
+        child:SizedBox(height:i==last?27:15,child:ClipRRect(
+         borderRadius:BorderRadius.circular(4),child:Stack(fit:StackFit.expand,children:[
+          ColoredBox(color:trackColor),
+          FractionallySizedBox(alignment:Alignment.centerLeft,widthFactor:fill,
+           child:ColoredBox(color:i==last?markerColor:fillColor)),
+         ])))));
+      })));
+    })));
+ }
+}
