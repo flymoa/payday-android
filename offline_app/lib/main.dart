@@ -301,7 +301,7 @@ class _FinanceState extends State<FinanceScreen>{
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
     bottomItem('Budgets',Icons.pie_chart_outline,2),
-    Expanded(child:Center(child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:'Add transaction',child:
+    Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:'Add transaction',child:
      Container(width:54,height:54,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(20),
       boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .10 : .20),blurRadius:14,offset:Offset(0,5))]),
       padding:EdgeInsets.all(3),child:FilledButton(style:FilledButton.styleFrom(padding:EdgeInsets.zero,
