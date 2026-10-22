@@ -86,14 +86,45 @@ jobs:
           apk=build/app/outputs/flutter-apk/app-release.apk
           test -s "$apk"
           aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)"
-          "$aapt" dump badging "$apk" | grep -q "package: name='ma.payday.payday_local'"
-          if "$aapt" dump permissions "$apk" | grep -q 'android.permission.INTERNET'; then
+          "$aapt" dump badging "$apk" > "$RUNNER_TEMP/payday-badging.txt"
+          grep -q "package: name='ma.payday.payday_local'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected Android package identity"; exit 1; }
+          "$aapt" dump permissions "$apk" > "$RUNNER_TEMP/payday-permissions.txt"
+          if grep -q 'android.permission.INTERNET' "$RUNNER_TEMP/payday-permissions.txt"; then
             echo 'ERROR: offline APK requests INTERNET permission'
             exit 1
           fi
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
           "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/payday-apk-certs.txt"
-          grep -Fxq 'Signer #1 certificate SHA-256 digest: 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf' "$RUNNER_TEMP/payday-apk-certs.txt"
+          cat "$RUNNER_TEMP/payday-apk-certs.txt"
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          text = Path(os.environ['RUNNER_TEMP'], 'payday-apk-certs.txt').read_text()
+          digests = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)\s*
+          echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK certificate verified against permanent PAYDAY release key.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: payday-local-offline-v1-apk
+          path: offline_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
+
+      - name: Remove temporary signing key
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path(os.environ['RUNNER_TEMP'], 'payday-release.p12').unlink(missing_ok=True)
+          PY
+, text, re.MULTILINE)
+          expected = '65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf'
+          if len(digests) != 1 or digests[0].lower() != expected:
+              raise SystemExit('::error::APK certificate mismatch or unexpected signer count; publication blocked')
+          print('Permanent signing certificate verified')
+          PY
           echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
           echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
           echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
