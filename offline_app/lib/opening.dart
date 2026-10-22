@@ -6,8 +6,9 @@ import 'brand.dart';
 /// A single cold-launch sequence. Keeping this above the Navigator means that
 /// page changes, theme toggles and resuming the app do not restart the intro.
 class PaydayOpening extends StatefulWidget {
-  const PaydayOpening({super.key, required this.child});
+  const PaydayOpening({super.key, required this.child,this.enabled=true});
   final Widget child;
+  final bool enabled;
   static const duration = Duration(seconds: 2);
 
   @override
@@ -34,6 +35,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
+    if(!widget.enabled){_finished=true;return;}
     _reduced = MediaQuery.disableAnimationsOf(context);
     if (_reduced) _controller.duration = const Duration(milliseconds: 150);
     _controller.forward();
@@ -62,7 +64,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
     final background = Theme.of(context).scaffoldBackgroundColor;
     final teal = dark ? const Color(0xff8CC8AD) : const Color(0xff0E5A47);
     return AnimatedBuilder(animation: _controller, builder: (context, _) {
-      final t = _controller.value;
+      final t = _finished?1.0:_controller.value;
       final exit = _reduced ? t : phase(t, .79, 1);
       final homeReveal = Curves.easeInOutCubic.transform(exit);
       final icon = smooth(t, 0, .33);
@@ -196,3 +198,4 @@ class _OpeningWave extends CustomPainter{
  }
  @override bool shouldRepaint(covariant _OpeningWave old)=>old.color!=color;
 }
+

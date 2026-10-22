@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'app_preferences.dart';
 import 'finance.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
@@ -240,6 +241,14 @@ class OfflineStore {
  }
  Future<void> setSetting(String key,String value) async =>
    (await db).insert('settings',{'key':key,'value':value},conflictAlgorithm:ConflictAlgorithm.replace);
+ Future<AppPreferences> loadAppPreferences()async=>AppPreferences.fromRows(await table('settings'));
+ Future<void> saveAppPreferences(AppPreferences preferences)async{
+  await (await db).transaction((txn)async{
+   for(final entry in preferences.values.entries){
+    await txn.insert('settings',{'key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
+   }
+  });
+ }
  Future<void> addCategory(String name,String group) async{
   final clean=name.trim(),normalized=name.trim().toLowerCase();
   if(clean.isEmpty || !['Essential','Flexible','Income'].contains(group)||
@@ -304,6 +313,7 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 

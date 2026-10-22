@@ -1,3 +1,4 @@
+import 'app_preferences.dart';
 import 'month_usage_bar.dart';
 import 'add_button.dart';
 import 'transaction_categories.dart';
@@ -15,7 +16,13 @@ import 'package:share_plus/share_plus.dart';
 import 'finance.dart';
 import 'offline_store.dart';
 
-void main() {WidgetsFlutterBinding.ensureInitialized();runApp(const PaydayLocal());}
+void main()async{
+ WidgetsFlutterBinding.ensureInitialized();
+ final store=OfflineStore();
+ var preferences=const AppPreferences();
+ try{preferences=await store.loadAppPreferences();}catch(_){preferences=const AppPreferences();}
+ runApp(PaydayLocal(store:store,initialPreferences:preferences));
+}
 const ink=Color(0xff12261F), jade=paydayEmerald, cream=paydaySand, amber=Color(0xff986318);
 const homeNavy=Color(0xff12261F), homeCopper=paydaySaffron;
 const homeText=Color(0xff344B45), homeGreen=Color(0xff2C8979);
@@ -26,12 +33,33 @@ int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
 String money(int amount)=>'${mad(amount).toStringAsFixed(2)} MAD';
 DateTime parseDay(String text)=>DateTime.tryParse(text)??DateTime.now();
 class PaydayLocal extends StatefulWidget {
- const PaydayLocal({super.key,this.initialData});
+ const PaydayLocal({super.key,this.initialData,this.store,
+  this.initialPreferences=const AppPreferences(),this.preferencesWriter});
+ final OfflineStore? store;
+ final AppPreferences initialPreferences;
+ final Future<void> Function(AppPreferences)? preferencesWriter;
  final Future<Map<String,List<RowData>>>? initialData;
  @override State<PaydayLocal> createState()=>_PaydayLocalState();
 }
 class _PaydayLocalState extends State<PaydayLocal> {
- ThemeMode mode=ThemeMode.light;
+ late AppPreferences preferences=widget.initialPreferences;
+ late final localStore=widget.store??OfflineStore();
+ final messengerKey=GlobalKey<ScaffoldMessengerState>();
+ bool savingPreferences=false;
+ ThemeMode get mode=>preferences.appearance;
+ Future<bool> savePreferences(AppPreferences next)async{
+  if(savingPreferences)return false;
+  savingPreferences=true;
+  try{
+   await (widget.preferencesWriter??localStore.saveAppPreferences)(next);
+   if(!mounted)return false;
+   setState(()=>preferences=next);
+   return true;
+  }catch(_){
+   messengerKey.currentState?.showSnackBar(const SnackBar(content:Text('Could not save preferences. Please try again.')));
+   return false;
+  }finally{savingPreferences=false;}
+ }
  ThemeData palette(Brightness brightness){
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:jade,brightness:brightness,
@@ -64,12 +92,22 @@ class _PaydayLocalState extends State<PaydayLocal> {
   );
  }
  @override Widget build(BuildContext context)=>MaterialApp(
-  debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
+  scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
-  builder:(context,child)=>PaydayOpening(child:child??const SizedBox.shrink()),
-  home:FinanceScreen(initialData:widget.initialData,onToggleTheme:(dark)=>setState(()=>mode=dark?ThemeMode.dark:ThemeMode.light)));
+  builder:(context,child){
+   final media=MediaQuery.of(context);
+   return MediaQuery(data:media.copyWith(disableAnimations:media.disableAnimations||preferences.reduceMotion),
+    child:PaydayOpening(enabled:preferences.openingAnimation,child:child??const SizedBox.shrink()));
+  },
+  home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,
+   onPreferencesChanged:savePreferences,onToggleTheme:(dark){
+    savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
+   }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare});final ValueChanged<bool>? onToggleTheme;
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,
+ this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
+ final AppPreferences preferences;
+ final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
  final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
@@ -86,6 +124,7 @@ class _FinanceState extends State<FinanceScreen>{
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
  bool writing=false;
  bool exportingBackup=false;
+ bool preferencesSaving=false;
  String recordQuery='';
  String recordType='All';
  final search=TextEditingController();
@@ -278,13 +317,10 @@ class _FinanceState extends State<FinanceScreen>{
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(dayKey(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-      child:Text(paydaySlogan.replaceFirst(', ', ',\n'),
-       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:20,height:1.05))),
+      child:Text(paydaySlogan,maxLines:1,softWrap:false,
+       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:const PaydayBrand(compact:true)),centerTitle:false,
-   actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:Text('More')),
-    IconButton(tooltip:isDark?'Use light appearance':'Use dark appearance',
-    onPressed:widget.onToggleTheme==null?null:()=>widget.onToggleTheme!(!isDark),
-    icon:PaydayAppIcon(isDark?Icons.light_mode_outlined:Icons.dark_mode_outlined))]),
+   actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:Text('More'))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Text('Local database error: ${snap.error}'));
    if(!snap.hasData)return Center(child:CircularProgressIndicator());
@@ -601,8 +637,8 @@ class _FinanceState extends State<FinanceScreen>{
       Icons.fact_check_outlined,4,monthLabel(selected)),
     moreLink('Year overview','Income, spending and savings across the year',
       Icons.bar_chart_rounded,2,selected.year.toString()),
-    moreLink('Backups & settings','Export, restore and adjust your local data',
-      Icons.settings_outlined,3,'Stored only on this phone'),
+    moreLink('Settings','Appearance, preferences and local data',
+      Icons.settings_outlined,3,widget.preferences.appearanceLabel),
     SizedBox(height:15),
     Padding(padding:EdgeInsets.all(8),child:Text(
       'All your financial records stay on this device, with no Google account or internet required.',
@@ -615,11 +651,12 @@ class _FinanceState extends State<FinanceScreen>{
    case 1:section=moreReserves(d);break;
    case 2:section=moreYear(d);break;
    case 4:section=monthlyReview(d);break;
-   default:section=moreBackups(d);
+   case 5:section=moreBackups(d);break;
+   default:section=appSettings(d);
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
-    icon:PaydayAppIcon(Icons.arrow_back),label:Text('Back to More')),
+   TextButton.icon(onPressed:()=>setState(()=>moreSection=moreSection==5?3:null),
+    icon:PaydayAppIcon(Icons.arrow_back),label:Text(moreSection==5?'Back to Settings':'Back to More')),
    section,
   ]);
  }
@@ -746,14 +783,73 @@ class _FinanceState extends State<FinanceScreen>{
    })
   ]);
  }
+ Future<bool> changePreferences(AppPreferences next)async{
+  if(preferencesSaving||widget.onPreferencesChanged==null)return false;
+  setState(()=>preferencesSaving=true);
+  try{return await widget.onPreferencesChanged!(next);}
+  finally{if(mounted)setState(()=>preferencesSaving=false);}
+ }
+ Future<void> appearancePicker()async{
+  var saving=false;
+  await showDialog<void>(context:context,builder:(dialog)=>StatefulBuilder(
+   builder:(dialog,rebuild)=>AlertDialog(title:Text('Appearance'),
+    content:Column(mainAxisSize:MainAxisSize.min,children:[
+     RadioGroup<ThemeMode>(groupValue:widget.preferences.appearance,onChanged:(value)async{
+      if(value==null||saving)return;
+      rebuild(()=>saving=true);
+      final success=await changePreferences(widget.preferences.copyWith(appearance:value));
+      if(dialog.mounted){if(success){Navigator.pop(dialog);}else{rebuild(()=>saving=false);}}
+     },child:AbsorbPointer(absorbing:saving,child:Column(mainAxisSize:MainAxisSize.min,children:[
+      RadioListTile<ThemeMode>(value:ThemeMode.light,title:Text('Light')),
+      RadioListTile<ThemeMode>(value:ThemeMode.dark,title:Text('Dark')),
+      RadioListTile<ThemeMode>(value:ThemeMode.system,title:Text('System'),subtitle:Text('Follow your device appearance')),
+     ]))),
+     if(saving)LinearProgressIndicator(),
+    ]),actions:[TextButton(onPressed:saving?null:()=>Navigator.pop(dialog),child:Text('Cancel'))])));
+ }
+ Widget settingsGroup(String title,List<Widget> children)=>Column(
+  crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Padding(padding:EdgeInsets.fromLTRB(4,18,4,8),child:Text(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
+   Card(clipBehavior:Clip.antiAlias,child:Column(children:children)),
+  ]);
+ Widget appSettings(Map<String,List<RowData>> d){
+  final prefs=widget.preferences;
+  final canChange=widget.onPreferencesChanged!=null&&!preferencesSaving;
+  final systemReduced=WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   header('Settings',subtitle:'Make PAYDAY work your way'),
+   if(preferencesSaving)LinearProgressIndicator(),
+   settingsGroup('Appearance',[
+    ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:Text('Theme'),
+     subtitle:Text(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:canChange?appearancePicker:null),
+    SwitchListTile(key:ValueKey('opening-animation-setting'),secondary:const PaydayMark(size:24),
+     title:Text('Opening animation'),subtitle:Text(prefs.openingAnimation?'Show branding when the app starts':'Open straight to Home'),
+     value:prefs.openingAnimation,onChanged:canChange?(value)=>changePreferences(prefs.copyWith(openingAnimation:value)):null),
+    SwitchListTile(key:ValueKey('reduce-motion-setting'),secondary:PaydayAppIcon(Icons.tune_outlined),
+     title:Text('Reduce motion'),subtitle:Text(systemReduced?'Enabled by your device accessibility settings':'Use a short fade and reduce movement'),
+     value:systemReduced||prefs.reduceMotion,onChanged:canChange&&!systemReduced?(value)=>changePreferences(prefs.copyWith(reduceMotion:value)):null),
+   ]),
+   settingsGroup('Money & data',[
+    ListTile(leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:Text('Money settings'),
+     subtitle:Text('Cash buffer and opening savings'),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:()=>settingsForm(d)),
+    ListTile(leading:PaydayAppIcon(Icons.ios_share),title:Text('Backups & data'),
+     subtitle:Text(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:()=>setState(()=>moreSection=5)),
+   ]),
+   SizedBox(height:12),Padding(padding:EdgeInsets.symmetric(horizontal:4),
+    child:Text('Preferences are saved on this phone. Your device’s accessibility settings are always respected.',
+     style:TextStyle(color:muted,fontSize:12))),
+  ]);
+ }
  Widget moreBackups(Map<String,List<RowData>> d){
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Privacy & local backups',subtitle:'No sign-in, no cloud connection and no financial data upload'),
+   header('Backups & data',subtitle:'No sign-in, no cloud connection and no financial data upload'),
    Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text(backupDateLabel(backupReminder(d)),style:TextStyle(fontWeight:FontWeight.w700))),
    Text('An export date records a successful handoff to your chosen app. Keep the exported JSON file somewhere safe.',style:TextStyle(color:muted,fontSize:12)),
    Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
    Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportingBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore')))]),
-   SizedBox(height:10),FilledButton.tonal(onPressed:()=>settingsForm(d),child:Text('Settings & cash buffer'))
   ]);
  }
  Future<void> deleteTransactionWithUndo(int id)async{
@@ -804,7 +900,7 @@ class _FinanceState extends State<FinanceScreen>{
    showDragHandle:true,backgroundColor:surface,
    constraints:BoxConstraints(maxHeight:MediaQuery.sizeOf(context).height*(fullScreen ? .98 : .92)),
    builder:(c)=>AnimatedPadding(
-    duration:Duration(milliseconds:180),curve:Curves.easeOut,
+    duration:MediaQuery.disableAnimationsOf(c)?Duration.zero:Duration(milliseconds:180),curve:Curves.easeOut,
     padding:EdgeInsets.only(bottom:MediaQuery.viewInsetsOf(c).bottom),
     child:SafeArea(top:false,bottom:true,child:Padding(
      padding:EdgeInsets.symmetric(horizontal:18),
@@ -1278,9 +1374,9 @@ class _FinanceState extends State<FinanceScreen>{
   String find(String k,String fallback)=>st(list(d,'settings').firstWhere((x)=>st(x,'key')==k,orElse:()=>{'value':fallback}),'value');
   final b=TextEditingController(text:mad(int.tryParse(find('buffer','20000'))??20000).toStringAsFixed(2));
   final saved=TextEditingController(text:mad(int.tryParse(find('opening_savings','0'))??0).toStringAsFixed(2));
-  await sheet('Local settings',(c,rebuild)=>Column(children:[
+  await sheet('Money settings',(c,rebuild)=>Column(children:[
    field(b,'Cash buffer (MAD)',number:true),field(saved,'Opening savings (MAD)',number:true),
-   Padding(padding:EdgeInsets.all(8),child:Text('These balances are in centimes in the local database and never sent online.')),
+   Padding(padding:EdgeInsets.all(8),child:Text('Opening savings are money saved before using PAYDAY. Your cash buffer stays out of Safe to spend.')),
    FilledButton(onPressed:()async{
     final bn=amount(b,allowZero:true),sn=amount(saved,allowZero:true);if(bn==null||sn==null)return inputError('Check amounts');
     final saveSucceeded=await execute(()async{await store.setSetting('buffer',bn.toString());await store.setSetting('opening_savings',sn.toString());});if(saveSucceeded&&c.mounted)Navigator.pop(c);
@@ -1328,10 +1424,16 @@ class _FinanceState extends State<FinanceScreen>{
    final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
     title:Text('Restore Payday backup?'),content:Text('This replaces ALL records currently stored in this offline app. Export a backup first.'),
     actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Replace local data'))]));
-   if(yes==true)await execute(()=>store.importJson(raw));
+   if(yes==true){
+    final restored=await execute(()=>store.importJson(raw));
+    if(restored&&mounted&&widget.onPreferencesChanged!=null){
+     await widget.onPreferencesChanged!(await store.loadAppPreferences());
+    }
+   }
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 

@@ -50,20 +50,27 @@ void main(){
   testWidgets('launch defaults to light on a dark phone and theme changes do not replay the opening',(tester)async{
     tester.platformDispatcher.platformBrightnessTestValue=Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    await tester.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{})));
+    await tester.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{}));
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.light);
     await tester.pumpAndSettle();
     expect(find.byKey(overlay),findsNothing);
     expect(find.text('Salam'),findsNothing);
-    expect(find.text('Plan today,\nenjoy tomorrow.'),findsOneWidget);
-    await tester.tap(find.byTooltip('Use dark appearance'));
+    expect(find.text('Plan today, enjoy tomorrow.'),findsOneWidget);
+    await tester.tap(find.text('More'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Settings'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.dark);
     expect(find.byKey(overlay),findsNothing);
-    await tester.tap(find.byTooltip('Use light appearance'));
+    await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Light'));
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.light);
     expect(find.byKey(overlay),findsNothing);
     expect(tester.takeException(),isNull);
   });
 }
+

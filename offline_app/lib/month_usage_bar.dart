@@ -10,7 +10,7 @@ class MonthUsageBar extends StatelessWidget {
   final target=value.clamp(0,1).toDouble();
   return Semantics(label:'Money used this month',value:'${(target*100).round()}%',
    child:ExcludeSemantics(child:TweenAnimationBuilder<double>(
-    tween:Tween(begin:0,end:target),duration:const Duration(milliseconds:250),
+    tween:Tween(begin:0,end:target),duration:MediaQuery.disableAnimationsOf(context)?Duration.zero:const Duration(milliseconds:250),
     builder:(context,progress,child){
      final last=(progress*27).round();
      return SizedBox(height:27,child:Row(crossAxisAlignment:CrossAxisAlignment.end,
@@ -28,3 +28,4 @@ class MonthUsageBar extends StatelessWidget {
     })));
  }
 }
+
