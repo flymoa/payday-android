@@ -1,18 +1,21 @@
 # PAYDAY settings
 
-Stage 1 adds More > Settings, grouped preference rows, Light/Dark/System
-appearance, a cold-launch branding switch and Reduce motion. Defaults remain
-Light, branding enabled and device accessibility preferences respected.
-Preferences are written atomically to the existing local settings table and
-loaded before the first Flutter frame. Financial records are not changed.
+Home's logo opens a partial-width left settings drawer. More > Settings opens
+the same drawer. It contains Light/Dark/System appearance, currency, money
+settings and backups. A close control, scrim tap, swipe and Android Back close it.
+Opening branding is always enabled; legacy opening/reduce-motion preferences
+are ignored and removed on the next preferences save. Android accessibility
+settings still control reduced motion. There are no app animation toggles.
 
-The Home slogan is small, bold and on one line; the date and logo remain.
-
-Next currency choices: MAD, EUR, GBP and USD. USD means US dollar; it is not
-a separate fifth currency. Preserve existing MAD records. A currency selector
-must not silently relabel stored amounts or imply live exchange conversion.
-Currency support is a later stage, not an inactive control in Stage 1.
+Stage 2: one base currency, MAD, EUR, GBP or USD (US dollar). Defaults and older
+backups without a currency stay MAD. Currency and theme persist atomically in
+the existing settings table, travel in backups and reload before first frame.
+All financial screens and entry labels use the selected currency. Calculations
+continue in integer minor units; no rates, conversion, network or additional
+permissions are introduced. Every currency change requires a plain-language
+confirmation showing that 100 old units become 100 new units. Cancel and save
+failure preserve both active and stored values. Financial records are untouched.
 
 Later stages cover translated languages and layouts, app locking, storage and
 backup encryption, local reminders and About/help. Keep permission requests
-contextual, show current values and preserve PAYDAY's visual identity.
+contextual and preserve PAYDAY's visual identity.

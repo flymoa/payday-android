@@ -6,9 +6,8 @@ import 'brand.dart';
 /// A single cold-launch sequence. Keeping this above the Navigator means that
 /// page changes, theme toggles and resuming the app do not restart the intro.
 class PaydayOpening extends StatefulWidget {
-  const PaydayOpening({super.key, required this.child,this.enabled=true});
+  const PaydayOpening({super.key, required this.child});
   final Widget child;
-  final bool enabled;
   static const duration = Duration(seconds: 2);
 
   @override
@@ -35,7 +34,6 @@ class _PaydayOpeningState extends State<PaydayOpening>
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    if(!widget.enabled){_finished=true;return;}
     _reduced = MediaQuery.disableAnimationsOf(context);
     if (_reduced) _controller.duration = const Duration(milliseconds: 150);
     _controller.forward();

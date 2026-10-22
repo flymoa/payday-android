@@ -105,7 +105,11 @@ class OfflineStore {
     throw StateError('Budgets changed. Close this preview and open it again.');
    }
    final plan=BudgetCopyPlan(rows,month);
-   if(!plan.allowed)throw StateError('Assignments exceed planned income by ${(plan.exceededBy/100).toStringAsFixed(2)} MAD.');
+   if(!plan.allowed){
+    final settings=await txn.query('settings',where:'key=?',whereArgs:['currency']);
+    final currency=supportedCurrency(settings.firstOrNull?['value']?.toString());
+    throw StateError('Assignments exceed planned income by ${formatMoney(plan.exceededBy,currency)}.');
+   }
    for(final row in plan.additions){await txn.insert('budgets',row);}
   });
  }
@@ -244,6 +248,7 @@ class OfflineStore {
  Future<AppPreferences> loadAppPreferences()async=>AppPreferences.fromRows(await table('settings'));
  Future<void> saveAppPreferences(AppPreferences preferences)async{
   await (await db).transaction((txn)async{
+   await txn.delete('settings',where:'key IN (?, ?)',whereArgs:['app_opening_animation','app_reduce_motion']);
    for(final entry in preferences.values.entries){
     await txn.insert('settings',{'key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
    }
