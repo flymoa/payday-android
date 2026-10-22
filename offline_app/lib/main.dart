@@ -1,3 +1,4 @@
+import 'settings_pages.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -909,10 +910,11 @@ class _FinanceState extends State<FinanceScreen>{
      onTap:canChange?appearancePicker:null),
    ]),
    settingsGroup('Security',[
-    SwitchListTile(key:ValueKey('app-lock-setting'),secondary:PaydayAppIcon(Icons.lock_outline),
-     title:Text('App lock'),subtitle:Text('Require your phone’s unlock when opening or returning to PAYDAY'),
-     value:prefs.appLock,onChanged:canChange?(value)=>changePreferences(prefs.copyWith(appLock:value)):null),
-    Padding(padding:EdgeInsets.fromLTRB(16,0,16,16),child:Text('Screenshots and recent-app previews are blocked while App lock is on. It does not encrypt your records or exported backups.',style:TextStyle(color:muted,fontSize:12))),
+    ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
+     title:Text('App lock'),subtitle:Text(prefs.appLock?'On':'Off'),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>SecuritySettingsPage(
+      initialEnabled:widget.preferences.appLock,onChanged:widget.onPreferencesChanged==null?null:
+       (value)=>changePreferences(widget.preferences.copyWith(appLock:value)))))),
    ]),
    settingsGroup('Money & data',[
     ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:Text('Currency'),
@@ -925,9 +927,10 @@ class _FinanceState extends State<FinanceScreen>{
      subtitle:Text(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>setState(()=>drawerBackups=true)),
    ]),
-   SizedBox(height:12),Padding(padding:EdgeInsets.symmetric(horizontal:4),
-    child:Text('Preferences are saved on this phone. Currency changes do not convert amounts.',
-     style:TextStyle(color:muted,fontSize:12))),
+   settingsGroup('Help',[
+    ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:Text('About & Help'),
+     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>const AboutHelpPage()))),
+   ]),
   ]);
  }
  Widget moreBackups(Map<String,List<RowData>> d){

@@ -54,7 +54,8 @@ void main(){
  });
  Future<void> openSettings(WidgetTester tester)async{
   await tester.tap(find.byKey(const ValueKey('home-settings-logo')));await tester.pumpAndSettle();
-  await tester.ensureVisible(find.byKey(const ValueKey('app-lock-setting')));await tester.pumpAndSettle();
+  await tester.ensureVisible(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
  }
  testWidgets('settings exists only behind Home logo; More and edge swipe do not open it',(tester)async{
   await tester.pumpWidget(PaydayLocal(store:store));await tester.pumpAndSettle();
@@ -66,7 +67,8 @@ void main(){
   await tester.dragFrom(const Offset(1,200),const Offset(280,0));await tester.pumpAndSettle();
   expect(find.text('Theme'),findsNothing);
   await tester.tap(find.text('Home'));await tester.pumpAndSettle();await openSettings(tester);
-  expect(find.text('Settings'),findsOneWidget);expect(find.text('App lock'),findsOneWidget);
+  expect(find.text('Security'),findsOneWidget);expect(find.text('App lock'),findsOneWidget);
+  expect(find.byKey(const ValueKey('app-lock-info')),findsOneWidget);
   expect(tester.takeException(),isNull);
  });
  testWidgets('enable and disable require authentication; canceled and failed saves keep policy',(tester)async{

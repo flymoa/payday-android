@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'app_icon.dart';
+import 'brand.dart';
+import 'build_info.dart';
+
+const appLockExplanation='Use your phone’s fingerprint, face unlock, or screen lock to open or return to PAYDAY. '
+ 'Screenshots and recent-app previews are blocked while App lock is on. '
+ 'It does not encrypt your records or exported backups.';
+
+Future<void> showSettingsInfo(BuildContext context,String title,String message)=>showDialog<void>(
+ context:context,builder:(dialog)=>AlertDialog(title:Text(title),scrollable:true,
+  content:Text(message),actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:const Text('Got it'))]));
+
+class SecuritySettingsPage extends StatefulWidget{
+ const SecuritySettingsPage({super.key,required this.initialEnabled,this.onChanged});
+ final bool initialEnabled;
+ final Future<bool> Function(bool)? onChanged;
+ @override State<SecuritySettingsPage> createState()=>_SecuritySettingsPageState();
+}
+class _SecuritySettingsPageState extends State<SecuritySettingsPage>{
+ late bool enabled=widget.initialEnabled;
+ bool saving=false;
+ Future<void> change(bool value)async{
+  if(saving||widget.onChanged==null)return;
+  setState(()=>saving=true);
+  try{
+   final saved=await widget.onChanged!(value);
+   if(mounted&&saved)setState(()=>enabled=value);
+  }catch(_){
+   if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not change app lock. Please try again.')));
+  }finally{if(mounted)setState(()=>saving=false);}
+ }
+ @override Widget build(BuildContext context)=>Scaffold(
+  appBar:AppBar(title:const Text('Security'),leading:IconButton(tooltip:'Back to Settings',
+   onPressed:saving?null:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back)),
+   actions:[IconButton(key:const ValueKey('app-lock-info'),tooltip:'About app lock',
+    icon:const PaydayAppIcon(Icons.info_outline,size:20),
+    onPressed:()=>showSettingsInfo(context,'App lock',appLockExplanation))]),
+  body:SafeArea(child:ListView(padding:const EdgeInsets.all(16),children:[
+   if(saving)const LinearProgressIndicator(),
+   Card(clipBehavior:Clip.antiAlias,child:SwitchListTile(key:const ValueKey('app-lock-setting'),
+    secondary:const PaydayAppIcon(Icons.lock_outline),title:const Text('App lock'),
+    value:enabled,onChanged:saving||widget.onChanged==null?null:change)),
+  ])));
+}
+
+class AboutHelpPage extends StatelessWidget{
+ const AboutHelpPage({super.key});
+ Widget topic(BuildContext context,String title,IconData icon,String message)=>Card(
+  clipBehavior:Clip.antiAlias,child:ListTile(leading:PaydayAppIcon(icon),title:Text(title),
+   trailing:const PaydayAppIcon(Icons.chevron_right),onTap:()=>showSettingsInfo(context,title,message)));
+ Future<void> copyDetails(BuildContext context)async{
+  try{
+   await Clipboard.setData(const ClipboardData(text:'PAYDAY Local $paydayVersion (build $paydayBuildNumber)'));
+   if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('App details copied.')));
+  }catch(_){
+   if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not copy app details. Please try again.')));
+  }
+ }
+ @override Widget build(BuildContext context)=>Scaffold(
+  appBar:AppBar(title:const Text('About & Help'),leading:IconButton(tooltip:'Back to Settings',
+   onPressed:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back))),
+  body:SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,32),children:[
+   const Padding(padding:EdgeInsets.only(bottom:8),child:Align(alignment:Alignment.centerLeft,child:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:PaydayBrand(compact:true)))),
+   Text('Version $paydayVersion · Build $paydayBuildNumber',style:TextStyle(fontSize:12,color:Theme.of(context).colorScheme.onSurfaceVariant)),
+   const SizedBox(height:20),
+   topic(context,'Getting started',Icons.space_dashboard_outlined,
+    'Use + to add income, expenses, or savings transfers. Set planned income and category amounts in Budgets. Find and edit your entries in Records.'),
+   topic(context,'Budgets & savings',Icons.pie_chart_outline,
+    'Category budgets and the savings goal share your planned income. You cannot assign more than that plan. Assigning existing savings to a goal does not create new savings.'),
+   topic(context,'Backups & restore',Icons.ios_share,
+    'Export a backup from Settings → Backups & data and keep the JSON file somewhere private. Restore replaces the records on this phone. This phone’s App lock setting stays unchanged.'),
+   topic(context,'Privacy & security',Icons.lock_outline,
+    'Your records stay on this phone. PAYDAY works without an account or internet connection. App lock controls access; it does not encrypt records or exported backups.'),
+   topic(context,'Updating PAYDAY',Icons.history,
+    'Install the newer PAYDAY APK over your existing app. Uninstalling removes local records. Export a backup before changing phones or uninstalling.'),
+   const SizedBox(height:12),
+   OutlinedButton.icon(onPressed:()=>copyDetails(context),icon:const PaydayAppIcon(Icons.copy_outlined),label:const Text('Copy app details')),
+  ])));
+}
