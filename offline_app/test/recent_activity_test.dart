@@ -38,7 +38,7 @@ void main(){
    final search=find.widgetWithText(TextField,'Search records');
    expect(tester.getSize(search).height,lessThanOrEqualTo(48));
    await tester.enterText(search,'Internet');await tester.pumpAndSettle();
-   expect(find.text('Internet'),findsOneWidget);expect(find.text('Taxi'),findsNothing);
+   expect(find.byWidgetPredicate((w)=>w is Text&&w.data=='Internet'),findsOneWidget);expect(find.text('Taxi'),findsNothing);
    await tester.tap(find.byTooltip('Clear search'));await tester.pumpAndSettle();
    expect(tester.takeException(),isNull);
   });
