@@ -249,7 +249,7 @@ class _FinanceState extends State<FinanceScreen>{
       textBaseline:TextBaseline.alphabetic,children:[
       Text(homeDigits(value),style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:homeNavy)),
       SizedBox(width:5),
-      Text('$currency',style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
+      Text(currency,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
      ])),
    ]),
   ));
@@ -318,7 +318,7 @@ class _FinanceState extends State<FinanceScreen>{
   Text(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
   IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
- @override Widget build(BuildContext context)=>PopScope<Object?>(
+ @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
   canPop:page!=4||moreSection==null,
   onPopInvokedWithResult:(didPop,result){
    if(!didPop&&mounted&&page==4&&moreSection!=null){
@@ -326,7 +326,7 @@ class _FinanceState extends State<FinanceScreen>{
    }
   },child:Scaffold(
   key:scaffoldKey,
-  drawer:Drawer(width:(MediaQuery.sizeOf(context).width*.86).clamp(0,360).toDouble(),
+  drawer:Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
    backgroundColor:cream,child:SafeArea(child:Column(children:[
     Padding(padding:EdgeInsets.fromLTRB(16,12,4,8),child:Row(children:[
      if(drawerBackups)IconButton(tooltip:'Back to Settings',onPressed:()=>setState(()=>drawerBackups=false),icon:PaydayAppIcon(Icons.arrow_back)),
@@ -375,7 +375,7 @@ class _FinanceState extends State<FinanceScreen>{
       padding:EdgeInsets.all(3),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
    ]))),
- ));
+ )));
 
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
@@ -895,7 +895,7 @@ class _FinanceState extends State<FinanceScreen>{
    Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text(backupDateLabel(backupReminder(d)),style:TextStyle(fontWeight:FontWeight.w700))),
    Text('An export date records a successful handoff to your chosen app. Keep the exported JSON file somewhere safe.',style:TextStyle(color:muted,fontSize:12)),
    Card(child:Padding(padding:EdgeInsets.all(14),child:Text('All finance entries are stored in a private SQLite database on this device. This version is not app-level encrypted. Export a backup before uninstalling or resetting the phone.'))),
-   Row(children:[Expanded(child:OutlinedButton.icon(onPressed:exportingBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup'))),SizedBox(width:10),Expanded(child:OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore')))]),
+   Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[OutlinedButton.icon(onPressed:exportingBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup')),SizedBox(height:8),OutlinedButton.icon(onPressed:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore'))]),
   ]);
  }
  Future<void> deleteTransactionWithUndo(int id)async{

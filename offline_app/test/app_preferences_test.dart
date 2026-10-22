@@ -130,6 +130,7 @@ void main(){
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:saved));await tester.pumpAndSettle();
   expect(find.textContaining(' USD'),findsWidgets);
+  final semantics=tester.ensureSemantics();addTearDown(semantics.dispose);
   await tester.tap(find.bySemanticsLabel('Add transaction'));await tester.pumpAndSettle();
   expect(find.text('Amount (USD)'),findsOneWidget);
   expect(tester.takeException(),isNull);

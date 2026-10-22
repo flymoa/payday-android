@@ -15,6 +15,7 @@ void main(){
  late Database db;
  setUp(()async{
   db=await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+  await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
   await db.execute('CREATE TABLE budgets(month TEXT NOT NULL,category TEXT NOT NULL,amount INTEGER NOT NULL,PRIMARY KEY(month,category))');
  });
  tearDown(()async{if(db.isOpen)await db.close();});
@@ -47,7 +48,8 @@ void main(){
   for(final r in [row('2026-09','Food',5000),row('2026-10','Income plan',1000)]){await db.insert('budgets',r);}
   final store=OfflineStore(database:db);final before=await db.query('budgets');
   final state=budgetCopyState(before,'2026-10');
-  await expectLater(store.copyBudget('2026-10',expectedState:state),throwsStateError);
+  await db.insert('settings',{'key':'currency','value':'EUR'});
+  await expectLater(store.copyBudget('2026-10',expectedState:state),throwsA(isA<StateError>().having((e)=>e.message,'currency-aware overage',contains('40.00 EUR'))));
   expect(await db.query('budgets'),before);
   await db.update('budgets',{'amount':10000},where:'category=?',whereArgs:['Income plan']);
   await expectLater(store.copyBudget('2026-10',expectedState:state),throwsStateError);
