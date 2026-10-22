@@ -269,7 +269,7 @@ class _FinanceState extends State<FinanceScreen>{
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(dayKey(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
      Text('Salam',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:25)),
-    ]))]):const PaydayBrand(compact:true),centerTitle:false,
+    ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:const PaydayBrand(compact:true)),centerTitle:false,
    actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:Text('More')),
     IconButton(tooltip:isDark?'Use light appearance':'Use dark appearance',
     onPressed:widget.onToggleTheme==null?null:()=>widget.onToggleTheme!(!isDark),
