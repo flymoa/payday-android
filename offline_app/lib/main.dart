@@ -987,12 +987,12 @@ class _FinanceState extends State<FinanceScreen>{
  Future<void> categoryForm() async{
   final name=TextEditingController();var group='Essential';
   await sheet('New category',(c,rebuild)=>Column(children:[field(name,'Name'),DropdownButtonFormField<String>(initialValue:group,items:['Essential','Flexible'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)group=v;}),
-   SizedBox(height:12),FilledButton(onPressed:()async{final saved=await execute(()=>store.addCategory(name.text,group));if(saved&&c.mounted)Navigator.pop(c);},child:Text('Add category'))]));
+   SizedBox(height:12),FilledButton(onPressed:()async{final saveSucceeded=await execute(()=>store.addCategory(name.text,group));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Add category'))]));
  }
  Future<void> goalForm(RowData? existing) async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':mad(val(existing,'target')).toStringAsFixed(2));
   await sheet(existing==null?'Add savings goal':'Edit savings goal',(c,rebuild)=>Column(children:[field(name,'Goal name'),field(target,'Target (MAD)',number:true),
-   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saved=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saved&&c.mounted)Navigator.pop(c);},child:Text('Save goal'))]));
+   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Save goal'))]));
  }
  Future<void> allocationForm(Map<String,List<RowData>> d,RowData goal)async{
   final remaining=totalPool(d)-allocated(d),a=TextEditingController();
@@ -1004,7 +1004,7 @@ class _FinanceState extends State<FinanceScreen>{
     // Month must have been reviewed and closed, as in the spreadsheet.
     final closing=list(d,'month_closes').where((x)=>st(x,'month')==month&&val(x,'entries_ok')==1&&val(x,'balance_ok')==1);
     if(closing.isEmpty)return inputError('Close this month before allocating savings.');
-    final saved=await execute(()=>store.allocate(month,val(goal,'id'),n));if(saved&&c.mounted)Navigator.pop(c);
+    final saveSucceeded=await execute(()=>store.allocate(month,val(goal,'id'),n));if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:Text('Allocate savings'))]));
  }
  Future<void> repeatBillForm(RowData bill)async{
@@ -1043,7 +1043,7 @@ class _FinanceState extends State<FinanceScreen>{
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount (MAD)',number:true),field(note,'Note'),
    DropdownButtonFormField<String>(initialValue:category,items:list(d,'categories').map((x)=>DropdownMenuItem(value:st(x,'name'),child:Text(st(x,'name')))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
-   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saved=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saved&&c.mounted)Navigator.pop(c);},child:Text('Save bill')),
+   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Save bill')),
    if(existing!=null)Column(children:[
     OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
      icon:PaydayAppIcon(Icons.repeat),label:Text('Repeat next month')),
@@ -1199,7 +1199,7 @@ class _FinanceState extends State<FinanceScreen>{
     if(!selected.isBefore(currentMonth))return inputError('The month must end before closing it.');
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
     if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete checks; extra must not exceed available cash.');
-    final saved=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saved&&c.mounted)Navigator.pop(c);
+    final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:Text('Confirm month close'))
   ]));
  }
@@ -1212,7 +1212,7 @@ class _FinanceState extends State<FinanceScreen>{
    Padding(padding:EdgeInsets.all(8),child:Text('These balances are in centimes in the local database and never sent online.')),
    FilledButton(onPressed:()async{
     final bn=amount(b,allowZero:true),sn=amount(saved,allowZero:true);if(bn==null||sn==null)return inputError('Check amounts');
-    final saved=await execute(()async{await store.setSetting('buffer',bn.toString());await store.setSetting('opening_savings',sn.toString());});if(saved&&c.mounted)Navigator.pop(c);
+    final saveSucceeded=await execute(()async{await store.setSetting('buffer',bn.toString());await store.setSetting('opening_savings',sn.toString());});if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:Text('Save settings'))
   ]));
  }
