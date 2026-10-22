@@ -33,7 +33,9 @@ class _PaydayLocalState extends State<PaydayLocal> {
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:jade,brightness:brightness,
    primary:dark?const Color(0xff8CC8AD):jade,
-   surface:dark?const Color(0xff183B30):Colors.white);
+   surface:dark?const Color(0xff183B30):Colors.white,
+   onSurface:dark?paydaySand:ink,onSurfaceVariant:dark?const Color(0xffBCD0C2):const Color(0xff50695E),
+   outlineVariant:dark?const Color(0xff365548):const Color(0xffE6DDC6));
   final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans');
   return base.copyWith(
    textTheme:base.textTheme.copyWith(
@@ -446,7 +448,7 @@ class _FinanceState extends State<FinanceScreen>{
        PaydayAppIcon(Icons.info_outline,color:heroInk,size:18)]),
       SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text('${homeDigits(balance.available)} MAD',style:TextStyle(fontFamily:'Bricolage',fontSize:38,fontWeight:FontWeight.w800,color:heroInk))),
       SizedBox(height:16),ExcludeSemantics(child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:List.generate(28,(i)=>Expanded(child:Container(
-       margin:EdgeInsets.only(right:3),height:i==20?27:15,decoration:BoxDecoration(color:i==20?paydaySaffron:heroInk.withValues(alpha:i<20?.55:.18),borderRadius:BorderRadius.circular(4))))))),
+       margin:EdgeInsets.only(right:3),height:i==20?27:15,decoration:BoxDecoration(color:i==20?paydaySaffron:heroInk.withValues(alpha:i<20 ? .55 : .18),borderRadius:BorderRadius.circular(4))))))),
       SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[Text('Spent ${money(balance.expenses)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600)),
        Text('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
      ])),
@@ -744,7 +746,7 @@ class _FinanceState extends State<FinanceScreen>{
   await showModalBottomSheet(
    context:context,isScrollControlled:true,useSafeArea:true,
    showDragHandle:true,backgroundColor:surface,
-   constraints:BoxConstraints(maxHeight:MediaQuery.sizeOf(context).height*(fullScreen?.98:.92)),
+   constraints:BoxConstraints(maxHeight:MediaQuery.sizeOf(context).height*(fullScreen ? .98 : .92)),
    builder:(c)=>AnimatedPadding(
     duration:Duration(milliseconds:180),curve:Curves.easeOut,
     padding:EdgeInsets.only(bottom:MediaQuery.viewInsetsOf(c).bottom),

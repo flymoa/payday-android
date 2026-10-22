@@ -13,7 +13,7 @@ class PaydayAppIcon extends StatelessWidget {
   final theme=IconTheme.of(context);
   final dark=Theme.of(context).brightness==Brightness.dark;
   final extent=size??theme.size??24;
-  final foreground=(color??theme.color??(dark?const Color(0xffE2EAF0):const Color(0xff0B2545))).withValues(alpha:theme.opacity??1);
+  final foreground=(color??theme.color??(dark?const Color(0xffE2EAF0):const Color(0xff0E5A47))).withValues(alpha:theme.opacity??1);
   final widget=SizedBox.square(dimension:extent,child:CustomPaint(
    painter:_AppPainter(icon,foreground,dark,Directionality.of(context))));
   return semanticLabel==null?ExcludeSemantics(child:widget):Semantics(label:semanticLabel,child:widget);
@@ -36,7 +36,7 @@ class _AppPainter extends CustomPainter{
   c.save();c.scale(size.width/24,size.height/24);
   if(icon.matchTextDirection&&direction==TextDirection.rtl){c.translate(24,0);c.scale(-1,1);}
   final p=Paint()..color=color..style=PaintingStyle.stroke..strokeWidth=1.7..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final accent=Paint()..color=(dark?const Color(0xffE7AD79):const Color(0xffB97643)).withValues(alpha:color.a)
+  final accent=Paint()..color=(dark?const Color(0xffF4A62A):const Color(0xffF4A62A)).withValues(alpha:color.a)
    ..style=PaintingStyle.stroke..strokeWidth=1.7..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   void l(double x,double y,double a,double b,[bool copper=false])=>c.drawLine(Offset(x,y),Offset(a,b),copper?accent:p);
   void circle(double x,double y,double r,[bool copper=false])=>c.drawCircle(Offset(x,y),r,copper?accent:p);
@@ -109,3 +109,4 @@ class _AppPainter extends CustomPainter{
  }
  @override bool shouldRepaint(covariant _AppPainter old)=>old.icon!=icon||old.color!=color||old.dark!=dark||old.direction!=direction;
 }
+
