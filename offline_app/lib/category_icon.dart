@@ -11,7 +11,7 @@ class PaydayCategoryIcon extends StatelessWidget {
   return ExcludeSemantics(child:Container(width:size,height:size,
    padding:EdgeInsets.all(size*.20),
    decoration:BoxDecoration(shape:BoxShape.circle,
-    color:dark?const Color(0xff234D3D):const Color(0xffDDEBE2)),
+    color:dark?const Color(0xff243F30):const Color(0xffDDEBE2)),
    child:CustomPaint(painter:PaydayGlyphPainter(category.trim().toLowerCase(),dark))));
  }
 }
@@ -25,7 +25,7 @@ class PaydayGlyphPainter extends CustomPainter {
   canvas.save();canvas.scale(size.width/24,size.height/24);
   final navy=Paint()..color=foreground??(dark?const Color(0xffE2EAF0):const Color(0xff0E5A47))
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final teal=Paint()..color=dark?const Color(0xff68C7BA):const Color(0xff0E5A47)
+  final teal=Paint()..color=dark?const Color(0xff98CDB5):const Color(0xff0E5A47)
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   final copper=Paint()..color=dark?const Color(0xffE7AD79):const Color(0xffF4A62A)
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
@@ -109,6 +109,7 @@ class PaydayGlyphPainter extends CustomPainter {
  }
  @override bool shouldRepaint(covariant PaydayGlyphPainter old)=>old.category!=category||old.dark!=dark;
 }
+
 
 
 

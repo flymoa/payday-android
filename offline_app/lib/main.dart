@@ -1,3 +1,4 @@
+import 'transaction_categories.dart';
 import 'app_icon.dart';
 import 'category_icon.dart';
 import 'dart:io';
@@ -32,19 +33,25 @@ class _PaydayLocalState extends State<PaydayLocal> {
  ThemeData palette(Brightness brightness){
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:jade,brightness:brightness,
-   primary:dark?const Color(0xff8CC8AD):jade,
-   surface:dark?const Color(0xff183B30):Colors.white,
-   onSurface:dark?paydaySand:ink,onSurfaceVariant:dark?const Color(0xffBCD0C2):const Color(0xff50695E),
-   outlineVariant:dark?const Color(0xff365548):const Color(0xffE6DDC6));
+   primary:dark?const Color(0xff98CDB5):jade,
+   surface:dark?const Color(0xff192A22):Colors.white,
+   onSurface:dark?paydaySand:ink,onSurfaceVariant:dark?const Color(0xffAEBFB3):const Color(0xff50695E),
+   outlineVariant:dark?const Color(0xff33483B):const Color(0xffE6DDC6)).copyWith(
+    onPrimary:dark?const Color(0xff102B20):Colors.white,
+    surfaceContainerLow:dark?const Color(0xff1F3228):const Color(0xffF5F1E7),
+    surfaceContainerHigh:dark?const Color(0xff293F32):const Color(0xffEEE8DA));
   final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans');
   return base.copyWith(
    textTheme:base.textTheme.copyWith(
     titleLarge:base.textTheme.titleLarge?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800),
     headlineSmall:base.textTheme.headlineSmall?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800)),
-   scaffoldBackgroundColor:dark?const Color(0xff0C241C):cream,
-   appBarTheme:AppBarTheme(backgroundColor:dark?const Color(0xff0C241C):cream,
+   scaffoldBackgroundColor:dark?const Color(0xff101D17):cream,
+   appBarTheme:AppBarTheme(backgroundColor:dark?const Color(0xff101D17):cream,
     foregroundColor:scheme.onSurface,centerTitle:true,surfaceTintColor:Colors.transparent),
-   cardTheme:CardThemeData(elevation:0,color:scheme.surface,
+   bottomSheetTheme:BottomSheetThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent,
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.vertical(top:Radius.circular(28)))),
+   dialogTheme:DialogThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent),
+   cardTheme:CardThemeData(elevation:0,color:scheme.surface,surfaceTintColor:Colors.transparent,
     shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(20))),
    inputDecorationTheme:InputDecorationTheme(filled:true,
     fillColor:scheme.surfaceContainerLow,
@@ -250,7 +257,7 @@ class _FinanceState extends State<FinanceScreen>{
     ClipRRect(borderRadius:BorderRadius.circular(12),
      child:LinearProgressIndicator(value:progress,minHeight:9,
       color:statusColor,
-      backgroundColor:isOver?Color(0xffF4D9D4):Color(0xffE9F0EB))),
+      backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?Color(0xffF4D9D4):Color(0xffE9F0EB))),
     if(isOver)Padding(padding:EdgeInsets.only(top:10),
       child:Text('Exceeded your budget by ${homeDigits(spent-limit)} MAD '
        '(${((spent/limit-1)*100).round()}% over).',
@@ -294,11 +301,13 @@ class _FinanceState extends State<FinanceScreen>{
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
     bottomItem('Budgets',Icons.pie_chart_outline,2),
-    Expanded(child:Transform.translate(offset:Offset(0,-16),child:Semantics(button:true,label:'Add transaction',child:
-     Container(width:64,height:64,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(23),
-      boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:.25),blurRadius:22,offset:Offset(0,8))]),
-      padding:EdgeInsets.all(5),child:FilledButton(style:FilledButton.styleFrom(padding:EdgeInsets.zero,backgroundColor:paydaySaffron,foregroundColor:ink,
-       shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),onPressed:()=>transactionForm(null),child:PaydayAppIcon(Icons.add,size:29,color:ink)))))),
+    Expanded(child:Center(child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:'Add transaction',child:
+     Container(width:54,height:54,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(20),
+      boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .10 : .20),blurRadius:14,offset:Offset(0,5))]),
+      padding:EdgeInsets.all(3),child:FilledButton(style:FilledButton.styleFrom(padding:EdgeInsets.zero,
+       minimumSize:Size(48,48),tapTargetSize:MaterialTapTargetSize.shrinkWrap,backgroundColor:paydaySaffron,foregroundColor:Color(0xff12261F),
+       shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(17))),onPressed:()=>transactionForm(null),
+       child:PaydayAppIcon(Icons.add,size:24,color:Color(0xff12261F)))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
    ]))),
  );
@@ -583,7 +592,7 @@ class _FinanceState extends State<FinanceScreen>{
      SizedBox(height:4),Text(description,style:TextStyle(color:muted,fontSize:12)),
      SizedBox(height:7),Text(summary,style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
     ])),
-    PaydayAppIcon(Icons.chevron_right,color:Colors.black45)
+    PaydayAppIcon(Icons.chevron_right,color:muted)
    ])),
   ));
  Widget moreBills(Map<String,List<RowData>> d){
@@ -789,14 +798,17 @@ class _FinanceState extends State<FinanceScreen>{
     inputError('This bill is fully paid. No remaining payment is due.');
     return;
   }
-  final cats={...list(d,'categories').map((x)=>st(x,'name')),'Salary','Savings'}.toList();
+  List<String> categoriesFor(String entry,{bool editing=false})=>transactionCategories(type:entry,
+   configured:list(d,'categories').map((x)=>st(x,'name')),history:list(d,'transactions'),
+   existingCategory:editing&&existing!=null?st(existing,'category'):null);
   final desc=TextEditingController(text:existing==null?(prefill?.description??''):st(existing,'description'));
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
   final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
   final amt=TextEditingController(text:existing==null?(prefill==null?'':mad(prefill.amountCents).toStringAsFixed(2)):mad(val(existing,'amount')).toStringAsFixed(2));
   var type=existing==null?(prefill?.type??initialType??'Expense'):st(existing,'type');
   var category=existing==null?(prefill?.category??(type=='Income'?'Salary':type.startsWith('Savings')?'Savings':'Groceries')):st(existing,'category');
-  if(!cats.contains(category))category=cats.first;
+  var cats=categoriesFor(type,editing:existing!=null);
+  if(!cats.contains(category)){if(prefill!=null){cats=[category,...cats];}else{category=cats.first;}}
   var date=existing==null?(prefill!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
   var allCategories=false;
@@ -804,10 +816,31 @@ class _FinanceState extends State<FinanceScreen>{
    if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:Text(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
       style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
-   Wrap(spacing:8,runSpacing:4,children:['Expense','Income','Savings out','Savings in'].map((entry)=>ChoiceChip(
-    label:Text(entry),selected:type==entry,onSelected:submitting?null:(_)=>rebuild((){
-     type=entry;category=entry=='Income'?'Salary':entry.startsWith('Savings')?'Savings':cats.contains('Groceries')?'Groceries':cats.first;
-    }))).toList()),
+   Container(padding:EdgeInsets.all(4),decoration:BoxDecoration(
+    color:Theme.of(c).colorScheme.surfaceContainerLow,borderRadius:BorderRadius.circular(18)),
+    child:Row(children:['Expense','Income','Savings'].map((entry){
+     final selected=entry=='Savings'?type.startsWith('Savings'):type==entry;
+     return Expanded(child:TextButton(style:TextButton.styleFrom(
+      padding:EdgeInsets.symmetric(vertical:13,horizontal:2),backgroundColor:selected?surface:Colors.transparent,
+      foregroundColor:selected?jade:muted,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14))),
+      onPressed:submitting?null:()=>rebuild((){
+       type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=cats.contains(entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings')?
+        (entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
+      }),child:Text(entry,style:TextStyle(fontSize:13,fontWeight:selected?FontWeight.w800:FontWeight.w500))));
+    }).toList())),
+   if(type.startsWith('Savings'))...[
+    SizedBox(height:14),
+    Row(children:[
+     Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings out'?jade.withValues(alpha:.12):Colors.transparent,
+      side:BorderSide(color:type=='Savings out'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings out'),child:Text('Add to savings',style:TextStyle(fontSize:12)))),
+     SizedBox(width:8),
+     Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings in'?jade.withValues(alpha:.12):Colors.transparent,
+      side:BorderSide(color:type=='Savings in'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings in'),child:Text('Take from savings',style:TextStyle(fontSize:12)))),
+    ]),SizedBox(height:6),Text(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
+     style:TextStyle(fontSize:12,color:muted),textAlign:TextAlign.center),
+   ],
    SizedBox(height:22),
    TextField(controller:amt,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
     style:TextStyle(fontFamily:'Bricolage',fontSize:44,fontWeight:FontWeight.w800,color:jade),
@@ -822,12 +855,12 @@ class _FinanceState extends State<FinanceScreen>{
    LayoutBuilder(builder:(context,limits){
     final ordered={category,...cats}.toList();
     final choices=allCategories?ordered:ordered.take(7).toList();
-    return Wrap(spacing:8,runSpacing:8,children:[
+    return Wrap(key:ValueKey('transaction-category-grid'),spacing:8,runSpacing:8,children:[
      ...choices.map((name)=>SizedBox(width:(limits.maxWidth-24)/4,height:82,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
        side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
       onPressed:()=>rebuild(()=>category=name),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-       PaydayCategoryIcon(name,size:32),SizedBox(height:5),Text(name,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:10,fontWeight:FontWeight.w600)),
+       PaydayCategoryIcon(name,size:32),SizedBox(height:5),Text(name,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:11,fontWeight:FontWeight.w600)),
       ])))),
      if(!allCategories&&ordered.length>7)SizedBox(width:(limits.maxWidth-24)/4,height:82,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
@@ -1205,6 +1238,7 @@ class _FinanceState extends State<FinanceScreen>{
   }catch(e){inputError('Restore failed: $e');}
  }
 }
+
 
 
 
