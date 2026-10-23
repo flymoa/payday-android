@@ -65,7 +65,7 @@ class BackupNotifications {
  Future<void> _tail=Future.value();
  Future<T> _serial<T>(Future<T> Function() operation){
   final result=_tail.then((_)=>operation());
-  _tail=result.then<void>((_){},onError:(Object _,StackTrace __){});
+  _tail=result.then<void>((_){},onError:(Object error,StackTrace stack){});
   return result;
  }
  Future<bool> _enabled()async=>(await store.table('settings')).any((r)=>r['key']==backupReminderPreference&&r['value']=='1');

@@ -36,7 +36,6 @@ class PaydayStartup extends StatefulWidget{
 }
 class _PaydayStartupState extends State<PaydayStartup>{
  late final store=widget.store??OfflineStore();
- late final reminders=widget.backupNotifications??BackupNotifications(store);
  late Future<AppPreferences> preferences=store.loadAppPreferences();
  @override Widget build(BuildContext context)=>FutureBuilder<AppPreferences>(future:preferences,builder:(context,snapshot){
   if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!);
