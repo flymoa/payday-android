@@ -207,6 +207,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    if(mounted&&!reminderSyncErrorShown){
     reminderSyncErrorShown=true;
     WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)inputError('Bill reminders could not refresh. Check Settings → Notifications.');});
+    WidgetsBinding.instance.ensureVisualUpdate();
    }
   }
  }

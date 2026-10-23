@@ -24,6 +24,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
  Future<void> load()async{
   try{
    final value=await widget.reminders.read();
+   if(mounted)setState(()=>state=value);
    final bills=await widget.bills?.read();
    String? syncError;
    try{if(widget.bills!=null)await widget.bills!.synchronize();}
@@ -73,7 +74,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
      if(billState!.preferences.enabled)ListTile(key:const ValueKey('bill-reminder-timing'),leading:const PaydayAppIcon(Icons.schedule),title:const Text('Remind me'),
       subtitle:Text('${billReminderChoices[billState!.preferences.leadDays]} · 9:00 AM'),trailing:const PaydayAppIcon(Icons.chevron_right),onTap:busy?null:chooseTiming),
     ])),
-    if(state?.allowed==false||billState?.allowed==false)TextButton(onPressed:busy?null:()=>run(widget.reminders.openSettings),child:const Text('Android notification settings')),
+    if(state?.allowed==false||billState?.allowed==false||error!=null)TextButton(onPressed:busy?null:()=>run(widget.reminders.openSettings),child:const Text('Android notification settings')),
     if(backupReady||billReady)OutlinedButton.icon(onPressed:busy?null:()=>run(backupReady?widget.reminders.sendTest:widget.bills!.sendTest,success:'Test notification sent.'),
      icon:const PaydayAppIcon(Icons.notifications_none),label:const Text('Send a test')),
     if(error!=null)...[
