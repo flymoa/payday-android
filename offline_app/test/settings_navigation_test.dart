@@ -51,7 +51,7 @@ void main(){
   await t.tap(find.text('Export backup'));await t.pump();
   expect(t.widget<OutlinedButton>(find.byKey(const ValueKey('export-backup'))).onPressed,isNull);
   expect(t.widget<OutlinedButton>(find.byKey(const ValueKey('restore-backup'))).onPressed,isNull);
-  expect(t.widget<IconButton>(find.byTooltip('Back to Settings')).onPressed,isNull);
+  expect(t.widget<IconButton>(find.byWidgetPredicate((w)=>w is IconButton&&w.tooltip=='Back to Settings')).onPressed,isNull);
   done.complete();await t.pumpAndSettle();expect(exports,1);expect(find.text('Last export: 2026-10-23'),findsOneWidget);
   expect(find.byType(BackupSettingsPage),findsOneWidget);expect(t.takeException(),isNull);
  });

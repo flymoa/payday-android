@@ -6,7 +6,7 @@ import 'package:payday_local/offline_store.dart';
 
 Map<String,Object?> document({int version=2})=>{
  'format':'payday-local','schema_version':version,'exported_at':'2026-10-23T12:00:00Z',
- 'tables':{for(final name in localTables)name:<Map<String,Object?>>[]},
+ 'tables':<String,Object?>{for(final name in localTables)name:<Map<String,Object?>>[]},
 };
 void main(){
  test('preview counts selected backup records without requiring local data',(){
