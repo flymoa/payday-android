@@ -38,6 +38,7 @@ void main(){
      currency:'EUR',buffer:20000,openingSavings:10000,onSave:(buffer,opening)async{calls++;savedBuffer=buffer;savedOpening=opening;return success;}))),child:const Text('Open'))))));
    await t.tap(find.text('Open'));await t.pumpAndSettle();
    await t.enterText(find.byType(TextFormField).first,'-1');await t.tap(find.text('Save settings'));await t.pumpAndSettle();expect(calls,0);
+   await t.enterText(find.byType(TextFormField).first,'300.505');await t.tap(find.text('Save settings'));await t.pumpAndSettle();expect(calls,0);
    await t.enterText(find.byType(TextFormField).first,'300,50');await t.tap(find.text('Save settings'));await t.pumpAndSettle();
    expect(calls,1);expect(find.byType(MoneySettingsPage),findsOneWidget);expect(savedBuffer,30050);expect(savedOpening,10000);
    success=true;await t.tap(find.text('Save settings'));await t.pumpAndSettle();expect(calls,2);expect(find.text('Open'),findsOneWidget);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_icon.dart';
 import 'app_preferences.dart';
+import 'finance.dart';
 import 'settings_pages.dart';
 
 class ThemeSettingsPage extends StatefulWidget {
@@ -81,11 +82,7 @@ class _MoneySettingsPageState extends State<MoneySettingsPage>{
  final form=GlobalKey<FormState>();
  bool saving=false;
  @override void dispose(){buffer.dispose();savings.dispose();super.dispose();}
- int? amount(String? value){
-  final n=double.tryParse((value??'').trim().replaceAll(',','.'));
-  if(n==null||!n.isFinite||n<0||n>1000000000)return null;
-  return (n*100).round();
- }
+ int? amount(String? value)=>parseMoneyCents(value??'',allowZero:true);
  Widget field(TextEditingController controller,String label)=>Padding(padding:const EdgeInsets.only(bottom:16),
   child:TextFormField(controller:controller,enabled:!saving,
    keyboardType:const TextInputType.numberWithOptions(decimal:true),
