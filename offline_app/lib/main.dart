@@ -1,3 +1,4 @@
+import 'bill_reminders.dart';
 import 'safe_to_spend_row.dart';
 import 'backup_notifications.dart';
 import 'notification_settings_page.dart';
@@ -145,16 +146,17 @@ class _PaydayLocalState extends State<PaydayLocal> {
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,
  this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
  final BackupCipher? backupCipher;
  final BackupNotifications? backupNotifications;
+ final BillReminders? billReminders;
  final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
-class _FinanceState extends State<FinanceScreen>{
+class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool get isDark=>Theme.of(context).brightness==Brightness.dark;
  Color get ink=>Theme.of(context).colorScheme.onSurface;
  Color get jade=>Theme.of(context).colorScheme.primary;
@@ -184,16 +186,36 @@ class _FinanceState extends State<FinanceScreen>{
  final search=TextEditingController();
  late final store=widget.store??OfflineStore();
  late final reminders=widget.backupNotifications??BackupNotifications(store);
+ late final billReminders=widget.billReminders??BillReminders(store);
+ bool reminderSyncErrorShown=false;
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
  int? moreSection; // null means More menu; index selects the opened section.
  final purchase=TextEditingController(text:'200');
- @override void dispose(){purchase.dispose();search.dispose();store.close();super.dispose();}
+ @override void initState(){
+  super.initState();WidgetsBinding.instance.addObserver(this);
+  unawaited(syncBillReminders());
+ }
+ @override void didChangeAppLifecycleState(AppLifecycleState state){
+  if(state==AppLifecycleState.resumed)unawaited(syncBillReminders());
+ }
+ Future<void> syncBillReminders()async{
+  if(!mounted||!BillReminders.supported&&widget.billReminders==null)return;
+  try{await billReminders.synchronize();reminderSyncErrorShown=false;}
+  catch(_){
+   if(mounted&&!reminderSyncErrorShown){
+    reminderSyncErrorShown=true;
+    WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)inputError('Bill reminders could not refresh. Check Settings → Notifications.');});
+   }
+  }
+ }
+ @override void dispose(){WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
  void refresh(){
   if(!mounted)return;
   final next=store.snapshot();
   setState((){data=next;});
+  unawaited(syncBillReminders());
  }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
@@ -924,7 +946,7 @@ class _FinanceState extends State<FinanceScreen>{
    settingsGroup('Reminders',[
     ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:Text('Notifications'),
      trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
-      builder:(_)=>NotificationSettingsPage(reminders:reminders)))),
+      builder:(_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders)))),
    ]),
    settingsGroup('Security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),

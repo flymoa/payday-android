@@ -19,7 +19,7 @@ void main(){
    await t.tap(find.byKey(const ValueKey('backup-notifications-toggle')));await t.pumpAndSettle();
    expect(t.widget<SwitchListTile>(find.byType(SwitchListTile)).value,isTrue);
    await t.tap(find.text('Send a test'));await t.pumpAndSettle();expect(platform.tests,1);
-   await t.tap(find.byTooltip('About backup reminders'));await t.pumpAndSettle();
+   await t.tap(find.byTooltip('About notifications'));await t.pumpAndSettle();
    expect(find.text(backupNotificationExplanation),findsOneWidget);
    await t.ensureVisible(find.text('Got it'));await t.tap(find.text('Got it'));await t.pumpAndSettle();
    await t.tap(find.byType(SwitchListTile));await t.pumpAndSettle();expect(store.value,'0');

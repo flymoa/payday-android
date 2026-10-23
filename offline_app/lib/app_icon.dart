@@ -46,7 +46,14 @@ class _AppPainter extends CustomPainter{
    for(final v in points.skip(1)){q.lineTo(v.dx,v.dy);}c.drawPath(q,copper?accent:p);
   }
   void dot(double x,double y)=>c.drawCircle(Offset(x,y),1,Paint()..color=accent.color);
-  if(icon==Icons.notifications_none){
+  if(icon==Icons.event_note_outlined){
+   path([Offset(4,21),Offset(4,3),Offset(17,3),Offset(17,10)]);
+   l(7,7,13,7);l(7,11,11,11);l(7,15,10,15);
+   c.drawPath(Path()..moveTo(12,18)..lineTo(13,16)..lineTo(13,14)..cubicTo(13,10,19,10,19,14)..lineTo(19,16)..lineTo(20,18)..close(),accent);
+   l(15,21,17,21,true);l(4,21,7,19);l(7,19,10,21);
+  }else if(icon==Icons.schedule){
+   circle(12,12,9);l(12,6,12,12);l(12,12,16,14,true);dot(19,5);
+  }else if(icon==Icons.notifications_none){
    c.drawPath(Path()..moveTo(5,17)..lineTo(7,14)..lineTo(7,9)..cubicTo(7,2,17,2,17,9)..lineTo(17,14)..lineTo(19,17)..close(),p);
    c.drawArc(Rect.fromLTWH(10,18,4,4),0,3.14159,false,accent);dot(18,4);
   }else if(icon==Icons.visibility_outlined||icon==Icons.visibility_off_outlined){

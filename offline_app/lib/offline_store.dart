@@ -10,6 +10,7 @@ const defaultCategories = <String,String>{
  'Eating out':'Flexible','Shopping':'Flexible','Leisure':'Flexible',
  'Subscriptions':'Essential','Debt payment':'Essential','Other':'Essential'
 };
+const deviceLocalSettingKeys=['app_lock_enabled','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days'];
 const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
@@ -245,6 +246,19 @@ class OfflineStore {
  }
  Future<void> setSetting(String key,String value) async =>
    (await db).insert('settings',{'key':key,'value':value},conflictAlgorithm:ConflictAlgorithm.replace);
+ Future<void> saveBillReminderPreferences({required bool enabled,required int leadDays})async{
+  if(![0,1,3].contains(leadDays))throw ArgumentError('Unsupported bill reminder timing');
+  await (await db).transaction((txn)async{
+   for(final entry in {'bill_notifications_enabled':enabled?'1':'0','bill_notifications_lead_days':'$leadDays'}.entries){
+    await txn.insert('settings',{'key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
+   }
+  });
+ }
+ Future<Map<String,List<Map<String,Object?>>>> billReminderSnapshot()async=>
+  (await db).transaction((txn)async=>{
+   'bills':await txn.query('bills'),
+   'transactions':await txn.query('transactions',columns:['type','bill_id','amount'],where:'type=?',whereArgs:['Expense']),
+  });
  Future<AppPreferences> loadAppPreferences()async=>AppPreferences.fromRows(await table('settings'));
  Future<void> saveAppPreferences(AppPreferences preferences)async{
   await (await db).transaction((txn)async{
@@ -288,7 +302,7 @@ class OfflineStore {
  Future<String> exportJson() async {
   final tables=await snapshot();
   // Authentication policy belongs to this installation, never to a shared backup.
-  tables['settings']=tables['settings']!.where((r)=>!['app_lock_enabled','backup_notifications_enabled'].contains(r['key'])).toList();
+  tables['settings']=tables['settings']!.where((r)=>!deviceLocalSettingKeys.contains(r['key'])).toList();
   return const JsonEncoder.withIndent('  ').convert({
    'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
    'tables':tables
@@ -309,17 +323,17 @@ class OfflineStore {
   }
   final d=await db;
   await d.transaction((txn) async{
-   final localLock=await txn.query('settings',where:'key IN (?,?)',whereArgs:['app_lock_enabled','backup_notifications_enabled']);
+   final localDeviceSettings=await txn.query('settings',where:'key IN (${List.filled(deviceLocalSettingKeys.length,'?').join(',')})',whereArgs:deviceLocalSettingKeys);
    // Restoring is one SQLite transaction: either all tables change or none do.
    for(final table in localTables.reversed) {await txn.delete(table);}
    for(final name in localTables){
     for(final item in (legacy && name=='reserve_movements' ? <dynamic>[] : tables[name] as List)){
      if(item is! Map)throw const FormatException('Invalid backup record');
-     if(name=='settings'&&['app_lock_enabled','backup_notifications_enabled'].contains(item['key']))continue;
+     if(name=='settings'&&deviceLocalSettingKeys.contains(item['key']))continue;
      await txn.insert(name,Map<String,Object?>.from(item));
     }
    }
-   for(final row in localLock){await txn.insert('settings',row);}
+   for(final row in localDeviceSettings){await txn.insert('settings',row);}
    // Export reminders belong to this installation, not the imported file.
    await txn.delete('settings',where:'key IN (?, ?)',whereArgs:['last_backup_export','backup_snooze_until']);
   });

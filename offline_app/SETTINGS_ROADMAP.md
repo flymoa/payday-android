@@ -77,3 +77,39 @@ Android settings. A test button lets the user check delivery immediately.
 Bill-specific reminders remain a later part of the notifications stage.
 
 Setup reference: https://pub.dev/packages/flutter_local_notifications
+
+Bill reminders: opt-in, off by default, with due-date/one-day/three-day timing.
+Use timezone 0.11.2 and flutter_timezone 5.1.1 for device IANA time zones. Each
+future calendar reminder is at 09:00 local time, with inexactAllowWhileIdle;
+no exact-alarm or additional Android permission is introduced. Subtract calendar
+days before constructing TZDateTime so DST, Ramadan changes and month/year
+boundaries retain 09:00. Past reminder times and overdue bills are not replayed.
+The next calendar year is queued, grouping unpaid bills by reminder date (fewer
+than 370 bill alarms, within Android's documented alarm limits). Opening or
+resuming the app refreshes the horizon and picks up a changed device time zone.
+The existing boot/update receivers restore already queued reminders.
+
+The planner uses all linked Expense payments, across months, matching the bill
+balance logic. Full/overpayment, bill deletion, due-date edits, repeated bills,
+transaction edit/delete/Undo, and backup restore reconcile reminders after the
+saved change. Partial payments keep a reminder. One date ID per day prevents
+duplicates; unchanged pending payloads are retained. Reconciliation removes only
+bill-owned pending/displayed IDs and leaves weekly backup reminders alone. A
+read transaction takes the bill/payment snapshot. Sync failures report a reminder
+error without rolling back or misreporting a saved financial transaction.
+
+Only a generic message is shown: "You have a bill to review. Open PAYDAY for
+details." The scheduler stores date/time-zone metadata, no bill name, amount,
+category or transaction details. Opening a notification retains the usual App
+lock gate. Notification intent and timing are device-local: exports omit them;
+restore ignores imported flags and atomically retains this phone's preferences.
+Both fields save in a transaction; failures restore the previous Android plan.
+Permission is requested only on explicit opt-in, never on startup or restore.
+
+Icons: a receipt with a saffron bell for bill reminders and a matching clock for
+timing, drawn in the existing vector icon system in light and dark themes.
+
+References:
+https://pub.dev/documentation/flutter_local_notifications/latest/flutter_local_notifications/FlutterLocalNotificationsPlugin/zonedSchedule.html
+https://pub.dev/packages/flutter_timezone
+https://pub.dev/packages/timezone
