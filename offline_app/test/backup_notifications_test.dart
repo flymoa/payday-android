@@ -61,7 +61,7 @@ void main(){
   tables['settings']=[{'key':backupReminderPreference,'value':'0'},{'key':'app_lock_enabled','value':'0'},{'key':'buffer','value':'900'}];
   await store.importJson(jsonEncode({'format':'payday-local','schema_version':2,'tables':tables}));
   var rows=await store.table('settings');
-  expect(rows,contains({'key':backupReminderPreference,'value':'1'}));expect(rows,contains({'key':'app_lock_enabled','value':'1'}));
+  expect(rows,contains(equals({'key':backupReminderPreference,'value':'1'})));expect(rows,contains(equals({'key':'app_lock_enabled','value':'1'})));
   await db.delete('settings',where:'key=?',whereArgs:[backupReminderPreference]);
   tables['settings']=[{'key':backupReminderPreference,'value':'1'}];
   await store.importJson(jsonEncode({'format':'payday-local','schema_version':2,'tables':tables}));
