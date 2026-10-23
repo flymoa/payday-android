@@ -288,7 +288,7 @@ class OfflineStore {
  Future<String> exportJson() async {
   final tables=await snapshot();
   // Authentication policy belongs to this installation, never to a shared backup.
-  tables['settings']=tables['settings']!.where((r)=>r['key']!='app_lock_enabled').toList();
+  tables['settings']=tables['settings']!.where((r)=>!['app_lock_enabled','backup_notifications_enabled'].contains(r['key'])).toList();
   return const JsonEncoder.withIndent('  ').convert({
    'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
    'tables':tables
@@ -309,13 +309,13 @@ class OfflineStore {
   }
   final d=await db;
   await d.transaction((txn) async{
-   final localLock=await txn.query('settings',where:'key=?',whereArgs:['app_lock_enabled']);
+   final localLock=await txn.query('settings',where:'key IN (?,?)',whereArgs:['app_lock_enabled','backup_notifications_enabled']);
    // Restoring is one SQLite transaction: either all tables change or none do.
    for(final table in localTables.reversed) {await txn.delete(table);}
    for(final name in localTables){
     for(final item in (legacy && name=='reserve_movements' ? <dynamic>[] : tables[name] as List)){
      if(item is! Map)throw const FormatException('Invalid backup record');
-     if(name=='settings'&&item['key']=='app_lock_enabled')continue;
+     if(name=='settings'&&['app_lock_enabled','backup_notifications_enabled'].contains(item['key']))continue;
      await txn.insert(name,Map<String,Object?>.from(item));
     }
    }

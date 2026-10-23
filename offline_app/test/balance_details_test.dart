@@ -28,7 +28,7 @@ void main(){
    await tester.ensureVisible(find.text('Got it'));
    await tester.tap(find.text('Got it'));
    await tester.pumpAndSettle();
-   await tester.tap(find.text('Safe to spend · Tap for details'));
+   await tester.tap(find.text('Safe to spend'));
    await tester.pumpAndSettle();
    expect(find.text('Cash buffer'),findsOneWidget);
    expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('600.00 MAD')),findsOneWidget);

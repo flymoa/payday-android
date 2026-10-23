@@ -60,6 +60,11 @@ jobs:
         run: |
           python3 tool/test_configure_app_lock.py
           python3 tool/configure_app_lock.py
+      - name: Configure optional local notifications
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_notifications.py
+          python3 tool/configure_notifications.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |

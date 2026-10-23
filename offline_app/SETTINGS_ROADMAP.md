@@ -58,3 +58,22 @@ https://pub.dev/packages/local_auth_android
 Backup implementation references:
 https://pub.dev/packages/cryptography
 https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+
+Local reminders, first release: Settings → Notifications offers an opt-in weekly
+backup notification, off by default. Enabling requests POST_NOTIFICATIONS in
+context. One stable notification ID prevents duplicates; disabling cancels
+pending and displayed reminders. A confirmed export resets its interval. No
+reminder date is recorded as a successful backup. The notification contains only
+a generic backup prompt, with no amounts, transaction titles, passwords or file
+paths. App lock still gates the full app when a notification opens it.
+
+flutter_local_notifications 22.3.2 uses inexactAllowWhileIdle weekly alarms;
+Android may delay delivery. No exact-alarm, internet, or full-screen permission
+is requested. Boot/package-update receivers restore existing opt-in schedules.
+The preference is device-local: excluded from backup export, ignored on import,
+and the current installation’s setting is preserved atomically during restore.
+Permission/channel blocks are shown on the settings page and can be opened in
+Android settings. A test button lets the user check delivery immediately.
+Bill-specific reminders remain a later part of the notifications stage.
+
+Setup reference: https://pub.dev/packages/flutter_local_notifications

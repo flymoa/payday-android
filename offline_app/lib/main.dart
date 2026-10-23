@@ -1,3 +1,6 @@
+import 'safe_to_spend_row.dart';
+import 'backup_notifications.dart';
+import 'notification_settings_page.dart';
 import 'backup_cipher.dart';
 import 'backup_password_dialog.dart';
 import 'settings_pages.dart';
@@ -33,6 +36,7 @@ class PaydayStartup extends StatefulWidget{
 }
 class _PaydayStartupState extends State<PaydayStartup>{
  late final store=widget.store??OfflineStore();
+ late final reminders=widget.backupNotifications??BackupNotifications(store);
  late Future<AppPreferences> preferences=store.loadAppPreferences();
  @override Widget build(BuildContext context)=>FutureBuilder<AppPreferences>(future:preferences,builder:(context,snapshot){
   if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!);
@@ -142,12 +146,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,
  this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
  final BackupCipher? backupCipher;
+ final BackupNotifications? backupNotifications;
  final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen>{
@@ -179,6 +184,7 @@ class _FinanceState extends State<FinanceScreen>{
  String recordType='All';
  final search=TextEditingController();
  late final store=widget.store??OfflineStore();
+ late final reminders=widget.backupNotifications??BackupNotifications(store);
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
@@ -301,7 +307,10 @@ class _FinanceState extends State<FinanceScreen>{
   return Expanded(child:InkWell(
    borderRadius:BorderRadius.circular(15),onTap:onPressed,
    child:Padding(padding:EdgeInsets.symmetric(vertical:4),child:Column(children:[
-    PaydayCategoryIcon(glyph,size:52),
+    if(glyph=='budgets')Container(key:ValueKey('home-budget-icon'),width:52,height:52,padding:EdgeInsets.all(10.4),
+     decoration:BoxDecoration(shape:BoxShape.circle,color:isDark?Color(0xff234D3D):Color(0xffDDEBE2)),
+     child:PaydayAppIcon(Icons.pie_chart_outline,size:31.2))
+    else PaydayCategoryIcon(glyph,size:52),
     SizedBox(height:7),
     Text(label,maxLines:2,textAlign:TextAlign.center,
      style:TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:homeText)),
@@ -572,8 +581,7 @@ class _FinanceState extends State<FinanceScreen>{
        Text('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
      ])),
      Divider(color:heroInk.withValues(alpha:.18),height:24),
-     balanceTap('Explain safe to spend',()=>balanceDetails(balance,true),Wrap(spacing:10,children:[
-      Text('Safe to spend · Tap for details',style:TextStyle(color:heroInk,fontSize:12)),Text(money(balance.safe),style:TextStyle(color:heroInk,fontWeight:FontWeight.w800))])),
+     SafeToSpendRow(amount:money(balance.safe),color:heroInk,onTap:()=>balanceDetails(balance,true)),
     ])),
    SizedBox(height:20),Row(children:[
     homeQuickAction('Expense','expense',()=>transactionForm(null)),homeQuickAction('Income','income',()=>transactionForm(null,initialType:'Income')),
@@ -913,6 +921,11 @@ class _FinanceState extends State<FinanceScreen>{
     ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:Text('Theme'),
      subtitle:Text(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?appearancePicker:null),
+   ]),
+   settingsGroup('Reminders',[
+    ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:Text('Notifications'),
+     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
+      builder:(_)=>NotificationSettingsPage(reminders:reminders)))),
    ]),
    settingsGroup('Security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
@@ -1505,6 +1518,10 @@ class _FinanceState extends State<FinanceScreen>{
    await store.setSetting('last_backup_export',started.toIso8601String());
    await store.setSetting('backup_snooze_until','');
    refresh();
+   if(BackupNotifications.supported||widget.backupNotifications!=null){
+    try{await reminders.resetAfterExport();}
+    catch(_){if(mounted)inputError('Backup saved, but the notification reminder could not be reset. Check Settings → Notifications.');return;}
+   }
    if(mounted)inputError('Password-protected backup exported. Keep the file and password safe.');
   }catch(e){if(mounted)inputError('Backup export failed: $e');}
   finally{if(mounted)setState(()=>exportingBackup=false);}
