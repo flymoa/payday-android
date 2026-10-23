@@ -1,0 +1,46 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:payday_local/reserve_reminders.dart';
+void main(){
+ TestWidgetsFlutterBinding.ensureInitialized();tzdata.initializeTimeZones();
+ test('native reconciliation cancels only reserve IDs and keeps an unchanged date without duplicates',()async{
+  debugDefaultTargetPlatformOverride=TargetPlatform.android;
+  AndroidFlutterLocalNotificationsPlugin.registerWith();
+  addTearDown(()=>debugDefaultTargetPlatformOverride=null);
+  const channel=MethodChannel('dexterous.com/flutter/local_notifications');
+  final calls=<MethodCall>[];
+  final zone=tz.getLocation('Africa/Casablanca');
+  final future=tz.TZDateTime.now(zone).add(const Duration(days:30));
+  final reminder=ReserveReminder(at:tz.TZDateTime(zone,future.year,future.month,future.day,9));
+  const oldId=220261001;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,(call)async{
+   calls.add(call);
+   if(call.method=='pendingNotificationRequests')return [
+    {'id':120261025,'title':'PAYDAY','body':'bill','payload':null},
+    {'id':21001,'title':'PAYDAY','body':'backup','payload':null},
+    {'id':oldId,'title':'PAYDAY','body':reserveNotificationBody,'payload':'old'},
+    {'id':reminder.id,'title':'PAYDAY','body':reserveNotificationBody,'payload':reminder.payload},
+   ];
+   if(call.method=='getActiveNotifications')return <Map<String,Object?>>[];
+   return true;
+  });
+  addTearDown(()=>TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,null));
+  final platform=AndroidReserveReminderPlatform();await platform.replace([reminder]);
+  expect(calls.where((c)=>c.method=='cancel').map((c)=>(c.arguments as Map)['id']),[oldId]);
+  expect(calls.where((c)=>c.method=='zonedSchedule'),isEmpty);
+  calls.clear();
+  final fresh=ReserveReminder(at:tz.TZDateTime(zone,future.year,future.month,future.day+1,9));
+  await platform.replace([reminder,fresh]);
+  final scheduled=calls.singleWhere((c)=>c.method=='zonedSchedule').arguments as Map;
+  expect(scheduled['id'],fresh.id);expect(scheduled['body'],reserveNotificationBody);
+  expect(scheduled['title'],'Payday');expect(scheduled['payload'],fresh.payload);
+  calls.clear();await platform.replace([]);
+  final canceled=calls.where((c)=>c.method=='cancel').map((c)=>(c.arguments as Map)['id']);
+  expect(canceled,containsAll([oldId,reminder.id,AndroidReserveReminderPlatform.testId]));expect(canceled, isNot(contains(21001)));expect(canceled,isNot(contains(120261025)));
+ });
+}
+

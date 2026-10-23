@@ -1,4 +1,5 @@
 import 'bill_reminders.dart';
+import 'reserve_reminders.dart';
 import 'safe_to_spend_row.dart';
 import 'backup_notifications.dart';
 import 'notification_settings_page.dart';
@@ -136,7 +137,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
   );
  }
  @override Widget build(BuildContext context)=>MaterialApp(
-  navigatorObservers:[lockRoutes],scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'PAYDAY',theme:palette(Brightness.light),
+  navigatorObservers:[lockRoutes],scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'Payday',theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
   builder:(context,child){
    return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
@@ -146,7 +147,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,this.reserveReminders,
  this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
@@ -154,6 +155,7 @@ class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.
  final BackupCipher? backupCipher;
  final BackupNotifications? backupNotifications;
  final BillReminders? billReminders;
+ final ReserveReminders? reserveReminders;
  final Future<ShareResult> Function(String contents)? backupShare;
  final Future<Map<String,List<RowData>>>? initialData;@override State<FinanceScreen> createState()=>_FinanceState();}
 class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
@@ -187,6 +189,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  late final store=widget.store??OfflineStore();
  late final reminders=widget.backupNotifications??BackupNotifications(store);
  late final billReminders=widget.billReminders??BillReminders(store);
+ late final reserveReminders=widget.reserveReminders??ReserveReminders(store);
+ bool reserveSyncErrorShown=false;
  bool reminderSyncErrorShown=false;
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
@@ -196,9 +200,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
   unawaited(syncBillReminders());
+  unawaited(syncReserveReminders());
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
-  if(state==AppLifecycleState.resumed)unawaited(syncBillReminders());
+  if(state==AppLifecycleState.resumed){
+   unawaited(syncBillReminders());
+   unawaited(syncReserveReminders());
+  }
  }
  Future<void> syncBillReminders()async{
   if(!mounted||!BillReminders.supported&&widget.billReminders==null)return;
@@ -211,12 +219,24 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
   }
  }
+ Future<void> syncReserveReminders()async{
+  if(!mounted||!ReserveReminders.supported&&widget.reserveReminders==null)return;
+  try{await reserveReminders.synchronize();reserveSyncErrorShown=false;}
+  catch(_){
+   if(mounted&&!reserveSyncErrorShown){
+    reserveSyncErrorShown=true;
+    WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)inputError('Reserve reminders could not refresh. Check Settings → Notifications.');});
+    WidgetsBinding.instance.ensureVisualUpdate();
+   }
+  }
+ }
  @override void dispose(){WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
  void refresh(){
   if(!mounted)return;
   final next=store.snapshot();
   setState((){data=next;});
   unawaited(syncBillReminders());
+  unawaited(syncReserveReminders());
  }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
@@ -947,7 +967,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    settingsGroup('Reminders',[
     ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:Text('Notifications'),
      trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
-      builder:(_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders)))),
+      builder:(_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders,reserves:reserveReminders)))),
    ]),
    settingsGroup('Security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
@@ -1514,9 +1534,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Future<ShareResult> shareBackupFile(String contents)async{
   final dir=await getTemporaryDirectory();
-  final f=File('${dir.path}/payday-local-backup-${DateTime.now().microsecondsSinceEpoch}.json');
+  final f=File('${dir.path}/payday-backup-${DateTime.now().microsecondsSinceEpoch}.json');
   await f.writeAsString(contents,flush:true);
-  return Share.shareXFiles([XFile(f.path)],text:'Payday Local backup — store this file privately');
+  return Share.shareXFiles([XFile(f.path)],text:'Payday backup — store this file privately');
  }
  Future<void> exportBackup() async{
   if(exportingBackup||restoringBackup)return;
@@ -1583,6 +1603,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   finally{if(mounted)setState(()=>restoringBackup=false);}
  }
 }
+
 
 
 

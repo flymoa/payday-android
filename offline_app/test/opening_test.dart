@@ -18,13 +18,13 @@ class _ProbeState extends State<_Probe> {
 void main(){
   const overlay=ValueKey('payday-opening-overlay');
   for(final brightness in Brightness.values){
-    testWidgets('two-second opening preserves Home and enables it after completion in ${brightness.name}',(tester)async{
+    testWidgets('1.6-second opening preserves Home and enables it after completion in ${brightness.name}',(tester)async{
       var creates=0,taps=0;
       await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),
         home:PaydayOpening(child:Scaffold(body:_Probe(onCreate:()=>creates++,onTap:()=>taps++)))));
       expect(find.text(paydaySlogan),findsOneWidget);
       expect(find.byKey(overlay),findsOneWidget);
-      await tester.pump(const Duration(milliseconds:1600));
+      await tester.pump(const Duration(milliseconds:1200));
       expect(find.byKey(overlay),findsOneWidget);
       expect(creates,1);
       await tester.pump(const Duration(milliseconds:450));
@@ -38,6 +38,19 @@ void main(){
       expect(tester.takeException(),isNull);
     });
   }
+  testWidgets('P and yellow marker paint throughout the short sequence on a narrow screen',(tester)async{
+    await tester.binding.setSurfaceSize(const Size(320,640));
+    addTearDown(()=>tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(const MaterialApp(home:PaydayOpening(child:Scaffold(body:Text('Ready')))));
+    for(final milliseconds in [160,400,400,400]){
+      await tester.pump(Duration(milliseconds:milliseconds));
+      final paint=tester.widget<CustomPaint>(find.byKey(const ValueKey('payday-opening-mark')));
+      final painter=paint.painter! as PaydayOpeningPainter;
+      expect(painter.progress,greaterThan(0));expect(painter.progress,lessThan(1));
+      expect(tester.takeException(),isNull);
+    }
+    await tester.pumpAndSettle();expect(find.byKey(overlay),findsNothing);
+  });
   testWidgets('reduced motion uses a short fade instead of the full sequence',(tester)async{
     await tester.pumpWidget(MaterialApp(home:MediaQuery(
       data:const MediaQueryData(disableAnimations:true),
@@ -70,4 +83,5 @@ void main(){
     expect(tester.takeException(),isNull);
   });
 }
+
 

@@ -52,7 +52,7 @@ class AboutHelpPage extends StatelessWidget{
    trailing:const PaydayAppIcon(Icons.chevron_right),onTap:()=>showSettingsInfo(context,title,message)));
  Future<void> copyDetails(BuildContext context)async{
   try{
-   await Clipboard.setData(const ClipboardData(text:'PAYDAY Local $paydayVersion (build $paydayBuildNumber)'));
+   await Clipboard.setData(const ClipboardData(text:'Payday $paydayVersion (build $paydayBuildNumber)'));
    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('App details copied.')));
   }catch(_){
    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not copy app details. Please try again.')));
@@ -79,3 +79,4 @@ class AboutHelpPage extends StatelessWidget{
    OutlinedButton.icon(onPressed:()=>copyDetails(context),icon:const PaydayAppIcon(Icons.copy_outlined),label:const Text('Copy app details')),
   ])));
 }
+

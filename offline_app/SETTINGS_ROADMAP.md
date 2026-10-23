@@ -113,3 +113,22 @@ References:
 https://pub.dev/documentation/flutter_local_notifications/latest/flutter_local_notifications/FlutterLocalNotificationsPlugin/zonedSchedule.html
 https://pub.dev/packages/flutter_timezone
 https://pub.dev/packages/timezone
+
+
+
+Payday 2.0.16: approved 1.6-second P reveal, yellow dot settling into its
+original slot, one subtle landing pulse and compact wordmark/slogan. The
+animation runs once per cold launch; reduced motion uses a short fade. Launcher,
+About details and exported file names now say Payday. Android application ID,
+signing key, database and legacy backup format remain unchanged.
+
+Reserve contribution reminders continue the notifications stage. They are off
+by default, with the 1st/15th/25th at 09:00 local time. The planner matches the
+reserve screen’s remaining monthly hold, including opening funds, dated
+deposits and withdrawals. Started, active reserves needing money are grouped
+into one private prompt per month for the next year. Recorded transfers refresh
+the plan; nothing is transferred automatically. The message contains no names
+or amounts. Reserve alarms have their own channel/ID range and preserve backup
+and bill alarms. Preferences are device-local and survive restore without
+being imported. Remaining roadmap: language/layout support and a separately
+reviewed encrypted local-storage migration.

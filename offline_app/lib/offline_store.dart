@@ -10,7 +10,7 @@ const defaultCategories = <String,String>{
  'Eating out':'Flexible','Shopping':'Flexible','Leisure':'Flexible',
  'Subscriptions':'Essential','Debt payment':'Essential','Other':'Essential'
 };
-const deviceLocalSettingKeys=['app_lock_enabled','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days'];
+const deviceLocalSettingKeys=['app_lock_enabled','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days','reserve_notifications_enabled','reserve_notifications_day'];
 const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
@@ -259,6 +259,19 @@ class OfflineStore {
    'bills':await txn.query('bills'),
    'transactions':await txn.query('transactions',columns:['type','bill_id','amount'],where:'type=?',whereArgs:['Expense']),
   });
+ Future<void> saveReserveReminderPreferences({required bool enabled,required int day})async{
+  if(![1,15,25].contains(day))throw ArgumentError('Unsupported reserve reminder timing');
+  await (await db).transaction((txn)async{
+   for(final entry in {'reserve_notifications_enabled':enabled?'1':'0','reserve_notifications_day':'$day'}.entries){
+    await txn.insert('settings',{'key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
+   }
+  });
+ }
+ Future<Map<String,List<Map<String,Object?>>>> reserveReminderSnapshot()async=>
+  (await db).transaction((txn)async=>{
+   'reserves':await txn.query('reserves'),
+   'reserve_movements':await txn.query('reserve_movements'),
+  });
  Future<AppPreferences> loadAppPreferences()async=>AppPreferences.fromRows(await table('settings'));
  Future<void> saveAppPreferences(AppPreferences preferences)async{
   await (await db).transaction((txn)async{
@@ -340,6 +353,7 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 

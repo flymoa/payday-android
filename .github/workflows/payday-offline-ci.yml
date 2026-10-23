@@ -1,4 +1,4 @@
-name: Payday Local — standalone offline APK
+name: Payday — standalone offline APK
 on:
   push:
     branches: [payday-local-offline-v1]
@@ -71,7 +71,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p = Path('android/app/src/main/AndroidManifest.xml')
-          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday Local" android:allowBackup="false" android:usesCleartextTraffic="false"')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday" android:allowBackup="false" android:usesCleartextTraffic="false"')
           p.write_text(text)
           PY
       - name: Install dependencies
@@ -98,6 +98,8 @@ jobs:
           aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)"
           "$aapt" dump badging "$apk" > "$RUNNER_TEMP/payday-badging.txt"
           grep -q "package: name='ma.payday.payday_local'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected Android package identity"; exit 1; }
+          grep -q "application-label:'Payday'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected launcher name"; exit 1; }
+          grep -q "versionCode='36' versionName='2.0.16'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected release version"; exit 1; }
           "$aapt" dump permissions "$apk" > "$RUNNER_TEMP/payday-permissions.txt"
           if grep -q 'android.permission.INTERNET' "$RUNNER_TEMP/payday-permissions.txt"; then
             echo 'ERROR: offline APK requests INTERNET permission'
@@ -118,7 +120,7 @@ jobs:
               raise SystemExit('::error::APK certificate mismatch or missing certificate; publication blocked')
           print('Permanent PAYDAY signing certificate verified')
           PY
-          echo '### Payday Local' >> "$GITHUB_STEP_SUMMARY"
+          echo '### Payday' >> "$GITHUB_STEP_SUMMARY"
           echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
           echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
           echo 'APK certificate verified against permanent PAYDAY release key.' >> "$GITHUB_STEP_SUMMARY"
@@ -136,3 +138,4 @@ jobs:
           from pathlib import Path
           Path(os.environ['RUNNER_TEMP'], 'payday-release.p12').unlink(missing_ok=True)
           PY
+
