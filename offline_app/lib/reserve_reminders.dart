@@ -49,7 +49,7 @@ List<ReserveReminder> planReserveReminders({required Map<String,List<Map<String,
    final dueText=reserve['due']?.toString()??'';
    final due=DateTime.tryParse(dueText);
    if(!RegExp(r'^\d{4}-\d{2}$').hasMatch(start)||due==null||dayKey(due)!=dueText)continue;
-   if(start.compareTo(month)>0||monthKey(due).compareTo(month)<0)continue;
+   if(start.compareTo(month)>0||monthKey(due).compareTo(month)<0||dayKey(at).compareTo(dueText)>0)continue;
    final target=value(reserve,'target');
    var before=value(reserve,'funded'),net=0;
    for(final movement in data['reserve_movements']??<Map<String,Object?>>[]){

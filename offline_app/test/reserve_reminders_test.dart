@@ -66,6 +66,7 @@ void main(){
   expect(ReserveReminder.owns(120261025),isFalse);expect(ReserveReminder.owns(21001),isFalse);
   expect(()=>plan([reserve()],day:31),throwsArgumentError);
   expect(plan([reserve(due:'2026-11-31')]),isEmpty);
+  expect(plan([reserve(due:'2026-10-20')]),isEmpty);
  });
  test('opt-in denial, disable and permission changes never create financial entries',()async{
   final store=ReserveTestStore()..reserves=[reserve()];final platform=FakeReservePlatform()..permission=false;
