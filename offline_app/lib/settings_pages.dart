@@ -12,6 +12,23 @@ Future<void> showSettingsInfo(BuildContext context,String title,String message)=
  context:context,builder:(dialog)=>AlertDialog(title:Text(title),scrollable:true,
   content:Text(message),actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:const Text('Got it'))]));
 
+const settingsPagePadding=EdgeInsets.fromLTRB(16,16,16,32);
+
+/// Shared layout for every destination opened from the Home settings drawer.
+class SettingsPageScaffold extends StatelessWidget{
+ const SettingsPageScaffold({super.key,required this.title,required this.body,this.actions=const [],this.busy=false});
+ final String title;
+ final Widget body;
+ final List<Widget> actions;
+ final bool busy;
+ @override Widget build(BuildContext context)=>PopScope<Object?>(canPop:!busy,child:Scaffold(
+  appBar:AppBar(toolbarHeight:64,centerTitle:false,titleSpacing:0,
+   title:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(title)),
+   leading:IconButton(tooltip:'Back to Settings',onPressed:busy?null:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back)),
+   actions:actions),
+  body:SafeArea(child:body)));
+}
+
 class SecuritySettingsPage extends StatefulWidget{
  const SecuritySettingsPage({super.key,required this.initialEnabled,this.onChanged});
  final bool initialEnabled;
@@ -31,18 +48,16 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage>{
    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not change app lock. Please try again.')));
   }finally{if(mounted)setState(()=>saving=false);}
  }
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:const Text('Security'),leading:IconButton(tooltip:'Back to Settings',
-   onPressed:saving?null:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back)),
+ @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Security',busy:saving,
    actions:[IconButton(key:const ValueKey('app-lock-info'),tooltip:'About app lock',
     icon:const PaydayAppIcon(Icons.info_outline,size:20),
-    onPressed:()=>showSettingsInfo(context,'App lock',appLockExplanation))]),
-  body:SafeArea(child:ListView(padding:const EdgeInsets.all(16),children:[
-   if(saving)const LinearProgressIndicator(),
-   Card(clipBehavior:Clip.antiAlias,child:SwitchListTile(key:const ValueKey('app-lock-setting'),
-    secondary:const PaydayAppIcon(Icons.lock_outline),title:const Text('App lock'),
-    value:enabled,onChanged:saving||widget.onChanged==null?null:change)),
-  ])));
+    onPressed:()=>showSettingsInfo(context,'App lock',appLockExplanation))],
+   body:ListView(padding:settingsPagePadding,children:[
+    if(saving)const LinearProgressIndicator(),
+    Card(clipBehavior:Clip.antiAlias,child:SwitchListTile(key:const ValueKey('app-lock-setting'),
+     secondary:const PaydayAppIcon(Icons.lock_outline),title:const Text('App lock'),
+     value:enabled,onChanged:saving||widget.onChanged==null?null:change)),
+   ]));
 }
 
 class AboutHelpPage extends StatelessWidget{
@@ -58,10 +73,8 @@ class AboutHelpPage extends StatelessWidget{
    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not copy app details. Please try again.')));
   }
  }
- @override Widget build(BuildContext context)=>Scaffold(
-  appBar:AppBar(title:const Text('About & Help'),leading:IconButton(tooltip:'Back to Settings',
-   onPressed:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back))),
-  body:SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(16,16,16,32),children:[
+ @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'About & Help',
+  body:ListView(padding:settingsPagePadding,children:[
    const Padding(padding:EdgeInsets.only(bottom:8),child:Align(alignment:Alignment.centerLeft,child:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:PaydayBrand(compact:true)))),
    Text('Version $paydayVersion · Build $paydayBuildNumber',style:TextStyle(fontSize:12,color:Theme.of(context).colorScheme.onSurfaceVariant)),
    const SizedBox(height:20),
@@ -77,6 +90,7 @@ class AboutHelpPage extends StatelessWidget{
     'Install the newer PAYDAY APK over your existing app. Uninstalling removes local records. Export a backup before changing phones or uninstalling.'),
    const SizedBox(height:12),
    OutlinedButton.icon(onPressed:()=>copyDetails(context),icon:const PaydayAppIcon(Icons.copy_outlined),label:const Text('Copy app details')),
-  ])));
+  ]));
 }
+
 

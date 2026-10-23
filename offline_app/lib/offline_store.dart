@@ -246,6 +246,14 @@ class OfflineStore {
  }
  Future<void> setSetting(String key,String value) async =>
    (await db).insert('settings',{'key':key,'value':value},conflictAlgorithm:ConflictAlgorithm.replace);
+ Future<void> saveMoneySettings({required int buffer,required int openingSavings})async{
+  if(buffer<0||openingSavings<0||buffer>100000000000||openingSavings>100000000000)throw ArgumentError('Invalid money settings');
+  await (await db).transaction((txn)async{
+   for(final entry in {'buffer':'$buffer','opening_savings':'$openingSavings'}.entries){
+    await txn.insert('settings',{'key':entry.key,'value':entry.value},conflictAlgorithm:ConflictAlgorithm.replace);
+   }
+  });
+ }
  Future<void> saveBillReminderPreferences({required bool enabled,required int leadDays})async{
   if(![0,1,3].contains(leadDays))throw ArgumentError('Unsupported bill reminder timing');
   await (await db).transaction((txn)async{
@@ -353,6 +361,7 @@ class OfflineStore {
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
+
 
 
 

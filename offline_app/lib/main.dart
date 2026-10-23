@@ -6,6 +6,9 @@ import 'notification_settings_page.dart';
 import 'backup_cipher.dart';
 import 'backup_password_dialog.dart';
 import 'settings_pages.dart';
+import 'settings_preferences_pages.dart';
+import 'backup_settings_page.dart';
+import 'backup_preview.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -175,12 +178,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  BackupCipher get backupCipher=>widget.backupCipher??const BackupCipher();
  bool preferencesSaving=false;
  final scaffoldKey=GlobalKey<ScaffoldState>();
- bool drawerBackups=false;
  String get currency=>supportedCurrency(widget.preferences.currency);
  String money(int amount)=>formatMoney(amount,currency);
  String currencyMessage(String message)=>message.replaceAll(' MAD',' $currency');
  void openSettingsDrawer(){
-  setState(()=>drawerBackups=false);
   scaffoldKey.currentState?.openDrawer();
  }
  String recordQuery='';
@@ -424,15 +425,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   drawer:page==0?Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
    backgroundColor:cream,child:SafeArea(child:Column(children:[
     Padding(padding:EdgeInsets.fromLTRB(16,12,4,8),child:Row(children:[
-     if(drawerBackups)IconButton(tooltip:'Back to Settings',onPressed:()=>setState(()=>drawerBackups=false),icon:PaydayAppIcon(Icons.arrow_back)),
      const Expanded(child:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:PaydayBrand(compact:true))),
      IconButton(tooltip:'Close settings',onPressed:()=>scaffoldKey.currentState?.closeDrawer(),icon:PaydayAppIcon(Icons.close)),
     ])),
     Expanded(child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
      if(snap.hasError)return Center(child:Text('Could not load settings.'));
      if(!snap.hasData)return Center(child:CircularProgressIndicator());
-     return ListView(key:ValueKey('drawer-$drawerBackups'),padding:EdgeInsets.fromLTRB(12,0,12,24),
-      children:[drawerBackups?moreBackups(snap.data!):appSettings(snap.data!)]);
+     return ListView(key:ValueKey('settings-drawer-list'),padding:EdgeInsets.fromLTRB(12,0,12,24),
+      children:[appSettings(snap.data!)]);
     })),
    ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
@@ -908,46 +908,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   try{return await widget.onPreferencesChanged!(next);}
   finally{if(mounted)setState(()=>preferencesSaving=false);}
  }
- Future<void> appearancePicker()async{
-  var saving=false;
-  await showDialog<void>(context:context,builder:(dialog)=>StatefulBuilder(
-   builder:(dialog,rebuild)=>AlertDialog(title:Text('Appearance'),
-    content:Column(mainAxisSize:MainAxisSize.min,children:[
-     RadioGroup<ThemeMode>(groupValue:widget.preferences.appearance,onChanged:(value)async{
-      if(value==null||saving)return;
-      rebuild(()=>saving=true);
-      final success=await changePreferences(widget.preferences.copyWith(appearance:value));
-      if(dialog.mounted){if(success){Navigator.pop(dialog);}else{rebuild(()=>saving=false);}}
-     },child:AbsorbPointer(absorbing:saving,child:Column(mainAxisSize:MainAxisSize.min,children:[
-      RadioListTile<ThemeMode>(value:ThemeMode.light,title:Text('Light')),
-      RadioListTile<ThemeMode>(value:ThemeMode.dark,title:Text('Dark')),
-      RadioListTile<ThemeMode>(value:ThemeMode.system,title:Text('System'),subtitle:Text('Follow your device appearance')),
-     ]))),
-     if(saving)LinearProgressIndicator(),
-    ]),actions:[TextButton(onPressed:saving?null:()=>Navigator.pop(dialog),child:Text('Cancel'))])));
+ Future<void> openSettingsPage(WidgetBuilder builder)async{
+  await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:builder));
  }
- Future<void> currencyPicker()async{
-  final chosen=await showDialog<String>(context:context,builder:(dialog)=>SimpleDialog(
-   title:Text('Currency'),children:[
-    Padding(padding:EdgeInsets.symmetric(horizontal:24,vertical:8),child:Text('One currency for all your records. No exchange-rate conversion.',style:TextStyle(fontSize:12,color:muted))),
-    ...paydayCurrencies.entries.map((entry)=>ListTile(
-     title:Text(entry.value),subtitle:Text(entry.key),
-     trailing:entry.key==currency?PaydayAppIcon(Icons.check_circle_outline):null,
-     onTap:()=>Navigator.pop(dialog,entry.key))),
-    TextButton(onPressed:()=>Navigator.pop(dialog),child:Text('Cancel')),
-   ]));
-  if(!mounted||chosen==null||chosen==currency)return;
-  final confirmed=await showDialog<bool>(context:context,builder:(dialog)=>AlertDialog(
-   title:Text('Use $chosen?'),
-   content:Text('This changes the currency for all existing and future amounts. '
-    'Numbers stay the same: 100.00 $currency becomes 100.00 $chosen. '
-    'No exchange conversion is performed. Your records, budgets and savings keep their values.'),
-   actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:Text('Cancel')),
-    FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:Text('Use $chosen'))]));
-  if(!mounted||confirmed!=true)return;
-  final saved=await changePreferences(widget.preferences.copyWith(currency:chosen));
+ Future<void> appearancePicker()=>openSettingsPage((_)=>ThemeSettingsPage(
+  initial:widget.preferences.appearance,onChanged:(value)=>changePreferences(widget.preferences.copyWith(appearance:value))));
+ Future<void> currencyPicker()=>openSettingsPage((_)=>CurrencySettingsPage(initial:currency,onChanged:(value)async{
+  final saved=await changePreferences(widget.preferences.copyWith(currency:value));
   if(saved&&mounted)refresh();
- }
+  return saved;
+ }));
  Widget settingsGroup(String title,List<Widget> children)=>Column(
   crossAxisAlignment:CrossAxisAlignment.start,children:[
    Padding(padding:EdgeInsets.fromLTRB(4,18,4,8),child:Text(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
@@ -966,39 +936,33 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    ]),
    settingsGroup('Reminders',[
     ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:Text('Notifications'),
-     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(
-      builder:(_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders,reserves:reserveReminders)))),
+     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>openSettingsPage((_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders,reserves:reserveReminders))),
    ]),
    settingsGroup('Security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
      title:Text('App lock'),subtitle:Text(prefs.appLock?'On':'Off'),trailing:PaydayAppIcon(Icons.chevron_right),
-     onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>SecuritySettingsPage(
+     onTap:()=>openSettingsPage((_)=>SecuritySettingsPage(
       initialEnabled:widget.preferences.appLock,onChanged:widget.onPreferencesChanged==null?null:
-       (value)=>changePreferences(widget.preferences.copyWith(appLock:value)))))),
+       (value)=>changePreferences(widget.preferences.copyWith(appLock:value))))),
    ]),
    settingsGroup('Money & data',[
     ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:Text('Currency'),
      subtitle:Text('${paydayCurrencies[currency]} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?currencyPicker:null),
-    ListTile(leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:Text('Money settings'),
+    ListTile(key:ValueKey('money-settings'),leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:Text('Money settings'),
      subtitle:Text('Cash buffer and opening savings'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>settingsForm(d)),
-    ListTile(leading:PaydayAppIcon(Icons.ios_share),title:Text('Backups & data'),
+    ListTile(key:ValueKey('backups-setting'),leading:PaydayAppIcon(Icons.ios_share),title:Text('Backups & data'),
      subtitle:Text(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
-     onTap:()=>setState(()=>drawerBackups=true)),
+     onTap:()=>openSettingsPage((_)=>BackupSettingsPage(
+      initialStatus:backupDateLabel(backupReminder(d)),
+      refreshStatus:()async=>backupDateLabel(backupReminder(await data)),
+      onExport:exportBackup,onRestore:importBackup))),
    ]),
    settingsGroup('Help',[
     ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:Text('About & Help'),
-     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>Navigator.of(context).push(MaterialPageRoute<void>(builder:(_)=>const AboutHelpPage()))),
+     trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>openSettingsPage((_)=>const AboutHelpPage())),
    ]),
-  ]);
- }
- Widget moreBackups(Map<String,List<RowData>> d){
-  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Backups & data',action:IconButton(tooltip:'About backups',icon:PaydayAppIcon(Icons.info_outline,size:20),
-    onPressed:()=>showSettingsInfo(context,'Backups & data','New exports are password protected. Keep the password: PAYDAY cannot recover it. Older JSON backups still work. Restore replaces your records, but keeps this phone’s App lock setting. Records on this phone are not encrypted by PAYDAY. An export date confirms the handoff to your chosen app; keep the saved file somewhere safe.'))),
-   Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text(backupDateLabel(backupReminder(d)),style:TextStyle(fontWeight:FontWeight.w700))),
-   Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[OutlinedButton.icon(onPressed:exportingBackup||restoringBackup?null:exportBackup,icon:PaydayAppIcon(Icons.ios_share),label:Text('Export backup')),SizedBox(height:8),OutlinedButton.icon(onPressed:exportingBackup||restoringBackup?null:importBackup,icon:PaydayAppIcon(Icons.file_open),label:Text('Restore'))]),
   ]);
  }
  Future<void> deleteTransactionWithUndo(int id)async{
@@ -1520,17 +1484,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   ]));
  }
  Future<void> settingsForm(Map<String,List<RowData>> d)async{
-  String find(String k,String fallback)=>st(list(d,'settings').firstWhere((x)=>st(x,'key')==k,orElse:()=>{'value':fallback}),'value');
-  final b=TextEditingController(text:mad(int.tryParse(find('buffer','20000'))??20000).toStringAsFixed(2));
-  final saved=TextEditingController(text:mad(int.tryParse(find('opening_savings','0'))??0).toStringAsFixed(2));
-  await sheet('Money settings',(c,rebuild)=>Column(children:[
-   field(b,'Cash buffer ($currency)',number:true),field(saved,'Opening savings ($currency)',number:true),
-   Padding(padding:EdgeInsets.all(8),child:Text('Opening savings are money saved before using PAYDAY. Your cash buffer stays out of Safe to spend.')),
-   FilledButton(onPressed:()async{
-    final bn=amount(b,allowZero:true),sn=amount(saved,allowZero:true);if(bn==null||sn==null)return inputError('Check the amounts.');
-    final saveSucceeded=await execute(()async{await store.setSetting('buffer',bn.toString());await store.setSetting('opening_savings',sn.toString());});if(saveSucceeded&&c.mounted)Navigator.pop(c);
-   },child:Text('Save settings'))
-  ]));
+  int setting(String key,int fallback)=>int.tryParse(st(list(d,'settings').firstWhere((x)=>st(x,'key')==key,orElse:()=>{}),'value'))??fallback;
+  await openSettingsPage((_)=>MoneySettingsPage(currency:currency,buffer:setting('buffer',20000),openingSavings:setting('opening_savings',0),
+   onSave:(buffer,savings)=>execute(()=>store.saveMoneySettings(buffer:buffer,openingSavings:savings))));
  }
  Future<ShareResult> shareBackupFile(String contents)async{
   final dir=await getTemporaryDirectory();
@@ -1587,11 +1543,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      creating:false,submit:(password)=>backupCipher.open(raw,password)));
    }
    if(plain==null||!mounted)return;
-   BackupCipher.validatePlain(plain);
+   final preview=BackupPreview.fromPlain(plain);
    final contents=plain;
-   final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
-    title:Text('Restore your PAYDAY backup?'),content:Text('This replaces all records on this phone. Export a backup first.'),
-    actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Replace local data'))]));
+   final yes=await confirmBackupRestore(context,preview);
    if(yes==true){
     final restored=await execute(()=>store.importJson(contents));
     if(restored&&mounted&&widget.onPreferencesChanged!=null){
@@ -1603,6 +1557,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   finally{if(mounted)setState(()=>restoringBackup=false);}
  }
 }
+
 
 
 

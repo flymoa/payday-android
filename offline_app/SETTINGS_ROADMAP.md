@@ -132,3 +132,22 @@ or amounts. Reserve alarms have their own channel/ID range and preserve backup
 and bill alarms. Preferences are device-local and survive restore without
 being imported. Remaining roadmap: language/layout support and a separately
 reviewed encrypted local-storage migration.
+
+
+
+Payday 2.0.17 unifies settings navigation. The Home P still opens the
+partial-width left drawer; every destination (Theme, Notifications, Security,
+Currency, Money settings, Backups & data, About & Help) now uses the same full
+screen route transition and shared header, spacing and Back control. Back
+returns to the drawer with its scroll position preserved. Theme/currency return
+after successful selection. Backups stay on their page after actions and refresh
+the displayed export status. Explanation and confirmation dialogs remain local
+to their destination. Money settings save both fields in one transaction.
+
+The next data-safety improvement adds a read-only restore preview after
+decryption, before confirmation or database changes. It shows counts of
+transactions, bills, savings goals and reserves plus the backup date when
+available. Missing tables or non-map records are rejected early; legacy schema
+1 may omit reserve movements. Cancel does not modify data. The existing
+transactional import, lock policy and device-local reminder settings remain.
+Language/layout support and encrypted local-storage migration are still pending.

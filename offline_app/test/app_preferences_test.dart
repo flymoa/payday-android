@@ -59,6 +59,14 @@ void main(){
   await store.importJson(jsonEncode(legacy));
   expect((await store.loadAppPreferences()).currency,'MAD');
  });
+ test('money settings save atomically and reject invalid values',()async{
+  await store.saveMoneySettings(buffer:20000,openingSavings:10000);
+  await db.execute("CREATE TRIGGER reject_opening BEFORE INSERT ON settings WHEN NEW.key='opening_savings' BEGIN SELECT RAISE(ABORT,'test failure'); END");
+  await expectLater(store.saveMoneySettings(buffer:30000,openingSavings:40000),throwsA(isA<DatabaseException>()));
+  final values={for(final r in await db.query('settings'))r['key']:r['value']};
+  expect(values['buffer'],'20000');expect(values['opening_savings'],'10000');
+  await expectLater(store.saveMoneySettings(buffer:-1,openingSavings:0),throwsArgumentError);
+ });
  test('all supported currencies retain exact minor unit formatting',(){
   for(final code in paydayCurrencies.keys){
    expect(formatMoney(12345,code),'123.45 $code');
@@ -122,6 +130,7 @@ void main(){
   expect(find.textContaining('100.00 MAD becomes 100.00 EUR'),findsOneWidget);
   await tester.tap(find.text('Cancel'));await tester.pumpAndSettle();
   expect((await store.loadAppPreferences()).currency,'MAD');
+  await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
   for(final code in ['EUR','GBP','USD']){
    await chooseCurrency(tester,code);
    await tester.tap(find.widgetWithText(FilledButton,'Use $code'));await tester.pumpAndSettle();
@@ -145,12 +154,15 @@ void main(){
   await chooseTheme(tester,'Dark');
   expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.light);
   expect((await store.loadAppPreferences()).appearance,ThemeMode.light);
-  await tester.tap(find.text('Cancel'));await tester.pumpAndSettle();
+  await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
   await chooseCurrency(tester,'EUR');
   await tester.tap(find.widgetWithText(FilledButton,'Use EUR'));await tester.pumpAndSettle();
   expect((await store.loadAppPreferences()).currency,'MAD');
+  expect(find.text('Currency'),findsOneWidget);
+  await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
   expect(find.text('Moroccan dirham · MAD'),findsOneWidget);
   expect(find.text('Could not save preferences. Please try again.'),findsWidgets);
   expect(tester.takeException(),isNull);
  });
 }
+

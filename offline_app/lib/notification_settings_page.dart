@@ -77,11 +77,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
   final backupReady=state?.enabled==true&&state?.allowed==true;
   final billReady=billState?.preferences.enabled==true&&billState?.allowed==true;
   final reserveReady=reserveState?.preferences.enabled==true&&reserveState?.allowed==true;
-  return Scaffold(
-   appBar:AppBar(title:const Text('Notifications'),leading:IconButton(tooltip:'Back to Settings',onPressed:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back)),
+  return SettingsPageScaffold(title:'Notifications',busy:busy,
     actions:[IconButton(tooltip:'About notifications',icon:const PaydayAppIcon(Icons.info_outline,size:20),onPressed:()=>showSettingsInfo(context,'Notifications',
-     [backupNotificationExplanation,if(widget.bills!=null)billNotificationExplanation,if(widget.reserves!=null)reserveNotificationExplanation].join('\n\n')))]),
-   body:SafeArea(child:ListView(padding:const EdgeInsets.all(16),children:[
+     [backupNotificationExplanation,if(widget.bills!=null)billNotificationExplanation,if(widget.reserves!=null)reserveNotificationExplanation].join('\n\n')))],
+    body:ListView(padding:settingsPagePadding,children:[
     if(busy||state==null&&error==null)const LinearProgressIndicator(),
     if(state!=null)Card(clipBehavior:Clip.antiAlias,child:SwitchListTile(key:const ValueKey('backup-notifications-toggle'),
      secondary:const PaydayAppIcon(Icons.notifications_none),title:const Text('Backup reminders'),
@@ -109,7 +108,8 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
      Padding(padding:const EdgeInsets.all(12),child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
      TextButton(onPressed:busy?null:load,child:const Text('Try again')),
     ],
-   ])));
+   ]));
  }
 }
+
 
