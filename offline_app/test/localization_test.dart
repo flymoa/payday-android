@@ -12,6 +12,12 @@ import 'package:payday_local/offline_store.dart';
 import 'package:payday_local/opening.dart';
 import 'package:payday_local/brand.dart';
 
+class LocaleMemoryStore extends OfflineStore{
+ LocaleMemoryStore(this.rows);
+ final Map<String,List<RowData>> rows;
+ @override Future<Map<String,List<RowData>>> snapshot()async=>rows;
+ @override Future<void> close()async{}
+}
 class LocaleTestStore extends OfflineStore{
  LocaleTestStore(Database database):super(database:database);
  @override Future<void> close()async{}
@@ -54,16 +60,13 @@ void main(){
  for(final code in ['fr','ar']){
   for(final brightness in Brightness.values){
    testWidgets('$code keeps palette, mark, navigation and custom record text in ${brightness.name}',(t)async{
-    final previousError=FlutterError.onError;
-    FlutterError.onError=(details){debugPrint(details.toString());previousError?.call(details);};
-    addTearDown(()=>FlutterError.onError=previousError);
     await t.binding.setSurfaceSize(const Size(320,850));addTearDown(()=>t.binding.setSurfaceSize(null));
     final now=DateTime.now();final date='${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
     final data=<String,List<RowData>>{'transactions':[
      {'id':1,'date':date,'type':'Income','category':'Salary','amount':800000,'description':'My salary','bill_id':'','note':''},
      {'id':2,'date':date,'type':'Expense','category':'Groceries','amount':15000,'description':'Settings','bill_id':'','note':''},
     ]};
-    await t.pumpWidget(PaydayLocal(initialPreferences:AppPreferences(language:code,appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light),initialData:Future.value(data),preferencesWriter:(_)async{}));
+    await t.pumpWidget(PaydayLocal(initialPreferences:AppPreferences(language:code,appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light),store:LocaleMemoryStore(data),initialData:Future.value(data),preferencesWriter:(_)async{}));
     await t.pumpAndSettle();expect(find.text(translateMessage('Available this month',code)),findsOneWidget);
     expect(find.text('Settings'),findsOneWidget,reason:'A user-entered transaction title must remain verbatim');
     final home=t.element(find.byType(FinanceScreen));expect(Directionality.of(home),code=='ar'?TextDirection.rtl:TextDirection.ltr);
@@ -74,6 +77,9 @@ void main(){
     expect(find.byKey(const ValueKey('language-en')),findsOneWidget);expect(find.byKey(const ValueKey('language-fr')),findsOneWidget);expect(find.byKey(const ValueKey('language-ar')),findsOneWidget);
     await t.tap(find.byTooltip(translateMessage('Back to Settings',code)));await t.pumpAndSettle();
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
+    await t.tap(find.byTooltip(translateMessage('Close settings',code)));await t.pumpAndSettle();
+    final semantics=t.ensureSemantics();await t.tap(find.bySemanticsLabel(translateMessage('Add transaction',code)));await t.pumpAndSettle();
+    expect(find.widgetWithText(TextField,translateMessage('Amount (MAD)',code)),findsOneWidget);semantics.dispose();
     expect(t.takeException(),isNull);
    });
   }
@@ -93,6 +99,11 @@ void main(){
   await t.tap(find.byKey(const ValueKey('language-ar')));await t.pumpAndSettle();
   expect(t.widget<MaterialApp>(find.byType(MaterialApp)).locale,const Locale('en'));expect(find.byKey(const ValueKey('language-ar')),findsOneWidget);
   expect(find.text('Could not save preferences. Please try again.'),findsWidgets);expect(t.takeException(),isNull);
+ });
+ testWidgets('Arabic mixed sentences isolate amount and currency pairs',(t)async{
+  await t.pumpWidget(const MaterialApp(locale:Locale('ar'),supportedLocales:[Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,
+   home:Scaffold(body:LText('Outstanding: 123.45 MAD'))));await t.pumpAndSettle();
+  expect(find.text('المتبقي للدفع: \u2066123.45 MAD\u2069'),findsOneWidget);
  });
  testWidgets('native date picker is localized with Arabic right-to-left direction',(t)async{
   await t.pumpWidget(MaterialApp(locale:const Locale('ar'),supportedLocales:const [Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,

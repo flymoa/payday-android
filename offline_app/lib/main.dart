@@ -412,7 +412,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
   IconButton(onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-  LText(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+  Flexible(child:LText(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold,fontSize:16))),
   IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
  @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(

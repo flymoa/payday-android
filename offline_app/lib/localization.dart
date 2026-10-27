@@ -80,7 +80,8 @@ class LText extends StatelessWidget{
  @override Widget build(BuildContext context){
   final value=category?categoryLabel(context,data):tr(context,data);
   final numeric=RegExp(r'\d').hasMatch(value)&&RegExp(r'^(?:[\d\s.,+−%/()\u202f]|MAD|EUR|GBP|USD)+$').hasMatch(value);
-  return Text(value,style:style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
+  final displayed=languageOf(context)=='ar'&&!numeric?value.replaceAllMapped(RegExp(r'[+−-]?[0-9][0-9.,\u202f]*\s+(?:MAD|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069'):value;
+  return Text(displayed,style:style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
    maxLines:maxLines,softWrap:softWrap,overflow:overflow,
    semanticsLabel:semanticsLabel==null?null:tr(context,semanticsLabel!));
  }
