@@ -54,6 +54,9 @@ void main(){
  for(final code in ['fr','ar']){
   for(final brightness in Brightness.values){
    testWidgets('$code keeps palette, mark, navigation and custom record text in ${brightness.name}',(t)async{
+    final previousError=FlutterError.onError;
+    FlutterError.onError=(details){debugPrint(details.toString());previousError?.call(details);};
+    addTearDown(()=>FlutterError.onError=previousError);
     await t.binding.setSurfaceSize(const Size(320,850));addTearDown(()=>t.binding.setSurfaceSize(null));
     final now=DateTime.now();final date='${now.year}-${now.month.toString().padLeft(2,'0')}-${now.day.toString().padLeft(2,'0')}';
     final data=<String,List<RowData>>{'transactions':[
