@@ -1,3 +1,5 @@
+import 'localization.dart';
+import 'app_language.dart';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'offline_store.dart';
@@ -16,12 +18,18 @@ abstract class ReminderPlatform {
  Future<void> openSettings();
 }
 
-class AndroidReminderPlatform implements ReminderPlatform {
+class AndroidReminderPlatform implements ReminderPlatform,NotificationLanguagePlatform {
+ String language='en';
+ @override void setLanguage(String value){final next=supportedLanguage(value);if(next!=language){language=next;_initializing=null;}}
  final plugin=FlutterLocalNotificationsPlugin();
  Future<void>? _initializing;
  static const reminderId=21001,testId=21002,channelId='payday_backup_reminders';
  static const details=NotificationDetails(android:AndroidNotificationDetails(
   channelId,'Backup reminders',channelDescription:'Optional weekly reminders to save a PAYDAY backup',
+  icon:'payday_notification',importance:Importance.low,priority:Priority.low,
+  playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
+ NotificationDetails get localizedDetails=>NotificationDetails(android:AndroidNotificationDetails(
+  channelId,translateMessage('Backup reminders',language),channelDescription:translateMessage('Optional weekly reminders to save a PAYDAY backup',language),
   icon:'payday_notification',importance:Importance.low,priority:Priority.low,
   playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  AndroidFlutterLocalNotificationsPlugin? get android=>plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -33,8 +41,8 @@ class AndroidReminderPlatform implements ReminderPlatform {
  Future<void> _initialize()async{
   final initialized=await plugin.initialize(settings:const InitializationSettings(android:AndroidInitializationSettings('payday_notification')));
   if(initialized!=true||android==null)throw StateError('Notifications are unavailable.');
-  await android!.createNotificationChannel(const AndroidNotificationChannel(channelId,'Backup reminders',
-   description:'Optional weekly reminders to save a PAYDAY backup',importance:Importance.low,playSound:false,enableVibration:false));
+  await android!.createNotificationChannel(AndroidNotificationChannel(channelId,translateMessage('Backup reminders',language),
+   description:translateMessage('Optional weekly reminders to save a PAYDAY backup',language),importance:Importance.low,playSound:false,enableVibration:false));
  }
  @override Future<bool> allowed()async{
   if(await android?.areNotificationsEnabled()!=true)return false;
@@ -44,10 +52,10 @@ class AndroidReminderPlatform implements ReminderPlatform {
  @override Future<bool> requestPermission()async{
   await android?.requestNotificationsPermission();return allowed();
  }
- @override Future<void> scheduleWeekly()=>plugin.periodicallyShow(id:reminderId,title:backupNotificationTitle,body:backupNotificationBody,
-  repeatInterval:RepeatInterval.weekly,notificationDetails:details,androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle);
+ @override Future<void> scheduleWeekly()=>plugin.periodicallyShow(id:reminderId,title:backupNotificationTitle,body:translateMessage(backupNotificationBody,language),
+  repeatInterval:RepeatInterval.weekly,notificationDetails:localizedDetails,androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle);
  @override Future<void> cancel()async{await plugin.cancel(id:reminderId);await plugin.cancel(id:testId);}
- @override Future<void> sendTest()=>plugin.show(id:testId,title:backupNotificationTitle,body:'Your backup reminders are ready.',notificationDetails:details);
+ @override Future<void> sendTest()=>plugin.show(id:testId,title:backupNotificationTitle,body:translateMessage('Your backup reminders are ready.',language),notificationDetails:localizedDetails);
  @override Future<void> openSettings()async{await android?.openAppNotificationSettings();}
 }
 
@@ -62,6 +70,13 @@ class BackupNotifications {
  final OfflineStore store;
  final ReminderPlatform platform;
  static bool get supported=>Platform.isAndroid;
+ Future<void> _applyLanguage()async{
+  if(platform is NotificationLanguagePlatform){
+   final rows=await store.table('settings');
+   final language=rows.where((r)=>r['key']=='app_language').map((r)=>r['value']?.toString()).firstOrNull;
+   (platform as NotificationLanguagePlatform).setLanguage(supportedLanguage(language));
+  }
+ }
  Future<void> _tail=Future.value();
  Future<T> _serial<T>(Future<T> Function() operation){
   final result=_tail.then((_)=>operation());
@@ -70,10 +85,10 @@ class BackupNotifications {
  }
  Future<bool> _enabled()async=>(await store.table('settings')).any((r)=>r['key']==backupReminderPreference&&r['value']=='1');
  Future<BackupNotificationState> read()=>_serial(()async{
-  await platform.initialize();return BackupNotificationState(enabled:await _enabled(),allowed:await platform.allowed());
+  await _applyLanguage();await platform.initialize();return BackupNotificationState(enabled:await _enabled(),allowed:await platform.allowed());
  });
  Future<void> setEnabled(bool enabled)=>_serial(()async{
-  await platform.initialize();
+  await _applyLanguage();await platform.initialize();
   final previous=await _enabled();
   if(enabled&&!await platform.requestPermission())throw const FormatException('Allow notifications in Android settings to enable reminders.');
   try{
@@ -87,15 +102,21 @@ class BackupNotifications {
  });
  Future<void> resetAfterExport()=>_serial(()async{
   if(!await _enabled())return;
-  await platform.initialize();
+  await _applyLanguage();await platform.initialize();
   if(await platform.allowed()){
    await platform.cancel();await platform.scheduleWeekly();
   }
  });
  Future<void> sendTest()=>_serial(()async{
-  await platform.initialize();
+  await _applyLanguage();await platform.initialize();
   if(!await _enabled()||!await platform.allowed())throw const FormatException('Enable reminders and allow Android notifications first.');
   await platform.sendTest();
  });
- Future<void> openSettings()=>_serial(()async{await platform.initialize();await platform.openSettings();});
+ Future<void> synchronizeLanguage()=>_serial(()async{
+  await _applyLanguage();await platform.initialize();
+  if(await _enabled()&&await platform.allowed()){await platform.scheduleWeekly();}
+  else{await platform.cancel();}
+ });
+ Future<void> openSettings()=>_serial(()async{await _applyLanguage();await platform.initialize();await platform.openSettings();});
 }
+

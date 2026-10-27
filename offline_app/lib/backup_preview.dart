@@ -1,8 +1,8 @@
+import 'localization.dart';
 import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
 import 'backup_cipher.dart';
 import 'offline_store.dart';
-import 'finance.dart';
 
 /// Counts records only after the selected file has been decrypted and validated.
 /// This reads the file in memory; it never opens or changes the local database.
@@ -33,16 +33,17 @@ class BackupPreview{
 
 Future<bool> confirmBackupRestore(BuildContext context,BackupPreview preview)async=>
  await showDialog<bool>(context:context,builder:(dialog)=>AlertDialog(
-  title:const Text('Restore this backup?'),scrollable:true,
+  title:const LText('Restore this backup?'),scrollable:true,
   content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
-   if(preview.exportedAt!=null)Padding(padding:const EdgeInsets.only(bottom:12),child:Text('Backup date: ${dayKey(preview.exportedAt!.toLocal())}')),
+   if(preview.exportedAt!=null)Padding(padding:const EdgeInsets.only(bottom:12),child:LText('Backup date: ${localizedDay(preview.exportedAt!.toLocal(),languageOf(context))}')),
    for(final entry in preview.counts.entries)Padding(padding:const EdgeInsets.symmetric(vertical:5),
-    child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Text(entry.key)),
-     const SizedBox(width:16),Text('${entry.value}',style:const TextStyle(fontWeight:FontWeight.w700,fontFeatures:[FontFeature.tabularFigures()]))])),
+    child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:LText(entry.key)),
+     const SizedBox(width:16),LText('${entry.value}',style:const TextStyle(fontWeight:FontWeight.w700,fontFeatures:[FontFeature.tabularFigures()]))])),
    const SizedBox(height:16),
-   const Text('This replaces all records on this phone. Export a backup first.'),
+   const LText('This replaces all records on this phone. Export a backup first.'),
    const SizedBox(height:8),
-   const Text('App lock and reminder settings stay as they are.'),
+   const LText('App lock and reminder settings stay as they are.'),
   ]),
-  actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:const Text('Cancel')),
-   FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:const Text('Replace local data'))]))??false;
+  actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:const LText('Cancel')),
+   FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:const LText('Replace local data'))]))??false;
+

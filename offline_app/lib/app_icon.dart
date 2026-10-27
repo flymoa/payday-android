@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'localization.dart';
 import 'category_icon.dart';
 
 /// A single vector vocabulary for PAYDAY navigation, tools and controls.
@@ -16,7 +17,7 @@ class PaydayAppIcon extends StatelessWidget {
   final foreground=(color??theme.color??(dark?const Color(0xffE2EAF0):const Color(0xff0E5A47))).withValues(alpha:theme.opacity??1);
   final widget=SizedBox.square(dimension:extent,child:CustomPaint(
    painter:_AppPainter(icon,foreground,dark,Directionality.of(context))));
-  return semanticLabel==null?ExcludeSemantics(child:widget):Semantics(label:semanticLabel,child:widget);
+  return semanticLabel==null?ExcludeSemantics(child:widget):Semantics(label:semanticLabel==null?null:tr(context,semanticLabel!),child:widget);
  }
 }
 class _AppPainter extends CustomPainter{
@@ -46,7 +47,9 @@ class _AppPainter extends CustomPainter{
    for(final v in points.skip(1)){q.lineTo(v.dx,v.dy);}c.drawPath(q,copper?accent:p);
   }
   void dot(double x,double y)=>c.drawCircle(Offset(x,y),1,Paint()..color=accent.color);
-  if(icon==Icons.event_note_outlined){
+  if(icon==Icons.translate){
+   circle(12,12,8);c.drawOval(const Rect.fromLTWH(8,4,8,16),p);l(4,12,20,12);dot(17.5,6.5);
+  }else if(icon==Icons.event_note_outlined){
    path([Offset(4,21),Offset(4,3),Offset(17,3),Offset(17,10)]);
    l(7,7,13,7);l(7,11,11,11);l(7,15,10,15);
    c.drawPath(Path()..moveTo(12,18)..lineTo(13,16)..lineTo(13,14)..cubicTo(13,10,19,10,19,14)..lineTo(19,16)..lineTo(20,18)..close(),accent);
@@ -128,4 +131,5 @@ class _AppPainter extends CustomPainter{
  }
  @override bool shouldRepaint(covariant _AppPainter old)=>old.icon!=icon||old.color!=color||old.dark!=dark||old.direction!=direction;
 }
+
 

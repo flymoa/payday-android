@@ -1,3 +1,4 @@
+import 'localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
@@ -40,6 +41,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver{
  final Future<bool> Function(String) _authenticate;
  final Future<void> Function(bool) _privacyWriter;
  bool _enabled,_locked,_busy=false,_foreground=true,_disposed=false;
+ String language='en';
  String? error;
  bool get enabled=>_enabled;
  bool get locked=>_locked;
@@ -64,7 +66,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver{
   _busy=true;error=null;_changed();
   try{
    if(requirePrivacy)await configurePrivacy(true);
-   final result=await _authenticate(reason);
+   final result=await _authenticate(translateMessage(reason,language));
    if(!result)error='Authentication canceled. Please try again.';
    return result&&!_disposed;
   }on AppLockProblem catch(e){error=e.message;return false;}
@@ -135,14 +137,15 @@ class PaydayLockGate extends StatelessWidget{
      padding:const EdgeInsets.all(28),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:340),
       child:Column(mainAxisSize:MainAxisSize.min,children:[
        const PaydayMark(size:64),const SizedBox(height:24),
-       Text('PAYDAY is locked',style:Theme.of(context).textTheme.headlineSmall,textAlign:TextAlign.center),
-       const SizedBox(height:10),const Text('Use your phone’s fingerprint, face unlock, or screen lock to continue.',textAlign:TextAlign.center),
+       LText('PAYDAY is locked',style:Theme.of(context).textTheme.headlineSmall,textAlign:TextAlign.center),
+       const SizedBox(height:10),const LText('Use your phone’s fingerprint, face unlock, or screen lock to continue.',textAlign:TextAlign.center),
        const SizedBox(height:24),
        FilledButton.icon(onPressed:controller.busy?null:controller.unlock,
         icon:controller.busy?const SizedBox(width:20,height:20,child:CircularProgressIndicator(strokeWidth:2)):const PaydayAppIcon(Icons.lock_open_outlined),
-        label:Text(controller.busy?'Authenticating…':'Unlock')),
+        label:LText(controller.busy?'Authenticating…':'Unlock')),
        if(controller.error!=null)Padding(padding:const EdgeInsets.only(top:16),
-        child:Text(controller.error!,textAlign:TextAlign.center,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+        child:LText(controller.error!,textAlign:TextAlign.center,style:TextStyle(color:Theme.of(context).colorScheme.error))),
       ]))))))),
   ]));
 }
+

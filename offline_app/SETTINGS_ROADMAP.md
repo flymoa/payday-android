@@ -151,3 +151,27 @@ available. Missing tables or non-map records are rejected early; legacy schema
 1 may omit reserve movements. Cancel does not modify data. The existing
 transactional import, lock policy and device-local reminder settings remain.
 Language/layout support and encrypted local-storage migration are still pending.
+
+
+
+Payday 2.0.18 adds English/French/Arabic language selection in the existing
+Settings page flow. Missing/unknown saved choices retain English. Locale and
+Material/Cupertino/date-picker translations follow the selected app language,
+without restarting the opening animation or changing the chosen currency.
+Only built-in category labels are localized; stored category IDs, types, custom
+names, descriptions, amounts, database schema and ISO dates remain unchanged.
+French decimal-comma input uses the existing exact-centime parser. Arabic
+uses directional alignment/insets and system Arabic font fallback while brand
+artwork and amount/currency pairs retain their orientation. Existing colors,
+font sizes, component shapes, spacing values and navigation remain intact.
+
+Display messages and dynamic templates have French/Arabic catalogs. Backup,
+bill and reserve notifications use the saved choice. Queued bill/reserve
+payloads include a language marker when necessary so schedules refresh in
+place, keeping dates/IDs and permission choices. A locale change does not
+request notification permission or mark a backup as exported. Restore refreshes
+notification language after preferences load. Language is an ordinary
+backed-up preference, not a device security or reminder opt-in flag.
+
+Remaining: encrypted local-storage migration requires a separately reviewed
+upgrade/rollback plan.

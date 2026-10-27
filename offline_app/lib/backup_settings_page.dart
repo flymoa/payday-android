@@ -1,3 +1,4 @@
+import 'localization.dart';
 import 'package:flutter/material.dart';
 import 'app_icon.dart';
 import 'settings_pages.dart';
@@ -24,16 +25,17 @@ class _BackupSettingsPageState extends State<BackupSettingsPage>{
   finally{if(mounted)setState(()=>busy=false);}
  }
  @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Backups & data',busy:busy,
-  actions:[IconButton(tooltip:'About backups',icon:const PaydayAppIcon(Icons.info_outline,size:20),
+  actions:[IconButton(tooltip:tr(context,'About backups'),icon:const PaydayAppIcon(Icons.info_outline,size:20),
    onPressed:()=>showSettingsInfo(context,'Backups & data','New exports are password protected. Keep the password: Payday cannot recover it. Older JSON backups still work. Restore shows a summary before replacing records and keeps this phone’s App lock and reminder settings. Records on this phone are not encrypted by Payday. An export date confirms the handoff to your chosen app; keep the saved file somewhere safe.'))],
   body:ListView(padding:settingsPagePadding,children:[
    if(busy)const LinearProgressIndicator(),
-   Padding(padding:const EdgeInsets.only(bottom:20),child:Text(status,style:const TextStyle(fontWeight:FontWeight.w700))),
+   Padding(padding:const EdgeInsets.only(bottom:20),child:LText(status,style:const TextStyle(fontWeight:FontWeight.w700))),
    OutlinedButton.icon(key:const ValueKey('export-backup'),onPressed:busy?null:()=>run(widget.onExport),
-    icon:const PaydayAppIcon(Icons.ios_share),label:const Text('Export backup')),
+    icon:const PaydayAppIcon(Icons.ios_share),label:const LText('Export backup')),
    const SizedBox(height:8),
    OutlinedButton.icon(key:const ValueKey('restore-backup'),onPressed:busy?null:()=>run(widget.onRestore),
-    icon:const PaydayAppIcon(Icons.file_open),label:const Text('Restore')),
-   if(error!=null)Padding(padding:const EdgeInsets.only(top:16),child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+    icon:const PaydayAppIcon(Icons.file_open),label:const LText('Restore')),
+   if(error!=null)Padding(padding:const EdgeInsets.only(top:16),child:LText(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
 }
+

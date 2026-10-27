@@ -35,7 +35,7 @@ void main(){
    {'key':'app_reduce_motion','value':'1'}]]){
    final prefs=AppPreferences.fromRows(rows);
    expect(prefs.appearance,ThemeMode.light);expect(prefs.currency,'MAD');
-   expect(prefs.values.keys,unorderedEquals(['app_appearance','currency','app_lock_enabled']));
+   expect(prefs.values.keys,unorderedEquals(['app_appearance','currency','app_lock_enabled','app_language']));
   }
  });
  test('preferences persist atomically and currency travels in backup without changing amounts',()async{
@@ -165,4 +165,5 @@ void main(){
   expect(tester.takeException(),isNull);
  });
 }
+
 

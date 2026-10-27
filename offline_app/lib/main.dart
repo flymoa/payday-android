@@ -1,3 +1,6 @@
+import 'localization.dart';
+import 'app_language.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'bill_reminders.dart';
 import 'reserve_reminders.dart';
 import 'safe_to_spend_row.dart';
@@ -47,8 +50,8 @@ class _PaydayStartupState extends State<PaydayStartup>{
   return MaterialApp(debugShowCheckedModeBanner:false,home:Scaffold(backgroundColor:paydaySand,
    body:SafeArea(child:Center(child:Padding(padding:const EdgeInsets.all(24),child:snapshot.hasError?
     Column(mainAxisSize:MainAxisSize.min,children:[
-     const Text('Could not read your app settings. Your records have not been opened.',textAlign:TextAlign.center),
-     const SizedBox(height:16),FilledButton(onPressed:(){final next=store.loadAppPreferences();setState((){preferences=next;});},child:const Text('Try again')),
+     const LText('Could not read your app settings. Your records have not been opened.',textAlign:TextAlign.center),
+     const SizedBox(height:16),FilledButton(onPressed:(){final next=store.loadAppPreferences();setState((){preferences=next;});},child:const LText('Try again')),
     ]):const CircularProgressIndicator())))));
  });
 }
@@ -78,7 +81,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
  bool savingPreferences=false;
  late final appLock=widget.appLockController??AppLockController(enabled:preferences.appLock);
  late final lockRoutes=AppLockRouteGuard(appLock);
- @override void initState(){super.initState();unawaited(appLock.initializePrivacy());}
+ @override void initState(){super.initState();appLock.language=preferences.language;unawaited(appLock.initializePrivacy());}
  @override void dispose(){lockRoutes.dispose();appLock.dispose();super.dispose();}
  ThemeMode get mode=>preferences.appearance;
  Future<bool> savePreferences(AppPreferences next)async{
@@ -91,7 +94,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
     final allowed=await appLock.authorize(next.appLock?'Enable PAYDAY app lock':'Turn off PAYDAY app lock');
     if(!mounted)return false;
     if(!allowed){
-     messengerKey.currentState?.showSnackBar(SnackBar(content:Text(appLock.error??'App lock was not changed.')));
+     messengerKey.currentState?.showSnackBar(SnackBar(content:LText(appLock.error??'App lock was not changed.')));
      return false;
     }
     privacyChanged=true;
@@ -100,11 +103,12 @@ class _PaydayLocalState extends State<PaydayLocal> {
    await (widget.preferencesWriter??localStore.saveAppPreferences)(next);
    if(!mounted)return false;
    setState(()=>preferences=next);
+   appLock.language=next.language;
    if(lockChanged)appLock.setEnabled(next.appLock);
    return true;
   }catch(_){
    if(privacyChanged){try{await appLock.configurePrivacy(preferences.appLock);}catch(_){appLock.lockNow();}}
-   messengerKey.currentState?.showSnackBar(const SnackBar(content:Text('Could not save preferences. Please try again.')));
+   messengerKey.currentState?.showSnackBar(const SnackBar(content:LText('Could not save preferences. Please try again.')));
    return false;
   }finally{savingPreferences=false;}
  }
@@ -118,7 +122,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
     onPrimary:dark?const Color(0xff102B20):Colors.white,
     surfaceContainerLow:dark?const Color(0xff1F3228):const Color(0xffF5F1E7),
     surfaceContainerHigh:dark?const Color(0xff293F32):const Color(0xffEEE8DA));
-  final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans');
+  final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']);
   return base.copyWith(
    textTheme:base.textTheme.copyWith(
     titleLarge:base.textTheme.titleLarge?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800),
@@ -140,7 +144,9 @@ class _PaydayLocalState extends State<PaydayLocal> {
   );
  }
  @override Widget build(BuildContext context)=>MaterialApp(
-  navigatorObservers:[lockRoutes],scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'Payday',theme:palette(Brightness.light),
+  navigatorObservers:[lockRoutes],scaffoldMessengerKey:messengerKey,debugShowCheckedModeBanner:false,title:'Payday',
+  locale:Locale(preferences.language),supportedLocales:const [Locale('en'),Locale('fr'),Locale('ar')],
+  localizationsDelegates:GlobalMaterialLocalizations.delegates,theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
   builder:(context,child){
    return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
@@ -179,8 +185,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool preferencesSaving=false;
  final scaffoldKey=GlobalKey<ScaffoldState>();
  String get currency=>supportedCurrency(widget.preferences.currency);
- String money(int amount)=>formatMoney(amount,currency);
- String currencyMessage(String message)=>message.replaceAll(' MAD',' $currency');
+ String get language=>widget.preferences.language;
+ String money(int amount)=>localizedMoney(amount,currency,language);
+ String inputNumber(int amount)=>localizedNumber(amount,language);
+ String uiDay(DateTime day)=>localizedDay(day,language);
+ String currencyMessage(String message)=>translateMessage(message.replaceAll(' MAD',' $currency'),language);
  void openSettingsDrawer(){
   scaffoldKey.currentState?.openDrawer();
  }
@@ -220,6 +229,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
   }
  }
+ Future<void> refreshNotificationLanguage()async{
+  if(BackupNotifications.supported||widget.backupNotifications!=null){try{await reminders.synchronizeLanguage();}catch(_){if(mounted)inputError('Could not change reminders. Please try again.');}}
+  await syncBillReminders();await syncReserveReminders();
+ }
  Future<void> syncReserveReminders()async{
   if(!mounted||!ReserveReminders.supported&&widget.reserveReminders==null)return;
   try{await reserveReminders.synchronize();reserveSyncErrorShown=false;}
@@ -244,8 +257,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Future<bool> execute(Future<void> Function() fn)async{
   if(writing)return false;
   writing=true;
-  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Saved on this phone.')));return true;}
-  catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Could not save: ${currencyMessage(e.toString())}')));return false;}
+  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText('Saved on this phone.')));return true;}
+  catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText('Could not save: ${currencyMessage(e.toString())}')));return false;}
   finally{writing=false;}
  }
  List<RowData> list(Map<String,List<RowData>> d,String table)=>d[table]??[];
@@ -293,39 +306,28 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  int unpaidBills(Map<String,List<RowData>> d){
   return list(d,'bills').where((b)=>st(b,'due').startsWith(month)).fold(0,(n,b)=>n+billOutstanding(val(b,'amount'),billPaid(d,b)));
  }
- String monthLabel(DateTime d)=>'${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.month-1]} ${d.year}';
- Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsets.fromLTRB(4,12,4,10),
+ String monthLabel(DateTime d)=>localizedMonth(d,language,short:true);
+ Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,12,4,10),
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Text(title,style:TextStyle(fontSize:23,fontWeight:FontWeight.w800,color:ink)),
-   if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:Text(subtitle,style:TextStyle(color:muted)))
+   LText(title,style:TextStyle(fontSize:23,fontWeight:FontWeight.w800,color:ink)),
+   if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:LText(subtitle,style:TextStyle(color:muted)))
   ])),if(action!=null)action]));
- Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading})=>
+ Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading,bool rawTitle=false,bool categoryTitle=false})=>
   Card(child:ListTile(contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:5),
    leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:PaydayAppIcon(icon,color:tone??jade,size:20)),
-   title:Text(title,style:TextStyle(fontWeight:FontWeight.w700)),
-   subtitle:Text(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
-   trailing:Text(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
+   title:rawTitle?Text(title,style:TextStyle(fontWeight:FontWeight.w700)):LText(title,category:categoryTitle,style:TextStyle(fontWeight:FontWeight.w700)),
+   subtitle:LText(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
+   trailing:LText(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
  Widget metric(String title,String value,IconData icon,{Color? color})=>Expanded(child:Card(child:Padding(
   padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   PaydayAppIcon(icon,color:color??jade),SizedBox(height:12),Text(title,style:TextStyle(color:muted,fontSize:12)),
-   SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:Text(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
+   PaydayAppIcon(icon,color:color??jade),SizedBox(height:12),LText(title,style:TextStyle(color:muted,fontSize:12)),
+   SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
   ]))));
 
  // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
- String homeDigits(int cents){
-  final value=mad(cents.abs()).toStringAsFixed(2).split('.');
-  final whole=value[0],parts=<String>[];
-  for(var end=whole.length;end>0;end-=3){
-   final begin=end-3>0?end-3:0;
-   parts.insert(0,whole.substring(begin,end));
-  }
-  return '${cents<0?'−':''}${parts.join(',')}.${value[1]}';
- }
- String homeMonthName(){
-  const names=['January','February','March','April','May','June',
-   'July','August','September','October','November','December'];
-  return '${names[selected.month-1]} ${selected.year}';
- }
+ String homeDigits(int cents)=>localizedNumber(cents,language,grouped:true);
+ String get decimalSeparator=>language=='fr'?',':'.';
+ String homeMonthName()=>localizedMonth(selected,language);
  Widget homeSummary(String label,int value,String glyph){
   return Expanded(child:Container(
    padding:EdgeInsets.all(13),
@@ -334,14 +336,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     PaydayCategoryIcon(glyph,size:38),
     SizedBox(height:11),
-    Text(label,maxLines:2,style:TextStyle(color:muted,fontSize:12,height:1.2)),
+    LText(label,maxLines:2,style:TextStyle(color:muted,fontSize:12,height:1.2)),
     SizedBox(height:8),
-    FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
+    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
      child:Row(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.baseline,
       textBaseline:TextBaseline.alphabetic,children:[
-      Text(homeDigits(value),style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:homeNavy)),
+      LText(homeDigits(value),style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:homeNavy)),
       SizedBox(width:5),
-      Text(currency,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
+      LText(currency,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
      ])),
    ]),
   ));
@@ -355,7 +357,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      child:PaydayAppIcon(Icons.pie_chart_outline,size:31.2))
     else PaydayCategoryIcon(glyph,size:52),
     SizedBox(height:7),
-    Text(label,maxLines:2,textAlign:TextAlign.center,
+    LText(label,maxLines:2,textAlign:TextAlign.center,
      style:TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:homeText)),
    ])),
   ));
@@ -377,20 +379,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[
      PaydayCategoryIcon(category,size:34),SizedBox(width:10),
-     Expanded(child:Text(category,style:TextStyle(color:ink,
+     Expanded(child:LText(category,category:true,style:TextStyle(color:ink,
       fontWeight:FontWeight.w700,fontSize:14))),
-     if(isOver)Padding(padding:EdgeInsets.only(right:4),
+     if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
       child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
-     Text(description,style:TextStyle(color:isOver?homeOver:
+     LText(description,style:TextStyle(color:isOver?homeOver:
       (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
       fontWeight:FontWeight.w700,fontSize:12)),
     ]),
     SizedBox(height:9),
     Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Expanded(flex:6,child:Text('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
+     Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
       maxLines:2,style:TextStyle(color:homeText,fontSize:12))),
      SizedBox(width:5),
-     Flexible(flex:5,child:Text(isOver?'Over by ${homeDigits(spent-limit)} $currency':
+     Flexible(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
       textAlign:TextAlign.end,softWrap:true,
       style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,
@@ -402,7 +404,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       color:statusColor,
       backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?Color(0xffF4D9D4):Color(0xffE9F0EB))),
     if(isOver)Padding(padding:EdgeInsets.only(top:10),
-      child:Text('Exceeded your budget by ${homeDigits(spent-limit)} $currency '
+      child:LText('Exceeded your budget by ${homeDigits(spent-limit)} $currency '
        '(${((spent/limit-1)*100).round()}% over).',
        style:TextStyle(color:homeOver,fontSize:12))),
    ]),
@@ -410,7 +412,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
   IconButton(onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-  Text(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
+  LText(monthLabel(selected),style:TextStyle(fontWeight:FontWeight.bold,fontSize:16)),
   IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
  @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
@@ -424,28 +426,28 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   drawerEnableOpenDragGesture:false,
   drawer:page==0?Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
    backgroundColor:cream,child:SafeArea(child:Column(children:[
-    Padding(padding:EdgeInsets.fromLTRB(16,12,4,8),child:Row(children:[
-     const Expanded(child:FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:PaydayBrand(compact:true))),
-     IconButton(tooltip:'Close settings',onPressed:()=>scaffoldKey.currentState?.closeDrawer(),icon:PaydayAppIcon(Icons.close)),
+    Padding(padding:EdgeInsetsDirectional.fromSTEB(16,12,4,8),child:Row(children:[
+     const Expanded(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:PaydayBrand(compact:true))),
+     IconButton(tooltip:tr(context,'Close settings'),onPressed:()=>scaffoldKey.currentState?.closeDrawer(),icon:PaydayAppIcon(Icons.close)),
     ])),
     Expanded(child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-     if(snap.hasError)return Center(child:Text('Could not load settings.'));
+     if(snap.hasError)return Center(child:LText('Could not load settings.'));
      if(!snap.hasData)return Center(child:CircularProgressIndicator());
-     return ListView(key:ValueKey('settings-drawer-list'),padding:EdgeInsets.fromLTRB(12,0,12,24),
+     return ListView(key:ValueKey('settings-drawer-list'),padding:EdgeInsetsDirectional.fromSTEB(12,0,12,24),
       children:[appSettings(snap.data!)]);
     })),
    ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
-   title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:'Open settings',padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
+   title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:tr(context,'Open settings'),padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Text(dayKey(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
-     FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-      child:Text(paydaySlogan,maxLines:1,softWrap:false,
+     LText(uiDay(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
+     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+      child:LText(paydaySlogan,maxLines:1,softWrap:false,
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
-    ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,child:const PaydayBrand(compact:true)),centerTitle:false,
-   actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:Text('More'))]),
+    ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
+   actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More'))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-   if(snap.hasError)return Center(child:Text('Local database error: ${snap.error}'));
+   if(snap.hasError)return Center(child:LText('Local database error: ${snap.error}'));
    if(!snap.hasData)return Center(child:CircularProgressIndicator());
    final d=snap.data!;
    Widget screen;
@@ -456,15 +458,15 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     case 3:screen=savings(d);break;
     default:screen=more(d);
    }
-   return SafeArea(child:ListView(key:ValueKey('page-$page-section-$moreSection'),padding:EdgeInsets.fromLTRB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
+   return SafeArea(child:ListView(key:ValueKey('page-$page-section-$moreSection'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
   }),
   bottomNavigationBar:SafeArea(top:false,child:Container(
-   padding:EdgeInsets.fromLTRB(8,0,8,8),
+   padding:EdgeInsetsDirectional.fromSTEB(8,0,8,8),
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.vertical(top:Radius.circular(26)),border:Border(top:BorderSide(color:line))),
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
     bottomItem('Budgets',Icons.pie_chart_outline,2),
-    Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:'Add transaction',child:
+    Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:tr(context,'Add transaction'),child:
      Container(width:54,height:54,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(20),
       boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .10 : .20),blurRadius:14,offset:Offset(0,5))]),
       padding:EdgeInsets.all(3),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
@@ -476,11 +478,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
   onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
    Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(4))),
-   SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),Text(label,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700)),
+   SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),LText(label,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700)),
   ])));
 
  Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
-  button:true,label:label,child:InkWell(onTap:onTap,
+  button:true,label:tr(context,label),child:InkWell(onTap:onTap,
    borderRadius:BorderRadius.circular(12),child:Padding(
     padding:EdgeInsets.symmetric(vertical:4),child:child)));
 
@@ -488,15 +490,15 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   Widget calculation(String label,int amount,{bool total=false})=>Padding(
    padding:EdgeInsets.symmetric(vertical:10),child:Row(
     crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Expanded(child:Text(label,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w500))),
-     SizedBox(width:12),Flexible(child:Text('${amount>0&&!total?'+ ':''}${money(amount)}',
-      textAlign:TextAlign.right,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w600))),
+     Expanded(child:LText(label,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w500))),
+     SizedBox(width:12),Flexible(child:LText('${amount>0&&!total?'+ ':''}${money(amount)}',
+      textAlign:TextAlign.end,style:TextStyle(fontWeight:total?FontWeight.w800:FontWeight.w600))),
     ]));
   await sheet(showSafe?'Safe to spend':'Available this month',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(monthLabel(selected),style:TextStyle(color:muted)),
+    LText(monthLabel(selected),style:TextStyle(color:muted)),
     SizedBox(height:12),
-    Text('Based on recorded money for this month, not your bank account balance or planned income.'),
+    LText('Based on recorded money for this month, not your bank account balance or planned income.'),
     SizedBox(height:8),
     calculation('Income received',balance.income),
     calculation('Expenses recorded',-balance.expenses),
@@ -509,16 +511,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      calculation('Reserve contributions still to fund',-balance.reserveHold),
      calculation('Cash buffer',-balance.buffer),
      Divider(),calculation('Safe to spend',balance.safe,total:true),
-     if(balance.safe<0)Text('Your remaining commitments exceed available money by ${money(-balance.safe)}.'),
+     if(balance.safe<0)LText('Your remaining commitments exceed available money by ${money(-balance.safe)}.'),
      SizedBox(height:12),
-     Text('Paid bill amounts are already in expenses. Only unpaid amounts are held here. Savings and reserve transfers reduce the remaining amounts still to fund.'),
+     LText('Paid bill amounts are already in expenses. Only unpaid amounts are held here. Savings and reserve transfers reduce the remaining amounts still to fund.'),
      SizedBox(height:12),
-     Text('Category budgets are spending limits shown separately; their unused amounts are not deducted here. Check your category budget before a purchase.'),
+     LText('Category budgets are spending limits shown separately; their unused amounts are not deducted here. Check your category budget before a purchase.'),
     ]else...[
-     SizedBox(height:12),Text('Positive transfers move money into savings or reserves; withdrawals add it back. Bills, remaining goals and your cash buffer are held in Safe to spend.'),
+     SizedBox(height:12),LText('Positive transfers move money into savings or reserves; withdrawals add it back. Bills, remaining goals and your cash buffer are held in Safe to spend.'),
     ],
-    SizedBox(height:16),Align(alignment:Alignment.centerRight,
-     child:TextButton(onPressed:()=>Navigator.pop(c),child:Text('Got it'))),
+    SizedBox(height:16),Align(alignment:AlignmentDirectional.centerEnd,
+     child:TextButton(onPressed:()=>Navigator.pop(c),child:LText('Got it'))),
    ]));
  }
 
@@ -541,37 +543,37 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final over=categories.where((c)=>budgetFor(d,month,c)>0&&(review.spending[c]??0)>budgetFor(d,month,c)).toList()..sort();
   final unbudgeted=review.spending.keys.where((c)=>budgetFor(d,month,c)<=0).toList()..sort();
   Widget lineItem(String label,int value)=>Padding(padding:EdgeInsets.symmetric(vertical:8),
-   child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Text(label)),
-    SizedBox(width:12),Flexible(child:Text(money(value),textAlign:TextAlign.right,
+   child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:LText(label)),
+    SizedBox(width:12),Flexible(child:LText(money(value),textAlign:TextAlign.end,
      style:TextStyle(fontWeight:FontWeight.w700)))]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly review',subtitle:'Recorded activity for ${monthLabel(selected)}'),
-   Row(children:[IconButton(tooltip:'Previous month',onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-    Expanded(child:Text(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold))),
-    IconButton(tooltip:'Next month',onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right))]),
-   Text(closed?'Month-close checks saved':ended?'Ready to review':'Month in progress',style:TextStyle(color:jade,fontWeight:FontWeight.w700)),
-   if(tx.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:Text('No transactions recorded for this month. Bills and plans can still have outstanding amounts.')),
+   Row(children:[IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
+    Expanded(child:LText(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold))),
+    IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right))]),
+   LText(closed?'Month-close checks saved':ended?'Ready to review':'Month in progress',style:TextStyle(color:jade,fontWeight:FontWeight.w700)),
+   if(tx.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:LText('No transactions recorded for this month. Bills and plans can still have outstanding amounts.')),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Column(children:[
     lineItem('Income received',balance.income),lineItem('Spending',balance.expenses),
     lineItem('Net savings transfers',balance.savingsNet),lineItem('Net reserve transfers',balance.reserveNet),
     Divider(),lineItem('Available this month',balance.available),lineItem('Safe to spend',balance.safe),
    ]))),
-   TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:PaydayAppIcon(Icons.info_outline),label:Text('Explain these balances')),
+   TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:PaydayAppIcon(Icons.info_outline),label:LText('Explain these balances')),
    header('Check before closing'),
    tile('Unpaid bills',balance.unpaidBills>0?'Due this month and still outstanding':'No outstanding bills due this month',money(balance.unpaidBills),
     icon:Icons.receipt_long_outlined,onTap:()=>setState(()=>moreSection=0)),
    tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
    tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
-   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),icon:Icons.error_outline,tone:Colors.deepOrange)),
-   ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),icon:Icons.info_outline,tone:amber)),
-   if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No category budget issues in recorded spending.')),
+   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:Colors.deepOrange)),
+   ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
+   if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
    header('Largest spending categories'),
-   ...review.rankedCategories.take(3).map((c)=>tile(c,'Recorded expenses',money(review.spending[c]!),icon:Icons.pie_chart_outline)),
-   if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No spending recorded.')),
-   SizedBox(height:12),Text('Review your records and compare with your actual cash or bank balance. This summary does not verify that every transaction has been entered.'),
+   ...review.rankedCategories.take(3).map((c)=>tile(c,'Recorded expenses',money(review.spending[c]!),categoryTitle:true,icon:Icons.pie_chart_outline)),
+   if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending recorded.')),
+   SizedBox(height:12),LText('Review your records and compare with your actual cash or bank balance. This summary does not verify that every transaction has been entered.'),
    SizedBox(height:12),SizedBox(width:double.infinity,child:FilledButton.icon(
-    onPressed:ended?()=>monthCloseForm(d):null,icon:PaydayAppIcon(Icons.fact_check_outlined),label:Text(closed?'Review close checks':'Continue to close checks'))),
-   if(!ended)Padding(padding:EdgeInsets.symmetric(vertical:8),child:Text('Month-close checks are available after the month ends.')),
+    onPressed:ended?()=>monthCloseForm(d):null,icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText(closed?'Review close checks':'Continue to close checks'))),
+   if(!ended)Padding(padding:EdgeInsets.symmetric(vertical:8),child:LText('Month-close checks are available after the month ends.')),
   ]);
  }
 
@@ -583,7 +585,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    lastExport:setting('last_backup_export'),snoozeUntil:setting('backup_snooze_until'));
  }
  String backupDateLabel(BackupReminder reminder)=>reminder.lastExport==null?
-  'No export recorded yet':'Last export: ${dayKey(reminder.lastExport!.toLocal())}';
+  'No export recorded yet':'Last export: ${uiDay(reminder.lastExport!.toLocal())}';
  Future<void> snoozeBackup()async{
   await execute(()=>store.setSetting('backup_snooze_until',DateTime.now().add(Duration(days:1)).toUtc().toIso8601String()));
  }
@@ -593,12 +595,12 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return Padding(padding:EdgeInsets.only(top:16),child:Card(margin:EdgeInsets.zero,
    child:Padding(padding:EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[PaydayAppIcon(Icons.ios_share,color:jade,size:20),SizedBox(width:8),
-     Expanded(child:Text('Keep a backup',style:TextStyle(fontWeight:FontWeight.w700)))]),
-    SizedBox(height:6),Text(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:12)),
-    SizedBox(height:4),Text('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:12,color:muted)),
+     Expanded(child:LText('Keep a backup',style:TextStyle(fontWeight:FontWeight.w700)))]),
+    SizedBox(height:6),LText(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:12)),
+    SizedBox(height:4),LText('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:12,color:muted)),
     Wrap(spacing:10,children:[TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
-     child:Text(exportingBackup?'Exporting…':'Export backup')),
-     TextButton(onPressed:snoozeBackup,child:Text('Remind tomorrow'))]),
+     child:LText(exportingBackup?'Exporting…':'Export backup')),
+     TextButton(onPressed:snoozeBackup,child:LText('Remind tomorrow'))]),
    ]))));
  }
 
@@ -607,20 +609,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final recent=recentActivityRows(list(d,'transactions'),DateTime.now());
   final categories=spendingCategories(d).where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsets.only(top:23,bottom:12),child:Row(children:[
-   Expanded(child:Text(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800))),TextButton(onPressed:tap,child:Text(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
+   Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   final heroInk=paydaySand;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    navMonth(),SizedBox(height:12),
    Container(width:double.infinity,padding:EdgeInsets.all(22),decoration:BoxDecoration(color:paydayEmerald,borderRadius:BorderRadius.circular(30)),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      balanceTap('Explain available balance',()=>balanceDetails(balance,false),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Row(children:[Expanded(child:Text('Available this month',style:TextStyle(color:Color(0xffB8D0BF),fontWeight:FontWeight.w700))),
+      Row(children:[Expanded(child:LText('Available this month',style:TextStyle(color:Color(0xffB8D0BF),fontWeight:FontWeight.w700))),
        PaydayAppIcon(Icons.info_outline,color:heroInk,size:18)]),
-      SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split('.').first,style:TextStyle(fontSize:48)),TextSpan(text:'.${homeDigits(balance.available).split('.').last} $currency',style:TextStyle(fontSize:23,color:Color(0xffB8D0BF)))]),style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
+      SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.available).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:Color(0xffB8D0BF)))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
       SizedBox(height:16),MonthUsageBar(value:balance.usedFraction,
        trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
-      SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[Text('Spent ${money(balance.expenses)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600)),
-       Text('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
+      SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[LText('Spent ${money(balance.expenses)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600)),
+       LText('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
      ])),
      Divider(color:heroInk.withValues(alpha:.18),height:24),
      SafeToSpendRow(amount:money(balance.safe),color:heroInk,onTap:()=>balanceDetails(balance,true)),
@@ -631,15 +633,15 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    ]),
    backupReminderCard(d),
    section('Budgets','See all',()=>setState(()=>page=2)),
-   if(categories.isEmpty)Padding(padding:EdgeInsets.all(12),child:Text('No spending or category budgets for this month.')),
+   if(categories.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending or category budgets for this month.')),
    ...categories.map((c){final name=st(c,'name');final spent=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name).fold(0,(n,t)=>n+val(t,'amount'));return homeCategory(name,spent,budgetFor(d,month,name));}),
    section('Recent activity','See all',()=>setState(()=>page=1)),
-   ...recent.map(recentActivityTile),if(recent.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:Text('No activity today or yesterday.')),
+   ...recent.map(recentActivityTile),if(recent.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:LText('No activity today or yesterday.')),
   ]);
  }
  Widget recentActivityTile(RowData row){
   final category=st(row,'category'),type=st(row,'type');
-  final title=st(row,'description').isEmpty?category:st(row,'description');
+  final title=st(row,'description').isEmpty?categoryLabel(context,category):st(row,'description');
   final outgoing=type=='Expense'||type=='Savings out';
   return Material(color:Colors.transparent,child:InkWell(
    borderRadius:BorderRadius.circular(14),onTap:()=>transactionForm(row),
@@ -647,38 +649,38 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     PaydayCategoryIcon(category,size:42),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
-     SizedBox(height:3),Text('$category · ${recentActivityDay(st(row,'date'),DateTime.now())}',
+     SizedBox(height:3),LText('${categoryLabel(context,category)} · ${tr(context,recentActivityDay(st(row,'date'),DateTime.now()))}',
       style:TextStyle(fontSize:12,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.32),
-     child:FittedBox(fit:BoxFit.scaleDown,child:Text('${outgoing?'−':'+'}${money(val(row,'amount'))}',
+     child:FittedBox(fit:BoxFit.scaleDown,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
       style:TextStyle(fontWeight:FontWeight.w700,color:ink)))),
    ]))));
  }
- Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?st(t,'category'):st(t,'description'),'${st(t,'date')} · ${st(t,'category')} · $type',money(val(t,'amount')),leading:PaydayCategoryIcon(st(t,'category')),tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
+ Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?categoryLabel(context,st(t,'category')):st(t,'description'),'${displayDay(context,st(t,'date'))} · ${categoryLabel(context,st(t,'category'))} · ${tr(context,type)}',money(val(t,'amount')),rawTitle:true,leading:PaydayCategoryIcon(st(t,'category')),tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
  Widget records(Map<String,List<RowData>> d){
   final all=monthTransactions(d);
-  final ts=all.where((t)=>matchesRecord(t,recordQuery,recordType)).toList();
+  final ts=all.where((t)=>(matchesRecord(t,recordQuery,recordType)||(recordType=='All'||st(t,'type')==recordType)&&categoryLabel(context,st(t,'category')).toLowerCase().contains(recordQuery.trim().toLowerCase()))).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Transactions',subtitle:'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
     style:TextStyle(fontSize:13),
-    decoration:InputDecoration(hintText:'Search records',isDense:true,
+    decoration:InputDecoration(hintText:tr(context,'Search records'),isDense:true,
      contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
      prefixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      suffixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      prefixIcon:Padding(padding:EdgeInsets.all(9),child:PaydayAppIcon(Icons.search,size:18,color:muted)),
      suffixIcon:recordQuery.isEmpty?null:IconButton(
-      tooltip:'Clear search',visualDensity:VisualDensity.compact,icon:PaydayAppIcon(Icons.close,size:16),
+      tooltip:tr(context,'Clear search'),visualDensity:VisualDensity.compact,icon:PaydayAppIcon(Icons.close,size:16),
       onPressed:(){search.clear();setState(()=>recordQuery='');}))),
    SizedBox(height:10),
    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:
     ['All','Expense','Income','Savings out','Savings in'].map((type)=>Padding(
-     padding:EdgeInsets.only(right:8),child:ChoiceChip(label:Text(type),
+     padding:EdgeInsetsDirectional.only(end:8),child:ChoiceChip(label:LText(type),
       selected:recordType==type,onSelected:(_)=>setState(()=>recordType=type)))).toList())),
    SizedBox(height:10),
    ...ts.map(recordTile),
-   if(ts.isEmpty)Padding(padding:EdgeInsets.all(24),child:Text(all.isEmpty?
+   if(ts.isEmpty)Padding(padding:EdgeInsets.all(24),child:LText(all.isEmpty?
     'No entries this month. Tap + to add your first transaction.':
     'No matching entries. Change the search or type filter.')),
   ]);
@@ -707,10 +709,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
-   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:Text('Copy last month’s budget')),
+   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Copy last month’s budget')),
    SizedBox(height:8),
    Row(children:[metric('Planned income',money(inc),Icons.trending_up),metric('Assigned',money(assigned),Icons.check_circle_outline)]),
-   Card(child:Padding(padding:EdgeInsets.all(16),child:Text(
+   Card(child:Padding(padding:EdgeInsets.all(16),child:LText(
     inc==0&&assigned==0?'Set planned income to start assigning your budget.':
     inc==assigned?'No more money to assign. Your income is fully assigned.':
     assigned>inc?'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
@@ -721,9 +723,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    header('Spending categories'),
    ...categories.map((c){final name=st(c,'name'),b=budgetFor(d,month,name);
     final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-    return tile(name,'${st(c,'group_name')} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),leading:PaydayCategoryIcon(name),onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
+    return tile(name,'${tr(context,st(c,'group_name'))} · Spent ${money(spent)} · ${b>0&&spent==b?'Fully spent':'Left ${money(b-spent)}'}',money(b),categoryTitle:true,leading:PaydayCategoryIcon(name),onTap:()=>budgetForm(d,name),tone:spent>b&&b>0?Colors.deepOrange:jade);
    }),
-   SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:Text('Add category'))
+   SizedBox(height:12),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:LText('Add category'))
   ]);
  }
  Widget savings(Map<String,List<RowData>> d){
@@ -731,19 +733,19 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Savings & goals',subtitle:'Allocations divide your savings; they never add new savings'),
    Row(children:[metric('Total saved',money(pool),Icons.account_balance_wallet_outlined),metric('Unassigned',money(pool-used),Icons.savings_outlined)]),
-   header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
+   header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
    ...goals.map((g){final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));
     final target=val(g,'target');return Card(child:Padding(padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text(st(g,'name'),style:TextStyle(fontWeight:FontWeight.w800))),IconButton(onPressed:()=>goalForm(g),icon:PaydayAppIcon(Icons.edit_outlined))]),
-    Text('${money(sum)} / ${money(target)}',style:TextStyle(color:muted)),
+    LText('${money(sum)} / ${money(target)}',style:TextStyle(color:muted)),
     SizedBox(height:9),LinearProgressIndicator(value:(sum/target).clamp(0,1).toDouble(),minHeight:8,borderRadius:BorderRadius.circular(8)),
-    SizedBox(height:5),Text('Still needed: ${money((target-sum).clamp(0,target).toInt())}'),
-    Align(alignment:Alignment.centerRight,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:PaydayAppIcon(Icons.add),label:Text('Allocate'))),
+    SizedBox(height:5),LText('Still needed: ${money((target-sum).clamp(0,target).toInt())}'),
+    Align(alignment:AlignmentDirectional.centerEnd,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:PaydayAppIcon(Icons.add),label:LText('Allocate'))),
    ])));}),
    header('Allocations for ${monthLabel(selected)}'),
-   ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?'Goal deleted':st(g,'name'),month,money(val(a,'amount')),onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
-   if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:Text('After closing the month, allocate confirmed savings to your goals.')),
-   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:PaydayAppIcon(Icons.fact_check_outlined),label:Text('Review ${monthLabel(selected)}'))
+   ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?tr(context,'Goal deleted'):st(g,'name'),month,money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
+   if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),
+   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(selected)}'))
   ]);
  }
  Widget more(Map<String,List<RowData>> d) {
@@ -760,7 +762,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     moreLink('Year overview','Income, spending and savings across the year',
       Icons.bar_chart_rounded,2,selected.year.toString()),
     SizedBox(height:15),
-    Padding(padding:EdgeInsets.all(8),child:Text(
+    Padding(padding:EdgeInsets.all(8),child:LText(
       'All your financial records stay on this device, with no Google account or internet required.',
       style:TextStyle(color:muted,fontSize:12))),
    ]);
@@ -775,7 +777,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
-    icon:PaydayAppIcon(Icons.arrow_back),label:Text('Back to More')),
+    icon:PaydayAppIcon(Icons.arrow_back),label:LText('Back to More')),
    section,
   ]);
  }
@@ -788,9 +790,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      child:PaydayAppIcon(symbol,color:jade)),
     SizedBox(width:14),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Text(name,style:TextStyle(fontWeight:FontWeight.w800,color:ink,fontSize:16)),
-     SizedBox(height:4),Text(description,style:TextStyle(color:muted,fontSize:12)),
-     SizedBox(height:7),Text(summary,style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
+     LText(name,style:TextStyle(fontWeight:FontWeight.w800,color:ink,fontSize:16)),
+     SizedBox(height:4),LText(description,style:TextStyle(color:muted,fontSize:12)),
+     SizedBox(height:7),LText(summary,style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
     ])),
     PaydayAppIcon(Icons.chevron_right,color:muted)
    ])),
@@ -798,11 +800,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Widget moreBills(Map<String,List<RowData>> d){
   final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Bills',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:Text('New'))),
+   header('Bills',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
    ...bills.where((b)=>st(b,'due').startsWith(month)).map((b){final remain=billOutstanding(val(b,'amount'),billPaid(d,b));
-    return tile(st(b,'name'),'${st(b,'due')} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
+    return tile(st(b,'name'),'${displayDay(context,st(b,'due'))} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),rawTitle:true,icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
    }),
-   if(!bills.any((b)=>st(b,'due').startsWith(month)))Padding(padding:EdgeInsets.all(8),child:Text('No bills due this month.'))
+   if(!bills.any((b)=>st(b,'due').startsWith(month)))Padding(padding:EdgeInsets.all(8),child:LText('No bills due this month.'))
   ]);
  }
  Widget moreReserves(Map<String,List<RowData>> d){
@@ -812,16 +814,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Occasional expenses',subtitle:'Real money set aside, tracked separately from spending.',
     action:IconButton.filledTonal(onPressed:()=>reserveForm(null),
-     icon:PaydayAppIcon(Icons.add),tooltip:'Create a reserve')),
+     icon:PaydayAppIcon(Icons.add),tooltip:tr(context,'Create a reserve'))),
    Card(child:Padding(padding:EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text('How reserves work',style:TextStyle(fontWeight:FontWeight.bold)),
-    SizedBox(height:8),Text('The monthly amount is a suggestion, not an automatic transfer. Tap Add money when you actually set it aside. Your recorded transfers reduce what is still needed this month.'),
-    SizedBox(height:8),Text('When paying the expense: Take out the money you use, then record the purchase as an Expense. Taking money out alone does not record spending.'),
+    LText('How reserves work',style:TextStyle(fontWeight:FontWeight.bold)),
+    SizedBox(height:8),LText('The monthly amount is a suggestion, not an automatic transfer. Tap Add money when you actually set it aside. Your recorded transfers reduce what is still needed this month.'),
+    SizedBox(height:8),LText('When paying the expense: Take out the money you use, then record the purchase as an Expense. Taking money out alone does not record spending.'),
    ]))),
-   Text('Guidance for ${monthLabel(now)}',style:TextStyle(fontWeight:FontWeight.w700)),
+   LText('Guidance for ${monthLabel(now)}',style:TextStyle(fontWeight:FontWeight.w700)),
    SizedBox(height:8),
    if(reserves.isEmpty)Card(child:Padding(padding:EdgeInsets.all(18),
-    child:Text('Create a reserve for a vacation, annual bill or future purchase. '
+    child:LText('Create a reserve for a vacation, annual bill or future purchase. '
       'Record each deposit to see progress and reduce your spendable cash.'))),
    ...reserves.map((r){
     final held=reserveFundedAt(d,r,todayMonth);
@@ -845,47 +847,47 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[Expanded(child:Text(st(r,'name'),
        style:TextStyle(color:ink,fontSize:17,fontWeight:FontWeight.w800))),
-       IconButton(onPressed:()=>reserveForm(r),tooltip:'Edit reserve goal',
+       IconButton(onPressed:()=>reserveForm(r),tooltip:tr(context,'Edit reserve goal'),
          icon:PaydayAppIcon(Icons.edit_outlined)),
       ]),
-      Text('Due ${st(r,'due')}',style:TextStyle(color:muted,fontSize:12)),
+      LText('Due ${displayDay(context,st(r,'due'))}',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:12),
-      Text('Saved',style:TextStyle(color:muted,fontSize:12)),
+      LText('Saved',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:4),
-      FittedBox(fit:BoxFit.scaleDown,alignment:Alignment.centerLeft,
-       child:Text(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:28))),
+      FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+       child:LText(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:28))),
       SizedBox(height:4),
-      Text('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:12)),
+      LText('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:14),
       LinearProgressIndicator(value:goal==0?0:(held/goal).clamp(0,1).toDouble(),
        minHeight:7,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
       SizedBox(height:8),
       Wrap(alignment:WrapAlignment.spaceBetween,spacing:16,runSpacing:4,children:[
-       Text('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:12)),
-       Text('${money(needed)} remaining',style:TextStyle(color:ink,fontWeight:FontWeight.w600,fontSize:12)),
+       LText('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:12)),
+       LText('${money(needed)} remaining',style:TextStyle(color:ink,fontWeight:FontWeight.w600,fontSize:12)),
       ]),
       SizedBox(height:14),
       Container(width:double.infinity,padding:EdgeInsets.all(12),
        decoration:BoxDecoration(color:(overdue&&needed>0?Colors.deepOrange:jade).withValues(alpha:.07),
         borderRadius:BorderRadius.circular(12)),
        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        Text(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade,fontSize:13)),
+        LText(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade,fontSize:13)),
         if(active&&!overdue&&needed>0&&next>0)...[
-         SizedBox(height:4),Text('Next month: ${money(next)} suggested',style:TextStyle(fontSize:12,color:muted)),
+         SizedBox(height:4),LText('Next month: ${money(next)} suggested',style:TextStyle(fontSize:12,color:muted)),
         ],
        ])),
       if(contributed!=0)Padding(padding:EdgeInsets.only(top:8),
-       child:Text('Net added this month: ${money(contributed)}',style:TextStyle(fontSize:12,color:muted))),
+       child:LText('Net added this month: ${money(contributed)}',style:TextStyle(fontSize:12,color:muted))),
       SizedBox(height:16),
       SizedBox(width:double.infinity,child:FilledButton.icon(
        onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
-       icon:PaydayAppIcon(Icons.add),label:Text('Add money'))),
+       icon:PaydayAppIcon(Icons.add),label:LText('Add money'))),
       SizedBox(height:4),
       Wrap(alignment:WrapAlignment.spaceBetween,spacing:12,children:[
        TextButton.icon(onPressed:held<=0?null:()=>reserveMovementForm(r,'release'),
-        icon:PaydayAppIcon(Icons.remove,size:18),label:Text('Take out')),
+        icon:PaydayAppIcon(Icons.remove,size:18),label:LText('Take out')),
        TextButton.icon(onPressed:()=>reserveHistoryForm(r),
-        icon:PaydayAppIcon(Icons.history,size:18),label:Text('History')),
+        icon:PaydayAppIcon(Icons.history,size:18),label:LText('History')),
       ]),
      ])));
    }),
@@ -898,7 +900,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    ...List.generate(12,(i){final m=monthKey(DateTime(selected.year,i+1));
     final rows=tx.where((r)=>st(r,'date').startsWith(m));
     final inc=sumType(rows,'Income'),exp=sumType(rows,'Expense'),savings=sumType(rows,'Savings out')-sumType(rows,'Savings in');
-    return Card(child:ListTile(title:Text(monthLabel(DateTime(selected.year,i+1))),subtitle:Text('Income ${money(inc)} · Spent ${money(exp)}'),trailing:Text('Saved ${money(savings)}')));
+    return Card(child:ListTile(title:LText(monthLabel(DateTime(selected.year,i+1))),subtitle:LText('Income ${money(inc)} · Spent ${money(exp)}'),trailing:LText('Saved ${money(savings)}')));
    })
   ]);
  }
@@ -920,7 +922,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }));
  Widget settingsGroup(String title,List<Widget> children)=>Column(
   crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Padding(padding:EdgeInsets.fromLTRB(4,18,4,8),child:Text(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
+   Padding(padding:EdgeInsetsDirectional.fromSTEB(4,18,4,8),child:LText(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
    Card(clipBehavior:Clip.antiAlias,child:Column(children:children)),
   ]);
  Widget appSettings(Map<String,List<RowData>> d){
@@ -930,47 +932,54 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    header('Settings',subtitle:'Make PAYDAY work your way'),
    if(preferencesSaving)LinearProgressIndicator(),
    settingsGroup('Appearance',[
-    ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:Text('Theme'),
-     subtitle:Text(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
+    ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:LText('Theme'),
+     subtitle:LText(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?appearancePicker:null),
+    ListTile(key:ValueKey('language-setting'),leading:PaydayAppIcon(Icons.translate),title:LText('Language'),
+     subtitle:Text(paydayLanguages[language]!),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:canChange?()=>openSettingsPage((_)=>LanguageSettingsPage(initial:language,onChanged:(value)async{
+      final saved=await changePreferences(widget.preferences.copyWith(language:value));
+      if(saved&&mounted){await refreshNotificationLanguage();}
+      return saved;
+     })):null),
    ]),
    settingsGroup('Reminders',[
-    ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:Text('Notifications'),
+    ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:LText('Notifications'),
      trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>openSettingsPage((_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders,reserves:reserveReminders))),
    ]),
    settingsGroup('Security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
-     title:Text('App lock'),subtitle:Text(prefs.appLock?'On':'Off'),trailing:PaydayAppIcon(Icons.chevron_right),
+     title:LText('App lock'),subtitle:LText(prefs.appLock?'On':'Off'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>openSettingsPage((_)=>SecuritySettingsPage(
       initialEnabled:widget.preferences.appLock,onChanged:widget.onPreferencesChanged==null?null:
        (value)=>changePreferences(widget.preferences.copyWith(appLock:value))))),
    ]),
    settingsGroup('Money & data',[
-    ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:Text('Currency'),
-     subtitle:Text('${paydayCurrencies[currency]} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
+    ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:LText('Currency'),
+     subtitle:LText('${tr(context,paydayCurrencies[currency]!)} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?currencyPicker:null),
-    ListTile(key:ValueKey('money-settings'),leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:Text('Money settings'),
-     subtitle:Text('Cash buffer and opening savings'),trailing:PaydayAppIcon(Icons.chevron_right),
+    ListTile(key:ValueKey('money-settings'),leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:LText('Money settings'),
+     subtitle:LText('Cash buffer and opening savings'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>settingsForm(d)),
-    ListTile(key:ValueKey('backups-setting'),leading:PaydayAppIcon(Icons.ios_share),title:Text('Backups & data'),
-     subtitle:Text(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
+    ListTile(key:ValueKey('backups-setting'),leading:PaydayAppIcon(Icons.ios_share),title:LText('Backups & data'),
+     subtitle:LText(backupDateLabel(backupReminder(d))),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>openSettingsPage((_)=>BackupSettingsPage(
       initialStatus:backupDateLabel(backupReminder(d)),
       refreshStatus:()async=>backupDateLabel(backupReminder(await data)),
       onExport:exportBackup,onRestore:importBackup))),
    ]),
    settingsGroup('Help',[
-    ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:Text('About & Help'),
+    ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:LText('About & Help'),
      trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>openSettingsPage((_)=>const AboutHelpPage())),
    ]),
   ]);
  }
  Future<void> deleteTransactionWithUndo(int id)async{
   final confirmed=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
-   title:Text('Delete this transaction?'),
-   content:Text('You can restore it using Undo while the confirmation bar is visible.'),
-   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),
-    FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Delete'))]));
+   title:LText('Delete this transaction?'),
+   content:LText('You can restore it using Undo while the confirmation bar is visible.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Delete'))]));
   if(confirmed!=true||!mounted||writing)return;
   writing=true;
   try{
@@ -989,8 +998,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   messenger.removeCurrentSnackBar();
   messenger.showSnackBar(SnackBar(
    persist:false,duration:Duration(seconds:5),
-   content:Text(retry?'Could not restore. Tap Undo to retry.':'Transaction deleted.'),
-   action:SnackBarAction(label:'Undo',onPressed:()async{
+   content:LText(retry?'Could not restore. Tap Undo to retry.':'Transaction deleted.'),
+   action:SnackBarAction(label:tr(context,'Undo'),onPressed:()async{
     if(restoring)return;
     restoring=true;
     try{
@@ -1002,7 +1011,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
 
  Future<void> confirmDelete(String title,Future<void> Function() action) async {
-  final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:Text(title),content:Text('This permanently removes the selected local record.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('Delete'))]));
+  final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:LText(title),content:LText('This permanently removes the selected local record.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Delete'))]));
   if(ok==true)await execute(action);
  }
  /// Scrollable form with a fixed action area that clears Android's system bar.
@@ -1020,13 +1029,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      child:StatefulBuilder(builder:(c,rebuild)=>Column(
       mainAxisSize:MainAxisSize.min,children:[
        Padding(padding:EdgeInsets.only(bottom:12),
-        child:Align(alignment:Alignment.centerLeft,
-         child:Row(children:[if(fullScreen)IconButton(tooltip:'Close transaction',onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:Text(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
+        child:Align(alignment:AlignmentDirectional.centerStart,
+         child:Row(children:[if(fullScreen)IconButton(tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
        Flexible(child:SingleChildScrollView(
         keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
         padding:EdgeInsets.only(bottom:footer==null?24:12),
         child:builder(c,rebuild))),
-       if(footer!=null)Padding(padding:EdgeInsets.fromLTRB(0,6,0,14),
+       if(footer!=null)Padding(padding:EdgeInsetsDirectional.fromSTEB(0,6,0,14),
         child:SizedBox(width:double.infinity,child:footer(c,rebuild))),
       ],
      )),
@@ -1036,11 +1045,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Widget field(TextEditingController c,String label,{bool number=false,int lines=1})=>Padding(padding:EdgeInsets.only(bottom:12),
   child:TextField(controller:c,maxLines:lines,keyboardType:number?TextInputType.numberWithOptions(decimal:true):TextInputType.text,
-   decoration:InputDecoration(labelText:label,isDense:true)));
+   decoration:InputDecoration(labelText:tr(context,label),isDense:true)));
  int? amount(TextEditingController c,{bool allowZero=false}){
   return parseMoneyCents(c.text,allowZero:allowZero);
  }
- void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));}
+ void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));}
  Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType}) async{
   final d=await store.snapshot();if(!mounted)return;
   final prefill=payBill==null?null:prepareBillPayment(
@@ -1059,7 +1068,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final desc=TextEditingController(text:existing==null?(prefill?.description??''):st(existing,'description'));
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
   final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
-  final amt=TextEditingController(text:existing==null?(prefill==null?'':mad(prefill.amountCents).toStringAsFixed(2)):mad(val(existing,'amount')).toStringAsFixed(2));
+  final amt=TextEditingController(text:existing==null?(prefill==null?'':inputNumber(prefill.amountCents)):inputNumber(val(existing,'amount')));
   var type=existing==null?(prefill?.type??initialType??'Expense'):st(existing,'type');
   var category=existing==null?(prefill?.category??(type=='Income'?'Salary':type.startsWith('Savings')?'Savings':'Groceries')):st(existing,'category');
   var cats=categoriesFor(type,editing:existing!=null);
@@ -1068,7 +1077,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   var submitting=false;
   var allCategories=false;
   await sheet(existing==null?(prefill==null?'New transaction':'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
-   if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:Text(
+   if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:LText(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
       style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
    Container(padding:EdgeInsets.all(4),decoration:BoxDecoration(
@@ -1081,31 +1090,31 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       onPressed:submitting?null:()=>rebuild((){
        type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=cats.contains(entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings')?
         (entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
-      }),child:Text(entry,style:TextStyle(fontSize:13,fontWeight:selected?FontWeight.w800:FontWeight.w500))));
+      }),child:LText(entry,style:TextStyle(fontSize:13,fontWeight:selected?FontWeight.w800:FontWeight.w500))));
     }).toList())),
    if(type.startsWith('Savings'))...[
     SizedBox(height:14),
     Row(children:[
      Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings out'?jade.withValues(alpha:.12):Colors.transparent,
       side:BorderSide(color:type=='Savings out'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
-      onPressed:submitting?null:()=>rebuild(()=>type='Savings out'),child:Text('Add to savings',style:TextStyle(fontSize:12)))),
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings out'),child:LText('Add to savings',style:TextStyle(fontSize:12)))),
      SizedBox(width:8),
      Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings in'?jade.withValues(alpha:.12):Colors.transparent,
       side:BorderSide(color:type=='Savings in'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
-      onPressed:submitting?null:()=>rebuild(()=>type='Savings in'),child:Text('Take from savings',style:TextStyle(fontSize:12)))),
-    ]),SizedBox(height:6),Text(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings in'),child:LText('Take from savings',style:TextStyle(fontSize:12)))),
+    ]),SizedBox(height:6),LText(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
      style:TextStyle(fontSize:12,color:muted),textAlign:TextAlign.center),
    ],
    SizedBox(height:22),
    TextField(controller:amt,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
     style:TextStyle(fontFamily:'Bricolage',fontSize:44,fontWeight:FontWeight.w800,color:jade),
-    decoration:InputDecoration(labelText:'Amount ($currency)',floatingLabelAlignment:FloatingLabelAlignment.center,
+    decoration:InputDecoration(labelText:tr(context,'Amount ($currency)'),floatingLabelAlignment:FloatingLabelAlignment.center,
      filled:false,border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
-   if(type=='Expense')Padding(padding:EdgeInsets.symmetric(vertical:10),child:Text(
+   if(type=='Expense')Padding(padding:EdgeInsets.symmetric(vertical:10),child:LText(
     budgetFor(d,monthKey(date),category)<=0?'No budget set for $category':
      '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in $category',
     textAlign:TextAlign.center,style:TextStyle(color:jade,fontWeight:FontWeight.w700))),
-   Align(alignment:Alignment.centerLeft,child:Text('Category',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18))),
+   Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){
     final ordered={category,...cats}.toList();
@@ -1115,15 +1124,15 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
        side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
       onPressed:()=>rebuild(()=>category=name),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-       PaydayCategoryIcon(name,size:32),SizedBox(height:5),Text(name,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:11,fontWeight:FontWeight.w600)),
+       PaydayCategoryIcon(name,size:32),SizedBox(height:5),LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:11,fontWeight:FontWeight.w600)),
       ])))),
      if(!allCategories&&ordered.length>7)SizedBox(width:(limits.maxWidth-24)/4,height:82,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
-      onPressed:()=>rebuild(()=>allCategories=true),child:Text('More',style:TextStyle(fontSize:11)))),
+      onPressed:()=>rebuild(()=>allCategories=true),child:LText('More',style:TextStyle(fontSize:11)))),
     ]);
    }),
-   if(type=='Income')Align(alignment:Alignment.centerLeft,child:TextButton.icon(
-    icon:PaydayAppIcon(Icons.tune_outlined),label:Text('Manage income categories'),
+   if(type=='Income')Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(
+    icon:PaydayAppIcon(Icons.tune_outlined),label:LText('Manage income categories'),
     onPressed:submitting?null:()async{
      await incomeCategoriesForm();
      final fresh=await store.snapshot();
@@ -1131,10 +1140,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       if(!cats.contains(category))category=cats.first;});
     })),
    SizedBox(height:20),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
-   Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:Text('Payment date: ${dayKey(date)}')))]),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:Text('Delete transaction',style:TextStyle(color:Colors.red)))
+   Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')))]),
+   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
-   icon:PaydayAppIcon(Icons.check_circle_outline),label:Text(submitting?'Saving…':'Save locally'),
+   icon:PaydayAppIcon(Icons.check_circle_outline),label:LText(submitting?'Saving…':'Save locally'),
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}
@@ -1156,20 +1165,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   String? error;
   await sheet('Copy last month’s budget',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text('${monthLabel(monthFromKey(plan.sourceMonth))} → ${monthLabel(monthFromKey(targetMonth))}',
+    LText('${monthLabel(monthFromKey(plan.sourceMonth))} → ${monthLabel(monthFromKey(targetMonth))}',
      style:TextStyle(fontWeight:FontWeight.bold)),
     SizedBox(height:12),
-    Text('Existing entries stay unchanged, including amounts set to zero. Only missing entries below will be added. This copies your plan, not transactions or bill payments.'),
+    LText('Existing entries stay unchanged, including amounts set to zero. Only missing entries below will be added. This copies your plan, not transactions or bill payments.'),
     SizedBox(height:12),
-    if(plan.additions.isEmpty)Text('Nothing to copy. The previous month has no missing entries to add.'),
+    if(plan.additions.isEmpty)LText('Nothing to copy. The previous month has no missing entries to add.'),
     ...plan.additions.map((r)=>Padding(padding:EdgeInsets.symmetric(vertical:8),
-     child:Row(children:[Expanded(child:Text(st(r,'category'))),SizedBox(width:8),Text(money(val(r,'amount')))]))),
-    Divider(),Text('Planned income after copy: ${money(plan.income)}'),
-    Text('Assigned after copy: ${money(plan.assigned)}'),
+     child:Row(children:[Expanded(child:LText(st(r,'category'),category:true)),SizedBox(width:8),LText(money(val(r,'amount')))]))),
+    Divider(),LText('Planned income after copy: ${money(plan.income)}'),
+    LText('Assigned after copy: ${money(plan.assigned)}'),
     SizedBox(height:8),
-    if(!plan.allowed)Text('Cannot copy: allocations exceed planned income by ${money(plan.exceededBy)}. Update this month’s income plan or reduce existing allocations, then try again.',
+    if(!plan.allowed)LText('Cannot copy: allocations exceed planned income by ${money(plan.exceededBy)}. Update this month’s income plan or reduce existing allocations, then try again.',
      style:TextStyle(color:Colors.deepOrange)),
-    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:Text(error!,style:TextStyle(color:Colors.deepOrange))),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:Colors.deepOrange))),
    ]),footer:(c,rebuild)=>FilledButton(
     onPressed:saving||!plan.allowed||plan.additions.isEmpty?null:()async{
      rebuild(()=>saving=true);
@@ -1180,30 +1189,30 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       if(mounted)inputError('Budget copied to $targetMonth. Existing entries were kept.');
      }catch(e){if(c.mounted)rebuild(()=>error=currencyMessage(e.toString()).replaceFirst('Bad state: ',''));}
      finally{if(c.mounted)rebuild(()=>saving=false);}
-    },child:Text(saving?'Copying…':'Copy budget')));
+    },child:LText(saving?'Copying…':'Copy budget')));
  }
 
  Future<void> budgetForm(Map<String,List<RowData>> d,String category)async{
   final budgetMonth=month;
   final original=budgetFor(d,budgetMonth,category);
-  final a=TextEditingController(text:mad(original).toStringAsFixed(2));
+  final a=TextEditingController(text:inputNumber(original));
   final initial=checkBudgetAssignment(rows:list(d,'budgets'),month:budgetMonth,
    category:category,proposed:original);
   var saving=false;
   Future<void> notice(BuildContext c,String title,String message)async{
-   await showDialog<void>(context:c,builder:(dialog)=>AlertDialog(title:Text(title),content:Text(message),
-    actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:Text('OK'))]));
+   await showDialog<void>(context:c,builder:(dialog)=>AlertDialog(title:LText(title),content:LText(message),
+    actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:LText('OK'))]));
   }
-  await sheet('$category · $budgetMonth',(c,rebuild)=>Column(
+  await sheet('${categoryLabel(context,category)} · $budgetMonth',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
     if(category!='Income plan')Padding(padding:EdgeInsets.only(bottom:12),
-     child:Text('Maximum total for this category: ${money(initial.maximum)}',
+     child:LText('Maximum total for this category: ${money(initial.maximum)}',
       style:TextStyle(color:muted,fontWeight:FontWeight.w600))),
     field(a,'Budget amount ($currency)',number:true),
     if(category=='Income plan')TextButton.icon(onPressed:()=>incomeCategoriesForm(),
-     icon:PaydayAppIcon(Icons.tune_outlined),label:Text('Manage income categories')),
+     icon:PaydayAppIcon(Icons.tune_outlined),label:LText('Manage income categories')),
     if(!['Income plan','Savings goal'].contains(category))TextButton.icon(
-     icon:PaydayAppIcon(Icons.delete_outline),label:Text('Delete category'),
+     icon:PaydayAppIcon(Icons.delete_outline),label:LText('Delete category'),
      onPressed:saving?null:()async{
       if(await deleteCategoryPrompt(category,budgetMonth)&&c.mounted)Navigator.pop(c);
      }),
@@ -1229,29 +1238,29 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      }finally{
       if(c.mounted)rebuild(()=>saving=false);
      }
-    },child:Text(saving?'Saving…':'Save budget')));
+    },child:LText(saving?'Saving…':'Save budget')));
  }
  Future<bool> deleteCategoryPrompt(String name,String categoryMonth)async{
   final confirmed=await showDialog<bool>(context:context,builder:(dialog)=>AlertDialog(
-   title:Text('Delete $name?'),
-   content:Text('Remove this category from new entries and clear its budget for $categoryMonth. Existing records and other months’ budgets stay unchanged.'),
-   actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:Text('Cancel')),
-    FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:Text('Delete category'))]));
+   title:LText('Delete $name?'),
+   content:LText('Remove this category from new entries and clear its budget for $categoryMonth. Existing records and other months’ budgets stay unchanged.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:LText('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:LText('Delete category'))]));
   if(confirmed!=true)return false;
   return execute(()=>store.deleteCategory(name,month:categoryMonth));
  }
  Future<void> incomeCategoriesForm()async{
   var data=await store.snapshot();if(!mounted)return;
   await sheet('Income categories',(c,rebuild)=>Column(children:[
-   Text('Add income sources or remove categories you no longer use. Existing records keep their category.'),
+   LText('Add income sources or remove categories you no longer use. Existing records keep their category.'),
    ...categoryChoices(data,'Income').where((name)=>name!='Uncategorized').map((name)=>ListTile(
-    leading:PaydayCategoryIcon(name),title:Text(name),trailing:IconButton(
-     tooltip:'Delete $name',icon:PaydayAppIcon(Icons.delete_outline),onPressed:()async{
+    leading:PaydayCategoryIcon(name),title:LText(name,category:true),trailing:IconButton(
+     tooltip:tr(context,'Delete $name'),icon:PaydayAppIcon(Icons.delete_outline),onPressed:()async{
       if(await deleteCategoryPrompt(name,month)){
        final fresh=await store.snapshot();if(c.mounted)rebuild(()=>data=fresh);
       }
      }))),
-  ]),footer:(c,rebuild)=>FilledButton.icon(icon:PaydayAppIcon(Icons.add),label:Text('Add income category'),
+  ]),footer:(c,rebuild)=>FilledButton.icon(icon:PaydayAppIcon(Icons.add),label:LText('Add income category'),
    onPressed:()async{
     await categoryForm(income:true);
     final fresh=await store.snapshot();if(c.mounted)rebuild(()=>data=fresh);
@@ -1260,22 +1269,22 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Future<void> categoryForm({bool income=false}) async{
   final name=TextEditingController();var group=income?'Income':'Essential';var saving=false;
   await sheet(income?'New income category':'New category',(c,rebuild)=>Column(children:[field(name,'Name'),
-   if(!income)DropdownButtonFormField<String>(initialValue:group,items:['Essential','Flexible'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)group=v;}),
+   if(!income)DropdownButtonFormField<String>(initialValue:group,items:['Essential','Flexible'].map((x)=>DropdownMenuItem(value:x,child:LText(x))).toList(),onChanged:(v){if(v!=null)group=v;}),
    SizedBox(height:12),FilledButton(onPressed:saving?null:()async{
     rebuild(()=>saving=true);
     final success=await execute(()=>store.addCategory(name.text,group));
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>saving=false);}}
-   },child:Text(saving?'Saving…':'Add category'))]));
+   },child:LText(saving?'Saving…':'Add category'))]));
  }
  Future<void> goalForm(RowData? existing) async{
-  final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':mad(val(existing,'target')).toStringAsFixed(2));
+  final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':inputNumber(val(existing,'target')));
   await sheet(existing==null?'Add savings goal':'Edit savings goal',(c,rebuild)=>Column(children:[field(name,'Goal name'),field(target,'Target ($currency)',number:true),
-   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Save goal'))]));
+   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save goal'))]));
  }
  Future<void> allocationForm(Map<String,List<RowData>> d,RowData goal)async{
   final remaining=totalPool(d)-allocated(d),a=TextEditingController();
   await sheet('Allocate to ${st(goal,'name')}',(c,rebuild)=>Column(children:[
-   Text('Unassigned savings: ${money(remaining)}\nAllocations are not new savings.'),
+   LText('Unassigned savings: ${money(remaining)}\nAllocations are not new savings.'),
    SizedBox(height:12),field(a,'Amount ($currency)',number:true),
    FilledButton(onPressed:()async{
     final n=amount(a);if(n==null||n>remaining)return inputError('Allocation exceeds available savings.');
@@ -1283,7 +1292,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     final closing=list(d,'month_closes').where((x)=>st(x,'month')==month&&val(x,'entries_ok')==1&&val(x,'balance_ok')==1);
     if(closing.isEmpty)return inputError('Close this month before allocating savings.');
     final saveSucceeded=await execute(()=>store.allocate(month,val(goal,'id'),n));if(saveSucceeded&&c.mounted)Navigator.pop(c);
-   },child:Text('Allocate savings'))]));
+   },child:LText('Allocate savings'))]));
  }
  Future<void> repeatBillForm(RowData bill)async{
   final due=nextBillDue(parseDay(st(bill,'due')));
@@ -1292,10 +1301,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   await sheet('Repeat next month',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
     Text(st(bill,'name'),style:TextStyle(fontWeight:FontWeight.bold,fontSize:18)),
-    SizedBox(height:12),Text('Due: ${dayKey(due)}'),
-    Text('Amount: ${money(val(bill,'amount'))}'),Text('Category: ${st(bill,'category')}'),
-    SizedBox(height:12),Text('Creates one unpaid bill using the saved details above. Payments stay with the original bill. You can edit the new bill afterward. Repeat it again next month when needed; this does not schedule automatic payments.'),
-    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:Text(error!,style:TextStyle(color:Colors.deepOrange))),
+    SizedBox(height:12),LText('Due: ${uiDay(due)}'),
+    LText('Amount: ${money(val(bill,'amount'))}'),LText('Category: ${categoryLabel(context,st(bill,'category'))}'),
+    SizedBox(height:12),LText('Creates one unpaid bill using the saved details above. Payments stay with the original bill. You can edit the new bill afterward. Repeat it again next month when needed; this does not schedule automatic payments.'),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:Colors.deepOrange))),
    ]),footer:(c,rebuild)=>FilledButton(
     onPressed:saving?null:()async{
      rebuild(()=>saving=true);
@@ -1303,17 +1312,17 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       final created=await store.repeatBill(val(bill,'id'),expected:bill);
       refresh();
       if(c.mounted)Navigator.pop(c);
-      if(mounted)inputError(created?'Unpaid bill created for ${dayKey(due)}.':'This bill was already repeated. No duplicate was created.');
+      if(mounted)inputError(created?'Unpaid bill created for ${uiDay(due)}.':'This bill was already repeated. No duplicate was created.');
      }catch(e){if(c.mounted)rebuild(()=>error=currencyMessage(e.toString()).replaceFirst('Bad state: ',''));}
      finally{if(c.mounted)rebuild(()=>saving=false);}
-    },child:Text(saving?'Creating…':'Create next month’s bill')));
+    },child:LText(saving?'Creating…':'Create next month’s bill')));
  }
 
  Future<void> billForm(RowData? existing) async {
   final code=TextEditingController(text:existing==null?'B${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}':st(existing,'code'));
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
   final note=TextEditingController(text:existing==null?'':st(existing,'note'));
-  final value=TextEditingController(text:existing==null?'':mad(val(existing,'amount')).toStringAsFixed(2));
+  final value=TextEditingController(text:existing==null?'':inputNumber(val(existing,'amount')));
   var date=existing==null?DateTime.now():parseDay(st(existing,'due'));
   var category=existing==null?'Housing':st(existing,'category');
   final d=await store.snapshot();if(!mounted)return;
@@ -1321,13 +1330,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   if(!billCategories.contains(category))category=billCategories.first;
   await sheet(existing==null?'Add a bill':'Edit bill',(c,rebuild)=>Column(children:[
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount ($currency)',number:true),field(note,'Note'),
-   DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:Text(name))).toList(),onChanged:(v){if(v!=null)category=v;}),
-   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:Text('Due: ${dayKey(date)}')),
-   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:Text('Save bill')),
+   DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:LText(name,category:true))).toList(),onChanged:(v){if(v!=null)category=v;}),
+   TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:LText('Due: ${uiDay(date)}')),
+   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save bill')),
    if(existing!=null)Column(children:[
     OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
-     icon:PaydayAppIcon(Icons.repeat),label:Text('Repeat next month')),
-    Text('Outstanding: ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))}',
+     icon:PaydayAppIcon(Icons.repeat),label:LText('Repeat next month')),
+    LText('Outstanding: ${money(billOutstanding(val(existing,'amount'),billPaid(d,existing)))}',
       style:TextStyle(color:ink,fontWeight:FontWeight.w700)),
     SizedBox(height:8),
     SizedBox(width:double.infinity,child:FilledButton.tonalIcon(
@@ -1337,11 +1346,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
        if(mounted)await transactionForm(null,payBill:existing);
       },
      icon:PaydayAppIcon(Icons.payments_outlined),
-     label:Text(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
+     label:LText(billOutstanding(val(existing,'amount'),billPaid(d,existing))==0
       ?'Bill fully paid':'Record payment'),
     )),
    ]),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:Text('Delete bill',style:TextStyle(color:Colors.red)))
+   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:LText('Delete bill',style:TextStyle(color:Colors.red)))
   ]));
  }
  Future<void> reserveMovementForm(RowData reserve,String kind) async {
@@ -1356,9 +1365,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    crossAxisAlignment:CrossAxisAlignment.start,children:[
     Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
     SizedBox(height:7),
-    Text('Currently set aside: ${money(balance)}',
+    LText('Currently set aside: ${money(balance)}',
       style:TextStyle(color:jade,fontWeight:FontWeight.bold)),
-    Text(adding?'Still needed: ${money(needed)}':
+    LText(adding?'Still needed: ${money(needed)}':
       'Money returned to spendable cash when you take it out.',
       style:TextStyle(color:muted,fontSize:12)),
     SizedBox(height:16),
@@ -1371,16 +1380,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
         firstDate:DateTime(2000),lastDate:DateTime.now());
        if(picked!=null)rebuild(()=>date=picked);
       },
-      label:Text('Transfer date: ${dayKey(date)}'),
+      label:LText('Transfer date: ${uiDay(date)}'),
      ),
     ]),
     Padding(padding:EdgeInsets.only(top:8),
-     child:Text('This is a transfer between spendable cash and your reserve, '
+     child:LText('This is a transfer between spendable cash and your reserve, '
        'not an ordinary expense. Record the actual purchase separately when it occurs.',
        style:TextStyle(color:muted,fontSize:12))),
    ]),footer:(c,rebuild)=>FilledButton.icon(
     icon:PaydayAppIcon(adding?Icons.savings_outlined:Icons.undo),
-    label:Text(adding?'Record money set aside':'Record withdrawal'),
+    label:LText(adding?'Record money set aside':'Record withdrawal'),
     onPressed:()async{
      final cents=amount(amountController);
      if(cents==null)return inputError('Enter a valid positive amount.');
@@ -1400,30 +1409,30 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    crossAxisAlignment:CrossAxisAlignment.start,children:[
     Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
     SizedBox(height:7),
-    Text('Opening funds: ${money(val(reserve,'funded'))}',
+    LText('Opening funds: ${money(val(reserve,'funded'))}',
       style:TextStyle(color:muted)),
     SizedBox(height:10),
-    if(history.isEmpty)Text('No deposits or withdrawals recorded yet.'),
+    if(history.isEmpty)LText('No deposits or withdrawals recorded yet.'),
     ...history.map((m)=>ListTile(
      contentPadding:EdgeInsets.zero,
      leading:PaydayAppIcon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
        color:st(m,'kind')=='add'?jade:amber),
-     title:Text(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
-     subtitle:Text('${st(m,'date')}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
-     trailing:Text('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
+     title:LText(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
+     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
+     trailing:LText('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
        style:TextStyle(fontWeight:FontWeight.w800,
          color:st(m,'kind')=='add'?jade:amber)),
     )),
     SizedBox(height:10),
-    Text('To correct a previous transfer, record an opposite transfer. '
+    LText('To correct a previous transfer, record an opposite transfer. '
       'This keeps a dated history of money moving in and out.',
       style:TextStyle(color:muted,fontSize:12)),
    ]));
  }
  Future<void> reserveForm(RowData? existing)async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
-  final target=TextEditingController(text:existing==null?'':mad(val(existing,'target')).toStringAsFixed(2));
-  final funded=TextEditingController(text:existing==null?'0':mad(val(existing,'funded')).toStringAsFixed(2));
+  final target=TextEditingController(text:existing==null?'':inputNumber(val(existing,'target')));
+  final funded=TextEditingController(text:existing==null?'0':inputNumber(val(existing,'funded')));
   var due=existing==null?DateTime(DateTime.now().year+1,1):parseDay(st(existing,'due'));
   var start=existing==null?DateTime.now():monthFromKey(st(existing,'start_month'));
   await sheet(existing==null?'Create a reserve':'Edit reserve target',(c,rebuild)=>Column(
@@ -1432,22 +1441,22 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    field(target,'Total target ($currency)',number:true),
    if(existing==null)field(funded,'Already put aside before using Payday ($currency)',number:true),
    if(existing!=null)Padding(padding:EdgeInsets.only(bottom:10),
-     child:Text('Original opening funds: ${money(val(existing,'funded'))}. '
+     child:LText('Original opening funds: ${money(val(existing,'funded'))}. '
       'Use Add money / Take out to record changes.',
       style:TextStyle(color:muted,fontSize:12))),
-   if(existing==null)Padding(padding:EdgeInsets.only(bottom:10),child:Text(
+   if(existing==null)Padding(padding:EdgeInsets.only(bottom:10),child:LText(
      'Opening funds are money already saved before this app. '
      'They are not deducted again from cash. New deposits must use Add money.',
      style:TextStyle(color:muted,fontSize:12))),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:due,
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>due=p);},
-    child:Text('Due: ${dayKey(due)}')),
+    child:LText('Due: ${uiDay(due)}')),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:start,
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>start=p);},
-    child:Text('Start month: ${monthKey(start)}')),
+    child:LText('Start month: ${monthLabel(start)}')),
    if(existing!=null)TextButton(onPressed:()async{
      Navigator.pop(c);await confirmDelete('Delete reserve?',()=>store.removeReserve(val(existing,'id')));
-    },child:Text('Delete reserve',style:TextStyle(color:Colors.red))),
+    },child:LText('Delete reserve',style:TextStyle(color:Colors.red))),
   ]),footer:(c,rebuild)=>FilledButton(
    onPressed:()async{
     final t=amount(target),f=amount(funded,allowZero:true);
@@ -1458,7 +1467,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      id:existing==null?null:val(existing,'id'),
      name:name.text,target:t,funded:f,due:dayKey(due),startMonth:monthKey(start)));
     if(success&&c.mounted)Navigator.pop(c);
-   },child:Text('Save reserve')),
+   },child:LText('Save reserve')),
   );
  }
  Future<void> monthCloseForm(Map<String,List<RowData>> d)async{
@@ -1471,16 +1480,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final currentMonth=DateTime(DateTime.now().year,DateTime.now().month);
   final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
   await sheet('Close ${monthLabel(selected)}',(c,rebuild)=>Column(children:[
-   Text('Estimated available extra: ${money(available)}\nOnly extra savings beyond recorded transfers should be entered.'),
-   SizedBox(height:8),CheckboxListTile(value:checked,onChanged:(v)=>rebuild(()=>checked=v??false),title:Text('All transactions checked')),
-   CheckboxListTile(value:balanced,onChanged:(v)=>rebuild(()=>balanced=v??false),title:Text('Cash balance checked')),
+   LText('Estimated available extra: ${money(available)}\nOnly extra savings beyond recorded transfers should be entered.'),
+   SizedBox(height:8),CheckboxListTile(value:checked,onChanged:(v)=>rebuild(()=>checked=v??false),title:LText('All transactions checked')),
+   CheckboxListTile(value:balanced,onChanged:(v)=>rebuild(()=>balanced=v??false),title:LText('Cash balance checked')),
    field(opening,'Opening spendable cash ($currency)',number:true),field(extra,'Extra saved ($currency)',number:true),
    FilledButton(onPressed:()async{
     if(!selected.isBefore(currentMonth))return inputError('Wait until the month ends before closing it.');
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
     if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete the checks. Extra savings cannot exceed available cash.');
     final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saveSucceeded&&c.mounted)Navigator.pop(c);
-   },child:Text('Confirm month close'))
+   },child:LText('Confirm month close'))
   ]));
  }
  Future<void> settingsForm(Map<String,List<RowData>> d)async{
@@ -1492,7 +1501,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final dir=await getTemporaryDirectory();
   final f=File('${dir.path}/payday-backup-${DateTime.now().microsecondsSinceEpoch}.json');
   await f.writeAsString(contents,flush:true);
-  return Share.shareXFiles([XFile(f.path)],text:'Payday backup — store this file privately');
+  return Share.shareXFiles([XFile(f.path)],text:tr(context,'Payday backup — store this file privately'));
  }
  Future<void> exportBackup() async{
   if(exportingBackup||restoringBackup)return;
@@ -1507,10 +1516,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    var completed=result.status==ShareResultStatus.success;
    if(result.status==ShareResultStatus.unavailable){
     completed=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
-     title:Text('Did you save the backup?'),
-     content:Text('This device cannot confirm the export. Mark it complete only if you saved the JSON file.'),
-     actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:Text('Not saved')),
-      FilledButton(onPressed:()=>Navigator.pop(c,true),child:Text('I saved it'))]))??false;
+     title:LText('Did you save the backup?'),
+     content:LText('This device cannot confirm the export. Mark it complete only if you saved the JSON file.'),
+     actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Not saved')),
+      FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('I saved it'))]))??false;
    }
    if(!completed){if(mounted)inputError('Export not confirmed. Your backup reminder stays active.');return;}
    await store.setSetting('last_backup_export',started.toIso8601String());
@@ -1550,6 +1559,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     final restored=await execute(()=>store.importJson(contents));
     if(restored&&mounted&&widget.onPreferencesChanged!=null){
      await widget.onPreferencesChanged!(await store.loadAppPreferences());
+     if(mounted)await refreshNotificationLanguage();
     }
    }
   }on FormatException catch(e){if(mounted)inputError(e.message);}
@@ -1557,6 +1567,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   finally{if(mounted)setState(()=>restoringBackup=false);}
  }
 }
+
 
 
 

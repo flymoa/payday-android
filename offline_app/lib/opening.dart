@@ -1,3 +1,4 @@
+import 'localization.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -52,7 +53,7 @@ class _PaydayOpeningState extends State<PaydayOpening>
             child: Opacity(opacity: 1 - reveal,
               child: Material(key: const ValueKey('payday-opening-overlay'),
                 color: Theme.of(context).scaffoldBackgroundColor,
-                child: Semantics(label: 'Payday. $paydaySlogan',
+                child: Semantics(label: 'Payday. ${tr(context,paydaySlogan)}',
                   child: ExcludeSemantics(child: Center(child: Transform.translate(
                     offset: const Offset(0, -24),
                     child: SizedBox(width: 280, height: 276, child: Stack(children: [
@@ -64,11 +65,11 @@ class _PaydayOpeningState extends State<PaydayOpening>
                         child: Opacity(opacity: text,
                           child: Transform.translate(offset: Offset(0, _reduced ? 0 : 8 * (1 - text)),
                             child: Column(mainAxisSize: MainAxisSize.min, children: [
-                              Text('Payday', style: TextStyle(fontFamily: 'Bricolage',
+                              LText('Payday', style: TextStyle(fontFamily: 'Bricolage',
                                 fontSize: 35, fontWeight: FontWeight.w800, letterSpacing: -1.4,
                                 color: dark ? paydaySand : paydayEmerald)),
                               const SizedBox(height: 8),
-                              FittedBox(fit: BoxFit.scaleDown, child: Text(paydaySlogan,
+                              FittedBox(fit: BoxFit.scaleDown, child: LText(paydaySlogan,
                                 maxLines: 1, style: TextStyle(fontFamily: 'DMSans', fontSize: 12,
                                   fontWeight: FontWeight.w500, color: dark ? paydaySand : paydayEmerald))),
                             ])))),
@@ -133,3 +134,4 @@ class PaydayOpeningPainter extends CustomPainter {
   @override
   bool shouldRepaint(PaydayOpeningPainter old) => old.progress != progress || old.dark != dark;
 }
+

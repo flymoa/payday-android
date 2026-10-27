@@ -1,3 +1,4 @@
+import 'localization.dart';
 import 'package:flutter/material.dart';
 import 'app_icon.dart';
 import 'backup_notifications.dart';
@@ -44,7 +45,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
   setState((){busy=true;error=null;});
   try{
    await action();await load();
-   if(success!=null&&mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(success)));
+   if(success!=null&&mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(success)));
   }on FormatException catch(e){if(mounted)setState(()=>error=e.message);}
   catch(_){if(mounted)setState(()=>error='Could not change reminders. Please try again.');}
   finally{if(mounted)setState(()=>busy=false);}
@@ -52,10 +53,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
  Future<void> chooseTiming()async{
   final current=billState;
   if(busy||current==null||widget.bills==null)return;
-  final selected=await showDialog<int>(context:context,builder:(c)=>SimpleDialog(title:const Text('Remind me'),children:[
+  final selected=await showDialog<int>(context:context,builder:(c)=>SimpleDialog(title:const LText('Remind me'),children:[
    for(final choice in billReminderChoices.entries)SimpleDialogOption(key:ValueKey('bill-timing-${choice.key}'),
     onPressed:()=>Navigator.pop(c,choice.key),child:Padding(padding:const EdgeInsets.symmetric(vertical:8),child:Row(children:[
-     const PaydayAppIcon(Icons.schedule),const SizedBox(width:12),Expanded(child:Text(choice.value)),
+     const PaydayAppIcon(Icons.schedule),const SizedBox(width:12),Expanded(child:LText(choice.value)),
      if(choice.key==current.preferences.leadDays)const PaydayAppIcon(Icons.check_circle_outline,size:20),
     ]))),
   ]));
@@ -64,10 +65,10 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
  Future<void> chooseReserveDay()async{
   final current=reserveState;
   if(busy||current==null||widget.reserves==null)return;
-  final selected=await showDialog<int>(context:context,builder:(c)=>SimpleDialog(title:const Text('Monthly reminder'),children:[
+  final selected=await showDialog<int>(context:context,builder:(c)=>SimpleDialog(title:const LText('Monthly reminder'),children:[
    for(final choice in reserveReminderChoices.entries)SimpleDialogOption(key:ValueKey('reserve-day-${choice.key}'),
     onPressed:()=>Navigator.pop(c,choice.key),child:Padding(padding:const EdgeInsets.symmetric(vertical:8),child:Row(children:[
-     const PaydayAppIcon(Icons.schedule),const SizedBox(width:12),Expanded(child:Text(choice.value)),
+     const PaydayAppIcon(Icons.schedule),const SizedBox(width:12),Expanded(child:LText(choice.value)),
      if(choice.key==current.preferences.day)const PaydayAppIcon(Icons.check_circle_outline,size:20),
     ]))),
   ]));
@@ -78,38 +79,39 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
   final billReady=billState?.preferences.enabled==true&&billState?.allowed==true;
   final reserveReady=reserveState?.preferences.enabled==true&&reserveState?.allowed==true;
   return SettingsPageScaffold(title:'Notifications',busy:busy,
-    actions:[IconButton(tooltip:'About notifications',icon:const PaydayAppIcon(Icons.info_outline,size:20),onPressed:()=>showSettingsInfo(context,'Notifications',
+    actions:[IconButton(tooltip:tr(context,'About notifications'),icon:const PaydayAppIcon(Icons.info_outline,size:20),onPressed:()=>showSettingsInfo(context,'Notifications',
      [backupNotificationExplanation,if(widget.bills!=null)billNotificationExplanation,if(widget.reserves!=null)reserveNotificationExplanation].join('\n\n')))],
     body:ListView(padding:settingsPagePadding,children:[
     if(busy||state==null&&error==null)const LinearProgressIndicator(),
     if(state!=null)Card(clipBehavior:Clip.antiAlias,child:SwitchListTile(key:const ValueKey('backup-notifications-toggle'),
-     secondary:const PaydayAppIcon(Icons.notifications_none),title:const Text('Backup reminders'),
-     subtitle:Text(state!.enabled&&!state!.allowed?'Blocked by Android':'Weekly'),
+     secondary:const PaydayAppIcon(Icons.notifications_none),title:const LText('Backup reminders'),
+     subtitle:LText(state!.enabled&&!state!.allowed?'Blocked by Android':'Weekly'),
      value:state!.enabled,onChanged:busy?null:(v)=>run(()=>widget.reminders.setEnabled(v)))),
     if(billState!=null)Card(clipBehavior:Clip.antiAlias,child:Column(children:[
-     SwitchListTile(key:const ValueKey('bill-notifications-toggle'),secondary:const PaydayAppIcon(Icons.event_note_outlined),title:const Text('Bill reminders'),
-      subtitle:Text(billState!.preferences.enabled&&!billState!.allowed?'Blocked by Android':'Unpaid bills only'),
+     SwitchListTile(key:const ValueKey('bill-notifications-toggle'),secondary:const PaydayAppIcon(Icons.event_note_outlined),title:const LText('Bill reminders'),
+      subtitle:LText(billState!.preferences.enabled&&!billState!.allowed?'Blocked by Android':'Unpaid bills only'),
       value:billState!.preferences.enabled,onChanged:busy?null:(v)=>run(()=>widget.bills!.configure(enabled:v,leadDays:billState!.preferences.leadDays))),
-     if(billState!.preferences.enabled)ListTile(key:const ValueKey('bill-reminder-timing'),leading:const PaydayAppIcon(Icons.schedule),title:const Text('Remind me'),
-      subtitle:Text('${billReminderChoices[billState!.preferences.leadDays]} · 9:00 AM'),trailing:const PaydayAppIcon(Icons.chevron_right),onTap:busy?null:chooseTiming),
+     if(billState!.preferences.enabled)ListTile(key:const ValueKey('bill-reminder-timing'),leading:const PaydayAppIcon(Icons.schedule),title:const LText('Remind me'),
+      subtitle:LText('${billReminderChoices[billState!.preferences.leadDays]} · 9:00 AM'),trailing:const PaydayAppIcon(Icons.chevron_right),onTap:busy?null:chooseTiming),
     ])),
     if(reserveState!=null)Card(clipBehavior:Clip.antiAlias,child:Column(children:[
-     SwitchListTile(key:const ValueKey('reserve-notifications-toggle'),secondary:const PaydayAppIcon(Icons.savings_outlined),title:const Text('Reserve reminders'),
-      subtitle:Text(reserveState!.preferences.enabled&&!reserveState!.allowed?'Blocked by Android':'Monthly contributions'),
+     SwitchListTile(key:const ValueKey('reserve-notifications-toggle'),secondary:const PaydayAppIcon(Icons.savings_outlined),title:const LText('Reserve reminders'),
+      subtitle:LText(reserveState!.preferences.enabled&&!reserveState!.allowed?'Blocked by Android':'Monthly contributions'),
       value:reserveState!.preferences.enabled,onChanged:busy?null:(v)=>run(()=>widget.reserves!.configure(enabled:v,day:reserveState!.preferences.day))),
-     if(reserveState!.preferences.enabled)ListTile(key:const ValueKey('reserve-reminder-day'),leading:const PaydayAppIcon(Icons.schedule),title:const Text('Remind me'),
-      subtitle:Text('${reserveReminderChoices[reserveState!.preferences.day]} · 9:00 AM'),trailing:const PaydayAppIcon(Icons.chevron_right),onTap:busy?null:chooseReserveDay),
-     if(reserveReady)TextButton(onPressed:busy?null:()=>run(widget.reserves!.sendTest,success:'Test notification sent.'),child:const Text('Test reserve reminder')),
+     if(reserveState!.preferences.enabled)ListTile(key:const ValueKey('reserve-reminder-day'),leading:const PaydayAppIcon(Icons.schedule),title:const LText('Remind me'),
+      subtitle:LText('${reserveReminderChoices[reserveState!.preferences.day]} · 9:00 AM'),trailing:const PaydayAppIcon(Icons.chevron_right),onTap:busy?null:chooseReserveDay),
+     if(reserveReady)TextButton(onPressed:busy?null:()=>run(widget.reserves!.sendTest,success:'Test notification sent.'),child:const LText('Test reserve reminder')),
     ])),
-    if(state?.allowed==false||billState?.allowed==false||reserveState?.allowed==false||error!=null)TextButton(onPressed:busy?null:()=>run(widget.reminders.openSettings),child:const Text('Android notification settings')),
+    if(state?.allowed==false||billState?.allowed==false||reserveState?.allowed==false||error!=null)TextButton(onPressed:busy?null:()=>run(widget.reminders.openSettings),child:const LText('Android notification settings')),
     if(backupReady||billReady)OutlinedButton.icon(onPressed:busy?null:()=>run(backupReady?widget.reminders.sendTest:widget.bills!.sendTest,success:'Test notification sent.'),
-     icon:const PaydayAppIcon(Icons.notifications_none),label:const Text('Send a test')),
+     icon:const PaydayAppIcon(Icons.notifications_none),label:const LText('Send a test')),
     if(error!=null)...[
-     Padding(padding:const EdgeInsets.all(12),child:Text(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
-     TextButton(onPressed:busy?null:load,child:const Text('Try again')),
+     Padding(padding:const EdgeInsets.all(12),child:LText(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
+     TextButton(onPressed:busy?null:load,child:const LText('Try again')),
     ],
    ]));
  }
 }
+
 
 

@@ -1,3 +1,5 @@
+import 'localization.dart';
+import 'app_language.dart';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -68,13 +70,18 @@ abstract class BillReminderPlatform {
  Future<void> sendTest();
 }
 
-class AndroidBillReminderPlatform implements BillReminderPlatform {
+class AndroidBillReminderPlatform implements BillReminderPlatform,NotificationLanguagePlatform {
+ String language='en';
+ @override void setLanguage(String value){final next=supportedLanguage(value);if(next!=language){language=next;_initializing=null;}}
  final plugin=FlutterLocalNotificationsPlugin();
  static bool _zonesReady=false;
  Future<void>? _initializing;
  static const channelId='payday_bill_reminders',testId=22002;
  static const details=NotificationDetails(android:AndroidNotificationDetails(channelId,'Bill reminders',
   channelDescription:'Optional reminders for unpaid PAYDAY bills',icon:'payday_notification',
+  importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
+ NotificationDetails get localizedDetails=>NotificationDetails(android:AndroidNotificationDetails(channelId,translateMessage('Bill reminders',language),
+  channelDescription:translateMessage('Optional reminders for unpaid PAYDAY bills',language),icon:'payday_notification',
   importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  AndroidFlutterLocalNotificationsPlugin? get android=>plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
  @override Future<void> initialize()async{
@@ -85,8 +92,8 @@ class AndroidBillReminderPlatform implements BillReminderPlatform {
  Future<void> _initialize()async{
   final result=await plugin.initialize(settings:const InitializationSettings(android:AndroidInitializationSettings('payday_notification')));
   if(result!=true||android==null)throw StateError('Notifications are unavailable.');
-  await android!.createNotificationChannel(const AndroidNotificationChannel(channelId,'Bill reminders',
-   description:'Optional reminders for unpaid PAYDAY bills',importance:Importance.low,playSound:false,enableVibration:false));
+  await android!.createNotificationChannel(AndroidNotificationChannel(channelId,translateMessage('Bill reminders',language),
+   description:translateMessage('Optional reminders for unpaid PAYDAY bills',language),importance:Importance.low,playSound:false,enableVibration:false));
  }
  @override Future<bool> allowed()async{
   if(await android?.areNotificationsEnabled()!=true)return false;
@@ -109,15 +116,16 @@ class AndroidBillReminderPlatform implements BillReminderPlatform {
   if(reminders.isEmpty)await plugin.cancel(id:testId);
   final existing={for(final r in pending)r.id:r.payload};
   for(final reminder in reminders){
-   if(existing[reminder.id]==reminder.payload)continue;
+   final payload=language=='en'?reminder.payload:'${reminder.payload}|$language';
+   if(existing[reminder.id]==payload)continue;
    // Clear an earlier notification with the same day ID before replacing it.
    await plugin.cancel(id:reminder.id);
-   await plugin.zonedSchedule(id:reminder.id,title:'PAYDAY',body:billNotificationBody,
-    scheduledDate:reminder.at,notificationDetails:details,payload:reminder.payload,
+   await plugin.zonedSchedule(id:reminder.id,title:'PAYDAY',body:translateMessage(billNotificationBody,language),
+    scheduledDate:reminder.at,notificationDetails:localizedDetails,payload:payload,
     androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle);
   }
  }
- @override Future<void> sendTest()=>plugin.show(id:testId,title:'PAYDAY',body:billNotificationBody,notificationDetails:details);
+ @override Future<void> sendTest()=>plugin.show(id:testId,title:'PAYDAY',body:translateMessage(billNotificationBody,language),notificationDetails:localizedDetails);
 }
 
 class BillNotificationState {
@@ -133,6 +141,13 @@ class BillReminders {
  final BillReminderPlatform platform;
  final DateTime Function() clock;
  static bool get supported=>Platform.isAndroid;
+ Future<void> _applyLanguage()async{
+  if(platform is NotificationLanguagePlatform){
+   final rows=await store.table('settings');
+   final language=rows.where((r)=>r['key']=='app_language').map((r)=>r['value']?.toString()).firstOrNull;
+   (platform as NotificationLanguagePlatform).setLanguage(supportedLanguage(language));
+  }
+ }
  Future<void> _tail=Future.value();
  Future<T> _serial<T>(Future<T> Function() operation){
   final result=_tail.then((_)=>operation());
@@ -144,16 +159,16 @@ class BillReminders {
   return planBillReminders(data:await store.billReminderSnapshot(),leadDays:days,now:clock(),location:zone);
  }
  Future<BillNotificationState> read()=>_serial(()async{
-  await platform.initialize();return BillNotificationState(preferences:await _preferences(),allowed:await platform.allowed());
+  await _applyLanguage();await platform.initialize();return BillNotificationState(preferences:await _preferences(),allowed:await platform.allowed());
  });
  Future<void> synchronize()=>_serial(()async{
-  final preferences=await _preferences();await platform.initialize();
+  final preferences=await _preferences();await _applyLanguage();await platform.initialize();
   final enabled=preferences.enabled&&await platform.allowed();
   await platform.replace(enabled?await _plan(preferences.leadDays):[]);
  });
  Future<void> configure({required bool enabled,required int leadDays})=>_serial(()async{
   if(!billReminderChoices.containsKey(leadDays))throw const FormatException('Choose a valid reminder time.');
-  final previous=await _preferences();await platform.initialize();
+  final previous=await _preferences();await _applyLanguage();await platform.initialize();
   if(enabled){
    final allowed=previous.enabled?await platform.allowed():await platform.requestPermission();
    if(!allowed)throw const FormatException('Allow bill reminders in Android notification settings first.');
@@ -167,8 +182,9 @@ class BillReminders {
   }
  });
  Future<void> sendTest()=>_serial(()async{
-  await platform.initialize();
+  await _applyLanguage();await platform.initialize();
   if(!(await _preferences()).enabled||!await platform.allowed())throw const FormatException('Enable bill reminders and allow Android notifications first.');
   await platform.sendTest();
  });
 }
+

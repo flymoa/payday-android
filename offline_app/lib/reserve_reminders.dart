@@ -1,3 +1,5 @@
+import 'localization.dart';
+import 'app_language.dart';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -81,13 +83,18 @@ abstract class ReserveReminderPlatform {
  Future<void> sendTest();
 }
 
-class AndroidReserveReminderPlatform implements ReserveReminderPlatform {
+class AndroidReserveReminderPlatform implements ReserveReminderPlatform,NotificationLanguagePlatform {
+ String language='en';
+ @override void setLanguage(String value){final next=supportedLanguage(value);if(next!=language){language=next;_initializing=null;}}
  final plugin=FlutterLocalNotificationsPlugin();
  static bool _zonesReady=false;
  Future<void>? _initializing;
  static const channelId='payday_reserve_reminders',testId=22003;
  static const details=NotificationDetails(android:AndroidNotificationDetails(channelId,'Reserve reminders',
   channelDescription:'Optional reminders for monthly Payday reserve contributions',icon:'payday_notification',
+  importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
+ NotificationDetails get localizedDetails=>NotificationDetails(android:AndroidNotificationDetails(channelId,translateMessage('Reserve reminders',language),
+  channelDescription:translateMessage('Optional reminders for monthly Payday reserve contributions',language),icon:'payday_notification',
   importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  AndroidFlutterLocalNotificationsPlugin? get android=>plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
  @override Future<void> initialize()async{
@@ -98,8 +105,8 @@ class AndroidReserveReminderPlatform implements ReserveReminderPlatform {
  Future<void> _initialize()async{
   final result=await plugin.initialize(settings:const InitializationSettings(android:AndroidInitializationSettings('payday_notification')));
   if(result!=true||android==null)throw StateError('Notifications are unavailable.');
-  await android!.createNotificationChannel(const AndroidNotificationChannel(channelId,'Reserve reminders',
-   description:'Optional reminders for monthly Payday reserve contributions',importance:Importance.low,playSound:false,enableVibration:false));
+  await android!.createNotificationChannel(AndroidNotificationChannel(channelId,translateMessage('Reserve reminders',language),
+   description:translateMessage('Optional reminders for monthly Payday reserve contributions',language),importance:Importance.low,playSound:false,enableVibration:false));
  }
  @override Future<bool> allowed()async{
   if(await android?.areNotificationsEnabled()!=true)return false;
@@ -122,15 +129,16 @@ class AndroidReserveReminderPlatform implements ReserveReminderPlatform {
   if(reminders.isEmpty)await plugin.cancel(id:testId);
   final existing={for(final r in pending)r.id:r.payload};
   for(final reminder in reminders){
-   if(existing[reminder.id]==reminder.payload)continue;
+   final payload=language=='en'?reminder.payload:'${reminder.payload}|$language';
+   if(existing[reminder.id]==payload)continue;
    // Clear an earlier notification with the same day ID before replacing it.
    await plugin.cancel(id:reminder.id);
-   await plugin.zonedSchedule(id:reminder.id,title:'Payday',body:reserveNotificationBody,
-    scheduledDate:reminder.at,notificationDetails:details,payload:reminder.payload,
+   await plugin.zonedSchedule(id:reminder.id,title:'Payday',body:translateMessage(reserveNotificationBody,language),
+    scheduledDate:reminder.at,notificationDetails:localizedDetails,payload:payload,
     androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle);
   }
  }
- @override Future<void> sendTest()=>plugin.show(id:testId,title:'Payday',body:reserveNotificationBody,notificationDetails:details);
+ @override Future<void> sendTest()=>plugin.show(id:testId,title:'Payday',body:translateMessage(reserveNotificationBody,language),notificationDetails:localizedDetails);
 }
 
 class ReserveNotificationState {
@@ -146,6 +154,13 @@ class ReserveReminders {
  final ReserveReminderPlatform platform;
  final DateTime Function() clock;
  static bool get supported=>Platform.isAndroid;
+ Future<void> _applyLanguage()async{
+  if(platform is NotificationLanguagePlatform){
+   final rows=await store.table('settings');
+   final language=rows.where((r)=>r['key']=='app_language').map((r)=>r['value']?.toString()).firstOrNull;
+   (platform as NotificationLanguagePlatform).setLanguage(supportedLanguage(language));
+  }
+ }
  Future<void> _tail=Future.value();
  Future<T> _serial<T>(Future<T> Function() operation){
   final result=_tail.then((_)=>operation());
@@ -157,16 +172,16 @@ class ReserveReminders {
   return planReserveReminders(data:await store.reserveReminderSnapshot(),day:days,now:clock(),location:zone);
  }
  Future<ReserveNotificationState> read()=>_serial(()async{
-  await platform.initialize();return ReserveNotificationState(preferences:await _preferences(),allowed:await platform.allowed());
+  await _applyLanguage();await platform.initialize();return ReserveNotificationState(preferences:await _preferences(),allowed:await platform.allowed());
  });
  Future<void> synchronize()=>_serial(()async{
-  final preferences=await _preferences();await platform.initialize();
+  final preferences=await _preferences();await _applyLanguage();await platform.initialize();
   final enabled=preferences.enabled&&await platform.allowed();
   await platform.replace(enabled?await _plan(preferences.day):[]);
  });
  Future<void> configure({required bool enabled,required int day})=>_serial(()async{
   if(!reserveReminderChoices.containsKey(day))throw const FormatException('Choose a valid reminder time.');
-  final previous=await _preferences();await platform.initialize();
+  final previous=await _preferences();await _applyLanguage();await platform.initialize();
   if(enabled){
    final allowed=previous.enabled?await platform.allowed():await platform.requestPermission();
    if(!allowed)throw const FormatException('Allow reserve reminders in Android notification settings first.');
@@ -180,9 +195,10 @@ class ReserveReminders {
   }
  });
  Future<void> sendTest()=>_serial(()async{
-  await platform.initialize();
+  await _applyLanguage();await platform.initialize();
   if(!(await _preferences()).enabled||!await platform.allowed())throw const FormatException('Enable reserve reminders and allow Android notifications first.');
   await platform.sendTest();
  });
 }
+
 
