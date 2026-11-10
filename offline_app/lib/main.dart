@@ -12,6 +12,7 @@ import 'settings_pages.dart';
 import 'settings_preferences_pages.dart';
 import 'backup_settings_page.dart';
 import 'backup_preview.dart';
+import 'restore_snapshot.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -156,12 +157,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
-class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,this.reserveReminders,
+class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,this.reserveReminders,this.restoreSnapshot,
  this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
  final BackupCipher? backupCipher;
+ final RestoreSnapshot? restoreSnapshot;
  final BackupNotifications? backupNotifications;
  final BillReminders? billReminders;
  final ReserveReminders? reserveReminders;
@@ -182,6 +184,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool exportingBackup=false;
  bool restoringBackup=false;
  BackupCipher get backupCipher=>widget.backupCipher??const BackupCipher();
+ late final RestoreSnapshot snapshots=widget.restoreSnapshot??RestoreSnapshot();
  bool preferencesSaving=false;
  final scaffoldKey=GlobalKey<ScaffoldState>();
  String get currency=>supportedCurrency(widget.preferences.currency);
@@ -966,7 +969,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      onTap:()=>openSettingsPage((_)=>BackupSettingsPage(
       initialStatus:backupDateLabel(backupReminder(d)),
       refreshStatus:()async=>backupDateLabel(backupReminder(await data)),
-      onExport:exportBackup,onRestore:importBackup))),
+      onExport:exportBackup,onRestore:importBackup,
+      loadSnapshotDate:snapshots.savedAt,onUndoRestore:undoLastRestore))),
    ]),
    settingsGroup('Help',[
     ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:LText('About & Help'),
@@ -1554,6 +1558,26 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   }catch(e){if(mounted)inputError('Backup export failed: $e');}
   finally{if(mounted)setState(()=>exportingBackup=false);}
  }
+ Future<void> applyRestoredPreferences(bool restored)async{
+  if(restored&&mounted&&widget.onPreferencesChanged!=null){
+   await widget.onPreferencesChanged!(await store.loadAppPreferences());
+   if(mounted)await refreshNotificationLanguage();
+  }
+ }
+ Future<void> undoLastRestore()async{
+  if(exportingBackup||restoringBackup)return;
+  final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+   title:LText('Undo last restore?'),
+   content:LText('This replaces all records on this phone with your data from before the last restore. Changes made since then will be lost.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Undo restore'))]));
+  if(yes!=true||!mounted)return;
+  setState(()=>restoringBackup=true);
+  try{
+   final restored=await execute(()=>revertToSnapshot(store,snapshots));
+   await applyRestoredPreferences(restored);
+  }finally{if(mounted)setState(()=>restoringBackup=false);}
+ }
  Future<void> importBackup() async{
   if(exportingBackup||restoringBackup)return;
   setState(()=>restoringBackup=true);
@@ -1577,11 +1601,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    final contents=plain;
    final yes=await confirmBackupRestore(context,preview);
    if(yes==true){
-    final restored=await execute(()=>store.importJson(contents));
-    if(restored&&mounted&&widget.onPreferencesChanged!=null){
-     await widget.onPreferencesChanged!(await store.loadAppPreferences());
-     if(mounted)await refreshNotificationLanguage();
-    }
+    final restored=await execute(()=>restoreWithSafetyCopy(store,snapshots,contents));
+    await applyRestoredPreferences(restored);
    }
   }on FormatException catch(e){if(mounted)inputError(e.message);}
   catch(_){if(mounted)inputError('Could not restore the backup. Please try again.');}

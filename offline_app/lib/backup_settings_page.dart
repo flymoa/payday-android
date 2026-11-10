@@ -4,16 +4,28 @@ import 'app_icon.dart';
 import 'settings_pages.dart';
 
 class BackupSettingsPage extends StatefulWidget{
- const BackupSettingsPage({super.key,required this.initialStatus,required this.refreshStatus,required this.onExport,required this.onRestore});
+ const BackupSettingsPage({super.key,required this.initialStatus,required this.refreshStatus,required this.onExport,required this.onRestore,this.loadSnapshotDate,this.onUndoRestore});
  final String initialStatus;
  final Future<String> Function() refreshStatus;
  final Future<void> Function() onExport,onRestore;
+ /// Optional: date of the private copy saved before the latest restore, and the action that restores it.
+ final Future<DateTime?> Function()? loadSnapshotDate;
+ final Future<void> Function()? onUndoRestore;
  @override State<BackupSettingsPage> createState()=>_BackupSettingsPageState();
 }
 class _BackupSettingsPageState extends State<BackupSettingsPage>{
  late String status=widget.initialStatus;
  bool busy=false;
  String? error;
+ DateTime? snapshotDate;
+ @override void initState(){super.initState();loadSnapshot();}
+ Future<void> loadSnapshot()async{
+  final load=widget.loadSnapshotDate;
+  if(load==null)return;
+  DateTime? value;
+  try{value=await load();}catch(_){value=null;}
+  if(mounted)setState(()=>snapshotDate=value);
+ }
  Future<void> run(Future<void> Function() action)async{
   if(busy)return;
   setState((){busy=true;error=null;});
@@ -21,6 +33,7 @@ class _BackupSettingsPageState extends State<BackupSettingsPage>{
    await action();
    final next=await widget.refreshStatus();
    if(mounted)setState(()=>status=next);
+   await loadSnapshot();
   }catch(_){if(mounted)setState(()=>error='Could not refresh backup status. Please try again.');}
   finally{if(mounted)setState(()=>busy=false);}
  }
@@ -35,6 +48,13 @@ class _BackupSettingsPageState extends State<BackupSettingsPage>{
    const SizedBox(height:8),
    OutlinedButton.icon(key:const ValueKey('restore-backup'),onPressed:busy?null:()=>run(widget.onRestore),
     icon:const PaydayAppIcon(Icons.file_open),label:const LText('Restore')),
+   if(widget.onUndoRestore!=null&&snapshotDate!=null)...[
+    const SizedBox(height:24),
+    OutlinedButton.icon(key:const ValueKey('undo-restore'),onPressed:busy?null:()=>run(widget.onUndoRestore!),
+     icon:const PaydayAppIcon(Icons.undo),label:const LText('Undo last restore')),
+    Padding(padding:const EdgeInsets.only(top:8),child:LText('Saved before your last restore: ${localizedDay(snapshotDate!.toLocal(),languageOf(context))}',
+     style:Theme.of(context).textTheme.bodySmall)),
+   ],
    if(error!=null)Padding(padding:const EdgeInsets.only(top:16),child:LText(error!,style:TextStyle(color:Theme.of(context).colorScheme.error))),
   ]));
 }
