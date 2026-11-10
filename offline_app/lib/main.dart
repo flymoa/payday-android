@@ -1279,7 +1279,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Future<void> goalForm(RowData? existing) async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':inputNumber(val(existing,'target')));
   await sheet(existing==null?'Add savings goal':'Edit savings goal',(c,rebuild)=>Column(children:[field(name,'Goal name'),field(target,'Target ($currency)',number:true),
-   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save goal'))]));
+   FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save goal')),
+   if(existing!=null)Padding(padding:EdgeInsets.only(top:8),child:TextButton(onPressed:()async{
+    final ok=await showDialog<bool>(context:c,builder:(dialog)=>AlertDialog(
+     title:LText('Delete this goal and its allocations?'),
+     content:LText('Money allocated to this goal returns to unassigned savings.'),
+     actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:LText('Cancel')),
+      FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:LText('Delete'))]));
+    if(ok!=true||!c.mounted)return;
+    final deleted=await execute(()=>store.deleteGoal(val(existing,'id')));if(deleted&&c.mounted)Navigator.pop(c);
+   },child:LText('Delete goal')))]));
  }
  Future<void> allocationForm(Map<String,List<RowData>> d,RowData goal)async{
   final remaining=totalPool(d)-allocated(d),a=TextEditingController();
@@ -1479,6 +1488,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final inc=sumType(ts,'Income'),spent=sumType(ts,'Expense'),saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final currentMonth=DateTime(DateTime.now().year,DateTime.now().month);
   final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
+  final closedNow=val(current,'entries_ok')==1&&val(current,'balance_ok')==1;
   await sheet('Close ${monthLabel(selected)}',(c,rebuild)=>Column(children:[
    LText('Estimated available extra: ${money(available)}\nOnly extra savings beyond recorded transfers should be entered.'),
    SizedBox(height:8),CheckboxListTile(value:checked,onChanged:(v)=>rebuild(()=>checked=v??false),title:LText('All transactions checked')),
@@ -1489,7 +1499,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
     if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete the checks. Extra savings cannot exceed available cash.');
     final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saveSucceeded&&c.mounted)Navigator.pop(c);
-   },child:LText('Confirm month close'))
+   },child:LText('Confirm month close')),
+   if(closedNow)Padding(padding:EdgeInsets.only(top:8),child:TextButton(onPressed:()async{
+    final reopened=await execute(()=>store.reopenMonth(month));if(reopened&&c.mounted)Navigator.pop(c);
+   },child:LText('Reopen month')))
   ]));
  }
  Future<void> settingsForm(Map<String,List<RowData>> d)async{
@@ -1499,6 +1512,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Future<ShareResult> shareBackupFile(String contents)async{
   final dir=await getTemporaryDirectory();
+  // Remove leftovers from earlier exports. The current file is not deleted right
+  // after sharing because the receiving app may still be reading it.
+  try{
+   await for(final entity in dir.list()){
+    final name=entity.path.split(Platform.pathSeparator).last;
+    if(entity is File&&name.startsWith('payday-backup-')&&name.endsWith('.json')){await entity.delete();}
+   }
+  }catch(_){}
   final f=File('${dir.path}/payday-backup-${DateTime.now().microsecondsSinceEpoch}.json');
   await f.writeAsString(contents,flush:true);
   return Share.shareXFiles([XFile(f.path)],text:tr(context,'Payday backup — store this file privately'));

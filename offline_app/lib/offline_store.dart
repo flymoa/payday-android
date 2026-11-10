@@ -66,25 +66,75 @@ class OfflineStore {
   for(final tableName in localTables) {result[tableName]=await table(tableName);}
   return result;
  }
+ static const closedMonthMessage='This month is closed. Reopen it before changing its transactions.';
+ static String _monthOf(Object? date){final text=date?.toString()??'';return text.length>=7?text.substring(0,7):text;}
+ /// A month is closed once both review checks were confirmed (same rule as the UI).
+ /// Minimal databases without the month_closes table are treated as open.
+ static Future<bool> monthIsClosed(DatabaseExecutor executor,String month)async{
+  try{
+   final rows=await executor.query('month_closes',columns:['month'],
+    where:'month=? AND entries_ok=1 AND balance_ok=1',whereArgs:[month],limit:1);
+   return rows.isNotEmpty;
+  }on DatabaseException catch(e){
+   if(e.toString().contains('no such table'))return false;
+   rethrow;
+  }
+ }
+ static Future<void> _requireOpenMonths(DatabaseExecutor executor,Iterable<Object?> dates)async{
+  for(final month in dates.map(_monthOf).toSet()){
+   if(await monthIsClosed(executor,month))throw StateError(closedMonthMessage);
+  }
+ }
+ /// Savings pool as the Savings screen shows it, read inside the caller's transaction.
+ static Future<int> _savingsPool(DatabaseExecutor executor)async{
+  final opening=await executor.query('settings',columns:['value'],where:'key=?',whereArgs:['opening_savings']);
+  final net=Sqflite.firstIntValue(await executor.rawQuery(
+   "SELECT COALESCE(SUM(CASE WHEN type='Savings out' THEN amount WHEN type='Savings in' THEN -amount ELSE 0 END),0) FROM transactions"))??0;
+  final extra=Sqflite.firstIntValue(await executor.rawQuery(
+   'SELECT COALESCE(SUM(extra),0) FROM month_closes WHERE entries_ok=1 AND balance_ok=1'))??0;
+  return savingsPool(opening:int.tryParse(opening.firstOrNull?['value']?.toString()??'')??0,
+   transferredOut:net>0?net:0,transferredIn:net<0?-net:0,confirmedExtra:extra);
+ }
+ static Future<int> _allocatedTotal(DatabaseExecutor executor)async=>
+  Sqflite.firstIntValue(await executor.rawQuery('SELECT COALESCE(SUM(amount),0) FROM allocations'))??0;
  Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId}) async{
   if(!['Income','Expense','Savings out','Savings in'].contains(type) || amount<=0)throw ArgumentError('Invalid entry');
   final values={'date':date,'type':type,'category':category,'amount':amount,'description':description,'note':note,'bill_id':billId};
   final d=await db;
-  if(id==null){await d.insert('transactions',values);}else{await d.update('transactions',values,where:'id=?',whereArgs:[id]);}
+  await d.transaction((txn)async{
+   final dates=<Object?>[date];
+   if(id!=null){
+    final old=await txn.query('transactions',columns:['date'],where:'id=?',whereArgs:[id]);
+    if(old.isNotEmpty)dates.add(old.first['date']);
+   }
+   await _requireOpenMonths(txn,dates);
+   if(id==null){await txn.insert('transactions',values);}else{await txn.update('transactions',values,where:'id=?',whereArgs:[id]);}
+  });
  }
- Future<void> removeTransaction(int id) async => (await db).delete('transactions',where:'id=?',whereArgs:[id]);
+ Future<void> removeTransaction(int id) async {
+  await (await db).transaction((txn)async{
+   final rows=await txn.query('transactions',columns:['date'],where:'id=?',whereArgs:[id]);
+   if(rows.isEmpty)return;
+   await _requireOpenMonths(txn,[rows.first['date']]);
+   await txn.delete('transactions',where:'id=?',whereArgs:[id]);
+  });
+ }
  /// Capture the actual saved row in the same transaction as deletion.
  Future<Map<String,Object?>?> deleteTransactionForUndo(int id)async{
   return (await db).transaction((txn)async{
    final rows=await txn.query('transactions',where:'id=?',whereArgs:[id]);
    if(rows.isEmpty)return null;
+   await _requireOpenMonths(txn,[rows.single['date']]);
    await txn.delete('transactions',where:'id=?',whereArgs:[id]);
    return Map<String,Object?>.from(rows.single);
   });
  }
  Future<void> restoreDeletedTransaction(Map<String,Object?> row)async{
-  // Abort on an occupied ID: never replace a newer or restored record.
-  await (await db).insert('transactions',row,conflictAlgorithm:ConflictAlgorithm.abort);
+  await (await db).transaction((txn)async{
+   await _requireOpenMonths(txn,[row['date']]);
+   // Abort on an occupied ID: never replace a newer or restored record.
+   await txn.insert('transactions',row,conflictAlgorithm:ConflictAlgorithm.abort);
+  });
  }
  Future<BudgetAssignmentCheck> setBudget(String month,String category,int cents)async{
   if(cents<0||cents>100000000000)throw ArgumentError('Invalid budget amount');
@@ -123,7 +173,22 @@ class OfflineStore {
  }
  Future<void> allocate(String month,int goalId,int amount) async {
   if(amount<=0)throw ArgumentError('Invalid allocation');
-  await (await db).insert('allocations',{'month':month,'goal_id':goalId,'amount':amount});
+  // Every rule is re-checked inside the write transaction, so a stale form or a
+  // quick double tap cannot allocate money that is not there.
+  await (await db).transaction((txn)async{
+   final goals=Sqflite.firstIntValue(await txn.rawQuery('SELECT COUNT(*) FROM goals WHERE id=?',[goalId]))??0;
+   if(goals==0)throw StateError('This savings goal no longer exists.');
+   if(!await monthIsClosed(txn,month))throw StateError('Close this month before allocating savings.');
+   if(amount>await _savingsPool(txn)-await _allocatedTotal(txn))throw StateError('Allocation exceeds available savings.');
+   await txn.insert('allocations',{'month':month,'goal_id':goalId,'amount':amount});
+  });
+ }
+ /// Removes the goal and its allocations; that money returns to unassigned savings.
+ Future<void> deleteGoal(int id)async{
+  await (await db).transaction((txn)async{
+   await txn.delete('allocations',where:'goal_id=?',whereArgs:[id]);
+   await txn.delete('goals',where:'id=?',whereArgs:[id]);
+  });
  }
  Future<void> deleteAllocation(int id) async => (await db).delete('allocations',where:'id=?',whereArgs:[id]);
  Future<void> saveBill({int? id,required String code,required String name,required String due,required int amount,required String category,required String note}) async{
@@ -239,10 +304,28 @@ class OfflineStore {
  }
  Future<void> saveMonthClose(String month,{required bool entriesOk,required bool balanceOk,required int extra,required int openingBalance}) async {
   if(extra<0)throw ArgumentError('Invalid savings');
-  await (await db).insert('month_closes',{
+  await (await db).transaction((txn)async{
+   await txn.insert('month_closes',{
     'month':month,'entries_ok':entriesOk?1:0,'balance_ok':balanceOk?1:0,
     'extra':extra,'opening_balance':openingBalance
-  }, conflictAlgorithm:ConflictAlgorithm.replace);
+   }, conflictAlgorithm:ConflictAlgorithm.replace);
+   // Lowering confirmed extra savings must not leave goals over-allocated.
+   if(await _allocatedTotal(txn)>await _savingsPool(txn)){
+    throw StateError('Extra savings cannot be lower than money already allocated to goals.');
+   }
+  });
+ }
+ /// Unlocks a closed month. Its entered values stay available for the next close.
+ Future<void> reopenMonth(String month)async{
+  await (await db).transaction((txn)async{
+   if(!await monthIsClosed(txn,month))return;
+   final allocations=Sqflite.firstIntValue(await txn.rawQuery('SELECT COUNT(*) FROM allocations WHERE month=?',[month]))??0;
+   if(allocations>0)throw StateError('Remove this month\'s allocations before reopening it.');
+   await txn.update('month_closes',{'entries_ok':0,'balance_ok':0},where:'month=?',whereArgs:[month]);
+   if(await _allocatedTotal(txn)>await _savingsPool(txn)){
+    throw StateError('Reopening would leave more allocated than your savings. Remove an allocation first.');
+   }
+  });
  }
  Future<void> setSetting(String key,String value) async =>
    (await db).insert('settings',{'key':key,'value':value},conflictAlgorithm:ConflictAlgorithm.replace);

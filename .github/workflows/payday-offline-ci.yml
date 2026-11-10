@@ -128,7 +128,7 @@ jobs:
         with:
           name: payday-local-offline-v1-apk
           path: offline_app/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
+          retention-days: 5
 
       - name: Remove temporary signing key
         if: always()
