@@ -4,13 +4,14 @@ import 'app_icon.dart';
 import 'settings_pages.dart';
 
 class BackupSettingsPage extends StatefulWidget{
- const BackupSettingsPage({super.key,required this.initialStatus,required this.refreshStatus,required this.onExport,required this.onRestore,this.loadSnapshotDate,this.onUndoRestore});
+ const BackupSettingsPage({super.key,required this.initialStatus,required this.refreshStatus,required this.onExport,required this.onRestore,this.loadSnapshotDate,this.onUndoRestore,this.onExportCsv});
  final String initialStatus;
  final Future<String> Function() refreshStatus;
  final Future<void> Function() onExport,onRestore;
  /// Optional: date of the private copy saved before the latest restore, and the action that restores it.
  final Future<DateTime?> Function()? loadSnapshotDate;
  final Future<void> Function()? onUndoRestore;
+ final Future<void> Function()? onExportCsv;
  @override State<BackupSettingsPage> createState()=>_BackupSettingsPageState();
 }
 class _BackupSettingsPageState extends State<BackupSettingsPage>{
@@ -45,6 +46,9 @@ class _BackupSettingsPageState extends State<BackupSettingsPage>{
    Padding(padding:const EdgeInsets.only(bottom:20),child:LText(status,style:const TextStyle(fontWeight:FontWeight.w700))),
    OutlinedButton.icon(key:const ValueKey('export-backup'),onPressed:busy?null:()=>run(widget.onExport),
     icon:const PaydayAppIcon(Icons.ios_share),label:const LText('Export backup')),
+   if(widget.onExportCsv!=null)...[const SizedBox(height:8),
+    OutlinedButton.icon(key:const ValueKey('export-csv'),onPressed:busy?null:()=>run(widget.onExportCsv!),
+     icon:const PaydayAppIcon(Icons.table_chart_outlined),label:const LText('Export transactions (CSV)'))],
    const SizedBox(height:8),
    OutlinedButton.icon(key:const ValueKey('restore-backup'),onPressed:busy?null:()=>run(widget.onRestore),
     icon:const PaydayAppIcon(Icons.file_open),label:const LText('Restore')),

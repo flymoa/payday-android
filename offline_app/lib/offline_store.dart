@@ -28,10 +28,16 @@ class OfflineStore {
   await d.execute('CREATE INDEX ix_reserve_movements_date ON reserve_movements(date)');
   await d.execute('CREATE INDEX ix_reserve_movements_reserve ON reserve_movements(reserve_id)');
  }
+ /// Indexes only: no table or backup format change.
+ static Future<void> createLookupIndexes(DatabaseExecutor d)async{
+  await d.execute('CREATE INDEX IF NOT EXISTS ix_transactions_type_bill ON transactions(type,bill_id)');
+  await d.execute('CREATE INDEX IF NOT EXISTS ix_allocations_goal ON allocations(goal_id)');
+  await d.execute('CREATE INDEX IF NOT EXISTS ix_allocations_month ON allocations(month)');
+ }
  Future<Database> get db async {
   if (_database!=null) return _database!;
   final root = await getDatabasesPath();
-  _database=await openDatabase(path.join(root,'payday_local_v1.db'),version:2,onCreate:(d,v) async {
+  _database=await openDatabase(path.join(root,'payday_local_v1.db'),version:3,onCreate:(d,v) async {
    await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "")');
    await d.execute('CREATE INDEX ix_transactions_date ON transactions(date)');
    await d.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month, category))');
@@ -42,6 +48,7 @@ class OfflineStore {
    await d.execute('CREATE TABLE month_closes(month TEXT PRIMARY KEY, entries_ok INTEGER NOT NULL DEFAULT 0, balance_ok INTEGER NOT NULL DEFAULT 0, extra INTEGER NOT NULL DEFAULT 0, opening_balance INTEGER NOT NULL DEFAULT 0)');
    await d.execute('CREATE TABLE reserves(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, target INTEGER NOT NULL, funded INTEGER NOT NULL DEFAULT 0, due TEXT NOT NULL, start_month TEXT NOT NULL)');
    await createReserveMovements(d);
+   await createLookupIndexes(d);
    await d.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
    final batch=d.batch();
    for(final c in defaultCategories.entries) { batch.insert('categories',{'name':c.key,'group_name':c.value}); }
@@ -54,6 +61,7 @@ class OfflineStore {
    await batch.commit(noResult:true);
   },onUpgrade:(d,oldVersion,newVersion) async {
    if(oldVersion<2)await createReserveMovements(d);
+   if(oldVersion<3)await createLookupIndexes(d);
   });
   return _database!;
  }

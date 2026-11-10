@@ -13,6 +13,7 @@ import 'settings_preferences_pages.dart';
 import 'backup_settings_page.dart';
 import 'backup_preview.dart';
 import 'restore_snapshot.dart';
+import 'csv_export.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -535,6 +536,22 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    savingsGap:(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt(),
    reserveHold:monthlyReserves(d),buffer:buffer(d));
  }
+ List<Widget> spendingBreakdown(Map<String,List<RowData>> d,MonthlyReview review){
+  final total=review.spending.values.fold<int>(0,(n,v)=>n+v);
+  if(total<=0)return const [];
+  final previous=MonthlyReview(monthTransactionsFor(d,monthKey(DateTime(selected.year,selected.month-1)))).spending;
+  return review.rankedCategories.map((c){
+   final spent=review.spending[c]!,before=previous[c]??0,share=spent/total;
+   final change=before<=0?'New this month':spent>=before?'+${money(spent-before)} vs last month':'−${money(before-spent)} vs last month';
+   return Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
+     LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
+    SizedBox(height:5),
+    LinearProgressIndicator(value:share,minHeight:8,borderRadius:BorderRadius.circular(8)),
+    SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:12)),
+   ]));
+  }).toList();
+ }
  Widget monthlyReview(Map<String,List<RowData>> d){
   final balance=monthlyBalance(d);
   final tx=monthTransactions(d);
@@ -570,8 +587,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:Colors.deepOrange)),
    ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
    if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
-   header('Largest spending categories'),
-   ...review.rankedCategories.take(3).map((c)=>tile(c,'Recorded expenses',money(review.spending[c]!),categoryTitle:true,icon:Icons.pie_chart_outline)),
+   header('Spending by category'),
+   ...spendingBreakdown(d,review),
    if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending recorded.')),
    SizedBox(height:12),LText('Review your records and compare with your actual cash or bank balance. This summary does not verify that every transaction has been entered.'),
    SizedBox(height:12),SizedBox(width:double.infinity,child:FilledButton.icon(
@@ -970,7 +987,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       initialStatus:backupDateLabel(backupReminder(d)),
       refreshStatus:()async=>backupDateLabel(backupReminder(await data)),
       onExport:exportBackup,onRestore:importBackup,
-      loadSnapshotDate:snapshots.savedAt,onUndoRestore:undoLastRestore))),
+      loadSnapshotDate:snapshots.savedAt,onUndoRestore:undoLastRestore,onExportCsv:exportCsv))),
    ]),
    settingsGroup('Help',[
     ListTile(key:ValueKey('about-help-setting'),leading:PaydayAppIcon(Icons.info_outline),title:LText('About & Help'),
@@ -1557,6 +1574,25 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    if(mounted)inputError('Password-protected backup exported. Keep the file and password safe.');
   }catch(e){if(mounted)inputError('Backup export failed: $e');}
   finally{if(mounted)setState(()=>exportingBackup=false);}
+ }
+ Future<void> exportCsv()async{
+  if(exportingBackup||restoringBackup)return;
+  final yes=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(
+   title:LText('Export transactions as CSV?'),
+   content:LText('The CSV file is not password protected and cannot be restored into Payday. Use a password-protected backup to keep your records safe.'),
+   actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),
+    FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Export CSV'))]));
+  if(yes!=true||!mounted)return;
+  try{
+   final dir=await getTemporaryDirectory();
+   await for(final e in dir.list()){
+    final name=e.path.split(Platform.pathSeparator).last;
+    if(e is File&&name.startsWith('payday-transactions-')&&name.endsWith('.csv'))await e.delete();
+   }
+   final f=File('${dir.path}/payday-transactions-${dayKey(DateTime.now())}.csv');
+   await f.writeAsString(transactionsCsv(await store.table('transactions')),flush:true);
+   await Share.shareXFiles([XFile(f.path,mimeType:'text/csv')]);
+  }catch(e){if(mounted)inputError('CSV export failed: $e');}
  }
  Future<void> applyRestoredPreferences(bool restored)async{
   if(restored&&mounted&&widget.onPreferencesChanged!=null){
