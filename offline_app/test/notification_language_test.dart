@@ -35,7 +35,9 @@ void main(){
   debugDefaultTargetPlatformOverride=TargetPlatform.android;AndroidFlutterLocalNotificationsPlugin.registerWith();
   addTearDown(()=>debugDefaultTargetPlatformOverride=null);
   const channel=MethodChannel('dexterous.com/flutter/local_notifications');final calls=<MethodCall>[];
-  final zone=tz.getLocation('Africa/Casablanca');final reminder=BillReminder(at:tz.TZDateTime(zone,2026,11,10,9));
+  final zone=tz.getLocation('Africa/Casablanca');// The plugin rejects past dates using the real clock, so schedule well ahead of today.
+  final ahead=tz.TZDateTime.now(zone).add(const Duration(days:30));
+  final reminder=BillReminder(at:tz.TZDateTime(zone,ahead.year,ahead.month,ahead.day,9));
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,(call)async{
    calls.add(call);if(call.method=='pendingNotificationRequests')return [{'id':reminder.id,'title':'PAYDAY','body':billNotificationBody,'payload':reminder.payload}];
    if(call.method=='getActiveNotifications')return <Map<String,Object?>>[];return true;
