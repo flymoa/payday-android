@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'app_preferences.dart';
 import 'finance.dart';
+import 'recurring.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
 
@@ -333,6 +334,43 @@ class OfflineStore {
    if(await _allocatedTotal(txn)>await _savingsPool(txn)){
     throw StateError('Reopening would leave more allocated than your savings. Remove an allocation first.');
    }
+  });
+ }
+ Future<List<RecurringRule>> recurringRules()async{
+  final rows=await (await db).query('settings',where:'key=?',whereArgs:[recurringSettingKey]);
+  return decodeRules(rows.firstOrNull?['value']?.toString());
+ }
+ Future<void> saveRecurringRules(List<RecurringRule> rules)async{
+  if(rules.any((r)=>!r.valid))throw ArgumentError('Invalid recurring entry');
+  await setSetting(recurringSettingKey,encodeRules(rules));
+ }
+ /// Creates due recurring transactions and records progress in one transaction,
+ /// so a crash or a second call can never create duplicates. Returns the count.
+ Future<int> applyRecurring(DateTime now)async{
+  return (await db).transaction((txn)async{
+   final rows=await txn.query('settings',where:'key=?',whereArgs:[recurringSettingKey]);
+   final rules=decodeRules(rows.firstOrNull?['value']?.toString());
+   if(rules.isEmpty)return 0;
+   final closed=(await txn.query('month_closes',columns:['month'],where:'entries_ok=1 AND balance_ok=1'))
+    .map((r)=>r['month'].toString()).toSet();
+   final due=dueRecurringEntries(rules,now,closed);
+   final lastByRule=<String,String>{};
+   for(final e in due){
+    await txn.insert('transactions',{'date':e.date,'type':e.rule.type,'category':e.rule.category,
+     'description':e.rule.description,'amount':e.rule.amount,'note':'Recurring','bill_id':''});
+   }
+   // Advance every rule to the last month that is due (including skipped closed months).
+   final today=monthKey(now);
+   for(final r in rules){
+    final todayDay=dayKey(now),thisMonthDate=dayKey(DateTime(now.year,now.month,r.day));
+    final through=thisMonthDate.compareTo(todayDay)<=0?today:monthKey(DateTime(now.year,now.month-1));
+    if(through.compareTo(r.start)>=0&&(r.last==null||through.compareTo(r.last!)>0))lastByRule[r.id]=through;
+   }
+   if(lastByRule.isNotEmpty){
+    await txn.insert('settings',{'key':recurringSettingKey,'value':encodeRules(rules.map((r)=>lastByRule.containsKey(r.id)?r.withLast(lastByRule[r.id]!):r).toList())},
+     conflictAlgorithm:ConflictAlgorithm.replace);
+   }
+   return due.length;
   });
  }
  Future<void> setSetting(String key,String value) async =>

@@ -8,7 +8,7 @@ on:
       - '.github/workflows/payday-offline-ci.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-local:
     runs-on: ubuntu-latest
@@ -129,6 +129,21 @@ jobs:
           name: payday-local-offline-v1-apk
           path: offline_app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 5
+
+      - name: Publish phone download (rolling pre-release)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=payday-local-latest
+          cp offline_app/build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/payday-local.apk"
+          gh release delete "$tag" --cleanup-tag --yes -R "$GITHUB_REPOSITORY" || true
+          gh release create "$tag" "$RUNNER_TEMP/payday-local.apk" -R "$GITHUB_REPOSITORY" \
+            --target "${{ github.event.pull_request.head.sha || github.sha }}" --prerelease \
+            --title "Payday Local — latest test build" \
+            --notes "Built from ${{ github.head_ref || github.ref_name }} @ ${{ github.event.pull_request.head.sha || github.sha }}. Signed with the permanent PAYDAY key: install over the existing app, do not uninstall."
 
       - name: Remove temporary signing key
         if: always()

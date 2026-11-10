@@ -14,6 +14,7 @@ import 'backup_settings_page.dart';
 import 'backup_preview.dart';
 import 'restore_snapshot.dart';
 import 'csv_export.dart';
+import 'recurring.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -213,14 +214,23 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  final purchase=TextEditingController(text:'200');
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
+  unawaited(runRecurring());
   unawaited(syncBillReminders());
   unawaited(syncReserveReminders());
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
   if(state==AppLifecycleState.resumed){
+   unawaited(runRecurring());
    unawaited(syncBillReminders());
    unawaited(syncReserveReminders());
   }
+ }
+ Future<void> runRecurring()async{
+  if(widget.initialData!=null)return; // test screens with fixed data
+  try{
+   final created=await store.applyRecurring(DateTime.now());
+   if(created>0&&mounted){refresh();inputError('$created recurring entries added.');}
+  }catch(_){}
  }
  Future<void> syncBillReminders()async{
   if(!mounted||!BillReminders.supported&&widget.billReminders==null)return;
@@ -781,6 +791,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       Icons.fact_check_outlined,4,monthLabel(selected)),
     moreLink('Year overview','Income, spending and savings across the year',
       Icons.bar_chart_rounded,2,selected.year.toString()),
+    moreLink('Recurring entries','Salary, rent and subscriptions added automatically each month',
+      Icons.repeat,5,decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString()).length.toString()+' active'),
     SizedBox(height:15),
     Padding(padding:EdgeInsets.all(8),child:LText(
       'All your financial records stay on this device, with no Google account or internet required.',
@@ -793,6 +805,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    case 1:section=moreReserves(d);break;
    case 2:section=moreYear(d);break;
    case 4:section=monthlyReview(d);break;
+   case 5:section=moreRecurring(d);break;
    default:section=const SizedBox.shrink();
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -817,6 +830,58 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     PaydayAppIcon(Icons.chevron_right,color:muted)
    ])),
   ));
+ List<RecurringRule> rulesOf(Map<String,List<RowData>> d)=>decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString());
+ Widget moreRecurring(Map<String,List<RowData>> d){
+  final rules=rulesOf(d);
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   header('Recurring entries',subtitle:'Added on their day each month when you open Payday. Closed months are skipped.',
+    action:FilledButton.tonalIcon(onPressed:()=>recurringForm(d,null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
+   ...rules.map((r)=>tile(r.description.isEmpty?categoryLabel(context,r.category):r.description,
+    '${tr(context,r.type)} · ${tr(context,'Day')} ${r.day}',money(r.amount),rawTitle:true,icon:Icons.repeat,onTap:()=>recurringForm(d,r))),
+   if(rules.isEmpty)Padding(padding:EdgeInsets.all(8),child:LText('No recurring entries yet. Add your salary or a subscription.')),
+  ]);
+ }
+ Future<void> recurringForm(Map<String,List<RowData>> d,RecurringRule? existing)async{
+  var type=existing?.type??'Expense';
+  var cats=categoryChoices(d,type);
+  var category=existing?.category??(cats.isEmpty?'Other':cats.first);
+  var day=existing?.day??1;
+  final desc=TextEditingController(text:existing?.description??'');
+  final amt=TextEditingController(text:existing==null?'':inputNumber(existing.amount));
+  Future<void> saveAll(List<RecurringRule> rules,BuildContext c)async{
+   final ok=await execute(()=>store.saveRecurringRules(rules));
+   if(ok){await runRecurring();if(c.mounted)Navigator.pop(c);}
+  }
+  await sheet(existing==null?'New recurring entry':'Edit recurring entry',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+   DropdownButtonFormField<String>(initialValue:type,decoration:InputDecoration(labelText:tr(context,'Type')),
+    items:['Expense','Income','Savings out','Savings in'].map((v)=>DropdownMenuItem(value:v,child:LText(v))).toList(),
+    onChanged:(v){if(v==null)return;rebuild((){type=v;cats=categoryChoices(d,v);if(!cats.contains(category))category=cats.isEmpty?'Other':cats.first;});}),
+   SizedBox(height:12),
+   DropdownButtonFormField<String>(initialValue:cats.contains(category)?category:null,decoration:InputDecoration(labelText:tr(context,'Category')),
+    items:cats.map((v)=>DropdownMenuItem(value:v,child:Text(categoryLabel(context,v)))).toList(),
+    onChanged:(v){if(v!=null)rebuild(()=>category=v);}),
+   SizedBox(height:12),
+   field(desc,'Description'),field(amt,'Amount ($currency)',number:true),
+   DropdownButtonFormField<int>(initialValue:day,decoration:InputDecoration(labelText:tr(context,'Day of month')),
+    items:List.generate(28,(i)=>DropdownMenuItem(value:i+1,child:Text('${i+1}'))).toList(),
+    onChanged:(v){if(v!=null)rebuild(()=>day=v);}),
+   SizedBox(height:8),
+   if(existing==null)LText('Starts this month. If the day has already passed, this month\'s entry is added now.',style:TextStyle(color:muted,fontSize:12)),
+   SizedBox(height:12),
+   FilledButton(onPressed:()async{
+    final n=amount(amt);if(n==null)return inputError('Enter a positive amount.');
+    final rules=rulesOf(await store.snapshot());
+    final rule=RecurringRule(id:existing?.id??DateTime.now().microsecondsSinceEpoch.toString(),type:type,category:category,
+     description:desc.text.trim(),amount:n,day:day,start:existing?.start??month0(),last:existing?.last);
+    await saveAll([...rules.where((r)=>r.id!=rule.id),rule],c);
+   },child:LText('Save recurring entry')),
+   if(existing!=null)TextButton(onPressed:()async{
+    final rules=rulesOf(await store.snapshot());
+    await saveAll(rules.where((r)=>r.id!=existing.id).toList(),c);
+   },child:LText('Stop this recurring entry')),
+  ]));
+ }
+ String month0()=>monthKey(DateTime.now());
  Widget moreBills(Map<String,List<RowData>> d){
   final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
