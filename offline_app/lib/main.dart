@@ -597,6 +597,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:Colors.deepOrange)),
    ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
    if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
+   if(projectedMonthSpend(spentSoFar:balance.expenses,month:selected,now:DateTime.now()) case final projected?)
+    tile('Spending forecast','If you keep spending at this pace until the month ends',money(projected),icon:Icons.trending_up,
+     tone:balance.income>0&&projected>balance.income?homeOver:null),
    header('Spending by category'),
    ...spendingBreakdown(d,review),
    if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending recorded.')),
@@ -978,10 +981,36 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }),
   ]);
  }
+ Widget yearChart(List<RowData> tx){
+  final inc=<int>[],exp=<int>[];
+  for(var i=1;i<=12;i++){
+   final rows=tx.where((r)=>st(r,'date').startsWith(monthKey(DateTime(selected.year,i))));
+   inc.add(sumType(rows,'Income'));exp.add(sumType(rows,'Expense'));
+  }
+  final top=[...inc,...exp].fold<int>(0,(a,b)=>a>b?a:b);
+  if(top<=0)return const SizedBox.shrink();
+  Widget bar(int v,Color c)=>Expanded(child:Align(alignment:Alignment.bottomCenter,child:FractionallySizedBox(
+   heightFactor:(v/top).clamp(0.0,1.0),child:Container(decoration:BoxDecoration(color:c,borderRadius:BorderRadius.vertical(top:Radius.circular(3)))))));
+  final spendColor=Theme.of(context).colorScheme.tertiary;
+  return Card(child:Padding(padding:EdgeInsets.fromLTRB(12,14,12,10),child:Column(children:[
+   Semantics(label:tr(context,'Income and spending by month'),child:SizedBox(height:140,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
+    for(var i=0;i<12;i++)Expanded(child:Padding(padding:EdgeInsets.symmetric(horizontal:2),child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[bar(inc[i],jade),SizedBox(width:1),bar(exp[i],spendColor)]))),
+   ]))),
+   SizedBox(height:4),
+   Row(children:[for(var i=0;i<12;i++)Expanded(child:Text(localizedMonth(DateTime(selected.year,i+1),language).characters.first,
+    textAlign:TextAlign.center,style:TextStyle(fontSize:11,color:muted)))]),
+   SizedBox(height:8),
+   Row(mainAxisAlignment:MainAxisAlignment.center,children:[
+    Container(width:10,height:10,color:jade),SizedBox(width:4),LText('Income',style:TextStyle(fontSize:12)),SizedBox(width:16),
+    Container(width:10,height:10,color:spendColor),SizedBox(width:4),LText('Spent',style:TextStyle(fontSize:12)),
+   ]),
+  ])));
+ }
  Widget moreYear(Map<String,List<RowData>> d){
   final tx=list(d,'transactions');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Year overview',subtitle:'${selected.year} totals from local transactions'),
+   yearChart(tx),
    ...List.generate(12,(i){final m=monthKey(DateTime(selected.year,i+1));
     final rows=tx.where((r)=>st(r,'date').startsWith(m));
     final inc=sumType(rows,'Income'),exp=sumType(rows,'Expense'),savings=sumType(rows,'Savings out')-sumType(rows,'Savings in');

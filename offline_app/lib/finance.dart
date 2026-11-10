@@ -295,3 +295,12 @@ List<Map<String,Object?>> recentActivityRows(Iterable<Map<String,Object?>> rows,
 }
 String recentActivityDay(String date,DateTime now)=>date==dayKey(now)?'Today':'Yesterday';
 
+
+
+/// Straight-line month-end forecast from spending so far. Null for past or
+/// future months, and before any spending (no basis for a forecast).
+int? projectedMonthSpend({required int spentSoFar,required DateTime month,required DateTime now}){
+ if(month.year!=now.year||month.month!=now.month||spentSoFar<=0)return null;
+ final days=DateTime(now.year,now.month+1,0).day;
+ return (spentSoFar*days/now.day).round();
+}
