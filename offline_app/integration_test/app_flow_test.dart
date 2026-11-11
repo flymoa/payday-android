@@ -70,4 +70,27 @@ void main() {
     final real = '${await cipher.getDatabasesPath()}/payday_local_v1.db';
     expect(await fileIsPlainSqlite(real), isFalse, reason: 'app database must be encrypted');
   });
+
+  testWidgets('every tab and the monthly review open on a device', (t) async {
+    app.main();
+    await waitFor(t, find.byType(PaydayAddButton));
+    await settle(t);
+    for (final tab in [1, 2, 3, 4, 0]) {
+      final item = find.byKey(ValueKey('bottom-$tab'));
+      if (item.evaluate().isEmpty) continue;
+      await t.tap(item.first);
+      await settle(t, seconds: 1);
+      expect(t.takeException(), isNull, reason: 'tab $tab');
+    }
+    final more = find.text('More');
+    await waitFor(t, more);
+    {
+      await t.tap(more.first);
+      await settle(t, seconds: 1);
+      await t.tap(find.text('Monthly review'));
+      await settle(t, seconds: 1);
+      await waitFor(t, find.text('Check before closing'));
+      expect(t.takeException(), isNull);
+    }
+  });
 }

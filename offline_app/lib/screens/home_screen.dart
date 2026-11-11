@@ -73,7 +73,7 @@ extension _HomeScreen on _FinanceState {
   Flexible(child:LText(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold,fontSize:16))),
   IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
- Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(
+ Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
   onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
    Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(4))),

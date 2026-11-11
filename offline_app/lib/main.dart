@@ -17,6 +17,7 @@ import 'csv_export.dart';
 import 'recurring.dart';
 import 'ledger.dart';
 import 'home_widget.dart';
+import 'db_encryption.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -193,7 +194,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool exportingBackup=false;
  bool restoringBackup=false;
  BackupCipher get backupCipher=>widget.backupCipher??const BackupCipher();
- late final RestoreSnapshot snapshots=widget.restoreSnapshot??RestoreSnapshot();
+ late final RestoreSnapshot snapshots=widget.restoreSnapshot??RestoreSnapshot(password:DatabaseKey.obtain);
  bool preferencesSaving=false;
  final scaffoldKey=GlobalKey<ScaffoldState>();
  String get currency=>supportedCurrency(widget.preferences.currency);

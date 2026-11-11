@@ -98,6 +98,23 @@ void main() {
     expect(await descriptions(), ['current data']);
   });
 
+  test('with a password the copy is encrypted on disk and still undoes the restore', () async {
+    final locked = RestoreSnapshot(directory: () async => dir, password: () async => 'ab' * 32);
+    await restoreWithSafetyCopy(store, locked, backupWith('from backup'));
+    final onDisk = File('${dir.path}/${RestoreSnapshot.fileName}').readAsStringSync();
+    expect(onDisk.contains('current data'), isFalse);
+    expect(onDisk.contains('payday-encrypted'), isTrue);
+    await revertToSnapshot(store, locked);
+    expect(await descriptions(), ['current data']);
+  });
+
+  test('an older plain copy still undoes when a password is now configured', () async {
+    await restoreWithSafetyCopy(store, snapshot, backupWith('from backup'));
+    final locked = RestoreSnapshot(directory: () async => dir, password: () async => 'ab' * 32);
+    await revertToSnapshot(store, locked);
+    expect(await descriptions(), ['current data']);
+  });
+
   testWidgets('Backups page offers Undo last restore only when a copy exists', (t) async {
     var undone = 0;
     DateTime? saved;

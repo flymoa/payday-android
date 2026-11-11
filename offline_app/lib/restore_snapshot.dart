@@ -7,9 +7,13 @@ import 'offline_store.dart';
 /// It lives in the app's own storage (like the database itself), is never
 /// shared, and Android system backup is disabled for the app.
 class RestoreSnapshot {
- RestoreSnapshot({Future<Directory> Function()? directory})
-  :_directory=directory??getApplicationSupportDirectory;
+ /// [password] encrypts the copy with the same envelope as exported backups.
+ /// The app passes the device database key; without it the copy is plain JSON.
+ RestoreSnapshot({Future<Directory> Function()? directory,this.password,BackupCipher? cipher})
+  :_directory=directory??getApplicationSupportDirectory,_cipher=cipher??const BackupCipher();
  final Future<Directory> Function() _directory;
+ final Future<String> Function()? password;
+ final BackupCipher _cipher;
  static const fileName='payday-before-restore.json';
 
  Future<File> _file()async{
@@ -22,12 +26,18 @@ class RestoreSnapshot {
  Future<void> save(String json)async{
   final target=await _file();
   final temp=File('${target.path}.tmp');
-  await temp.writeAsString(json,flush:true);
+  final key=password==null?null:await password!();
+  await temp.writeAsString(key==null?json:await _cipher.seal(json,key),flush:true);
   await temp.rename(target.path);
  }
  Future<String?> read()async{
   final file=await _file();
-  return await file.exists()?file.readAsString():null;
+  if(!await file.exists())return null;
+  final raw=await file.readAsString();
+  // Copies made before encryption are plain JSON and still restore.
+  if(!BackupCipher.isProtected(raw))return raw;
+  if(password==null)throw StateError('This safety copy is encrypted.');
+  return _cipher.open(raw,await password!());
  }
  Future<DateTime?> savedAt()async{
   final file=await _file();
