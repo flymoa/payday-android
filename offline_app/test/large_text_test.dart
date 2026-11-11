@@ -50,7 +50,7 @@ void main() {
       final problems = <String>[];
       final previous = FlutterError.onError;
       FlutterError.onError = (details) {
-        final where = details.informationCollector?.call().map((e) => e.toString()).where((e) => e.contains('lib/')).join(' ') ?? '';
+        final where = RegExp(r'lib/[\w/]+\.dart:\d+').allMatches(details.toString()).map((m) => m.group(0)).toSet().join(' ');
         problems.add('${details.exceptionAsString().split('\n').first} $where');
       };
       addTearDown(() => FlutterError.onError = previous);
