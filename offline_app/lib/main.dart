@@ -19,6 +19,7 @@ import 'ledger.dart';
 import 'home_widget.dart';
 import 'db_encryption.dart';
 import 'dart:async';
+import 'dart:math' show max;
 import 'app_lock.dart';
 import 'app_preferences.dart';
 import 'month_usage_bar.dart';
