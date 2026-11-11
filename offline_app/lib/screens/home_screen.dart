@@ -71,9 +71,9 @@ extension _HomeScreen on _FinanceState {
   );
  }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
-  IconButton(onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
+  IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
   Flexible(child:LText(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold,fontSize:16))),
-  IconButton(onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
+  IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
  ]);
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),

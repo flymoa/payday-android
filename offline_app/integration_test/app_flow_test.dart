@@ -93,4 +93,20 @@ void main() {
       expect(t.takeException(), isNull);
     }
   });
+
+  testWidgets('switching to French translates the app on a device', (t) async {
+    app.main();
+    await waitFor(t, find.byType(PaydayAddButton));
+    await settle(t);
+    await t.tap(find.byKey(const ValueKey('bottom-0')).first);
+    await settle(t, seconds: 1);
+    await t.tap(find.byKey(const ValueKey('home-settings-logo')));
+    await settle(t, seconds: 2);
+    await t.tap(find.byKey(const ValueKey('language-setting')));
+    await settle(t, seconds: 2);
+    await t.tap(find.text('French'));
+    await settle(t, seconds: 3);
+    await waitFor(t, find.text('Paramètres'));
+    expect(t.takeException(), isNull);
+  });
 }

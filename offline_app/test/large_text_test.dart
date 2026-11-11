@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/app_preferences.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/main.dart';
+import 'package:payday_local/add_button.dart';
 
 Map<String, List<RowData>> sample() {
   final m = monthKey(DateTime.now());
@@ -54,6 +55,20 @@ void main() {
         await t.tap(items.first);
         await t.pumpAndSettle();
         if (problems.isNotEmpty) problems.add('  ^ on tab $tab');
+      }
+      // Forms and the settings drawer at the same size.
+      await t.tap(find.byKey(const ValueKey('bottom-0')).first);
+      await t.pumpAndSettle();
+      await t.tap(find.byType(PaydayAddButton));
+      await t.pumpAndSettle();
+      if (problems.isNotEmpty) problems.add('  ^ in the transaction form');
+      await t.binding.handlePopRoute();
+      await t.pumpAndSettle();
+      final logo = find.byKey(const ValueKey('home-settings-logo'));
+      if (logo.evaluate().isNotEmpty) {
+        await t.tap(logo);
+        await t.pumpAndSettle();
+        if (problems.isNotEmpty) problems.add('  ^ in the settings drawer');
       }
       FlutterError.onError = previous;
       expect(problems, isEmpty, reason: problems.join('\n'));

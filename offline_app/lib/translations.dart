@@ -155,6 +155,8 @@ const paydayTranslations=<String,List<String>>{
  "Show amount on home-screen widget":["Afficher le montant sur le widget d’accueil","إظهار المبلغ في أداة الشاشة الرئيسية"],
  "Hidden while App lock is on":["Masqué tant que le verrouillage est activé","مخفي ما دام قفل التطبيق مفعّلًا"],
  "Shows this month's safe-to-spend amount without unlocking Payday":["Affiche le montant disponible du mois sans déverrouiller Payday","يعرض المبلغ الآمن للإنفاق هذا الشهر دون فتح Payday"],
+ "Over by {0}":["Dépassé de {0}","تجاوز بمقدار {0}"],
+ "Edit goal":["Modifier l’objectif","تعديل الهدف"],
  "Delete goal":["Supprimer l’objectif","حذف الهدف"],
  "Delete this goal and its allocations?":["Supprimer cet objectif et ses affectations ?","حذف هذا الهدف وتخصيصاته؟"],
  "Money allocated to this goal returns to unassigned savings.":["L’argent affecté à cet objectif retourne à l’épargne non affectée.","تعود الأموال المخصصة لهذا الهدف إلى المدخرات غير المخصصة."],
