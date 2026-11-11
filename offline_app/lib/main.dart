@@ -200,6 +200,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   scaffoldKey.currentState?.openDrawer();
  }
  String recordQuery='';
+ bool recordAllMonths=false;
  String recordType='All';
  final search=TextEditingController();
  late final store=widget.store??OfflineStore();
@@ -663,10 +664,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Widget recordTile(RowData t){final type=st(t,'type');return tile(st(t,'description').isEmpty?categoryLabel(context,st(t,'category')):st(t,'description'),'${displayDay(context,st(t,'date'))} · ${categoryLabel(context,st(t,'category'))} · ${tr(context,type)}',money(val(t,'amount')),rawTitle:true,leading:PaydayCategoryIcon(st(t,'category')),tone:type=='Income'?jade:amber,onTap:()=>transactionForm(t));}
  Widget records(Map<String,List<RowData>> d){
-  final all=monthTransactions(d);
+  final all=recordAllMonths?(list(d,'transactions').toList()..sort((a,b){final x=st(b,'date').compareTo(st(a,'date'));return x!=0?x:val(b,'id').compareTo(val(a,'id'));})):monthTransactions(d);
   final ts=all.where((t)=>(matchesRecord(t,recordQuery,recordType)||(recordType=='All'||st(t,'type')==recordType)&&categoryLabel(context,st(t,'category')).toLowerCase().contains(recordQuery.trim().toLowerCase()))).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Transactions',subtitle:'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
+   header('Transactions',subtitle:recordAllMonths?'${ts.length} of ${all.length} entries · All months':'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
     style:TextStyle(fontSize:13),
     decoration:InputDecoration(hintText:tr(context,'Search records'),isDense:true,
@@ -679,9 +680,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       onPressed:(){search.clear();setState(()=>recordQuery='');}))),
    SizedBox(height:10),
    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:
-    ['All','Expense','Income','Savings out','Savings in'].map((type)=>Padding(
+    [Padding(padding:EdgeInsetsDirectional.only(end:8),child:FilterChip(key:ValueKey('records-all-months'),label:LText('All months'),
+      selected:recordAllMonths,onSelected:(v)=>setState(()=>recordAllMonths=v))),
+    ...['All','Expense','Income','Savings out','Savings in'].map((type)=>Padding(
      padding:EdgeInsetsDirectional.only(end:8),child:ChoiceChip(label:LText(type),
-      selected:recordType==type,onSelected:(_)=>setState(()=>recordType=type)))).toList())),
+      selected:recordType==type,onSelected:(_)=>setState(()=>recordType=type))))])),
    SizedBox(height:10),
    ...ts.map(recordTile),
    if(ts.isEmpty)Padding(padding:EdgeInsets.all(24),child:LText(all.isEmpty?
@@ -1136,7 +1139,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return parseMoneyCents(c.text,allowZero:allowZero);
  }
  void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));}
- Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType}) async{
+ Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType,RowData? copyFrom}) async{
   final d=await store.snapshot();if(!mounted)return;
   final prefill=payBill==null?null:prepareBillPayment(
     name:st(payBill,'name'),
@@ -1157,12 +1160,17 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final amt=TextEditingController(text:existing==null?(prefill==null?'':inputNumber(prefill.amountCents)):inputNumber(val(existing,'amount')));
   var type=existing==null?(prefill?.type??initialType??'Expense'):st(existing,'type');
   var category=existing==null?(prefill?.category??(type=='Income'?'Salary':type.startsWith('Savings')?'Savings':'Groceries')):st(existing,'category');
+  // Duplicate: same details as a new entry dated today (bill link not copied).
+  if(existing==null&&copyFrom!=null){
+   desc.text=st(copyFrom,'description');note.text=st(copyFrom,'note');amt.text=inputNumber(val(copyFrom,'amount'));
+   type=st(copyFrom,'type');category=st(copyFrom,'category');
+  }
   var cats=categoriesFor(type,editing:existing!=null);
   if(!cats.contains(category)){if(prefill!=null){cats=[category,...cats];}else{category=cats.first;}}
-  var date=existing==null?(prefill!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
+  var date=existing==null?(prefill!=null||copyFrom!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
   var allCategories=false;
-  await sheet(existing==null?(prefill==null?'New transaction':'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
+  await sheet(existing==null?(prefill==null?(copyFrom==null?'New transaction':'Duplicate transaction'):'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
    if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:LText(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
       style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
@@ -1227,6 +1235,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     })),
    SizedBox(height:20),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
    Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')))]),
+   if(existing!=null)TextButton.icon(key:ValueKey('duplicate-transaction'),onPressed:()async{Navigator.pop(c);await transactionForm(null,copyFrom:existing);},
+    icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Duplicate as new (today)')),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:Colors.red)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
    icon:PaydayAppIcon(Icons.check_circle_outline),label:LText(submitting?'Saving…':'Save locally'),
