@@ -15,6 +15,7 @@ import 'backup_preview.dart';
 import 'restore_snapshot.dart';
 import 'csv_export.dart';
 import 'recurring.dart';
+import 'ledger.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -278,48 +279,18 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  List<RowData> list(Map<String,List<RowData>> d,String table)=>d[table]??[];
  List<RowData> monthTransactionsFor(Map<String,List<RowData>> d,String key)=>list(d,'transactions').where((t)=>st(t,'date').startsWith(key)).toList();
  List<RowData> monthTransactions(Map<String,List<RowData>> d)=>list(d,'transactions').where((t)=>st(t,'date').startsWith(month)).toList()..sort((a,b)=>st(b,'date').compareTo(st(a,'date')));
- int sumType(Iterable<RowData> tx,String type)=>tx.where((t)=>st(t,'type')==type).fold(0,(n,t)=>n+val(t,'amount'));
- int budgetFor(Map<String,List<RowData>> d,String key,String category)=>list(d,'budgets').where((x)=>st(x,'month')==key&&st(x,'category')==category).fold(0,(n,x)=>n+val(x,'amount'));
- int billPaid(Map<String,List<RowData>> d,RowData bill)=>list(d,'transactions').where((x)=>st(x,'type')=='Expense'&&st(x,'bill_id')==st(bill,'code')).fold(0,(n,x)=>n+val(x,'amount'));
- int totalPool(Map<String,List<RowData>> d){
-  final ts=list(d,'transactions');
-  final closes=list(d,'month_closes').where((x)=>val(x,'entries_ok')==1&&val(x,'balance_ok')==1);
-  final op=int.tryParse(st(list(d,'settings').firstWhere((x)=>st(x,'key')=='opening_savings',orElse:()=>{}),'value'))??0;
-  return savingsPool(opening:op,transferredOut:sumType(ts,'Savings out'),transferredIn:sumType(ts,'Savings in'),confirmedExtra:closes.fold(0,(n,x)=>n+val(x,'extra')));
- }
- int allocated(Map<String,List<RowData>> d)=>list(d,'allocations').fold(0,(n,x)=>n+val(x,'amount'));
- int buffer(Map<String,List<RowData>> d)=>int.tryParse(st(list(d,'settings').firstWhere((x)=>st(x,'key')=='buffer',orElse:()=>{}),'value'))??20000;
- /// Reserve history is independent from expenses and savings goals.
- List<RowData> reserveHistory(Map<String,List<RowData>> d,int reserveId){
-  final rows=list(d,'reserve_movements').where((r)=>val(r,'reserve_id')==reserveId).toList();
-  rows.sort((a,b){final date=st(b,'date').compareTo(st(a,'date'));return date!=0?date:val(b,'id').compareTo(val(a,'id'));});
-  return rows;
- }
- int reserveNetForMonth(Map<String,List<RowData>> d,String key,{int? reserveId}){
-  return list(d,'reserve_movements').where((r)=>st(r,'date').startsWith(key) &&
-   (reserveId==null || val(r,'reserve_id')==reserveId)).fold(0,(sum,r)=>
-     sum+(st(r,'kind')=='add'?val(r,'amount'):-val(r,'amount')));
- }
- int reserveFundedAt(Map<String,List<RowData>> d,RowData reserve,String thruMonth){
-  final id=val(reserve,'id');
-  final lastDay=dayKey(DateTime(monthFromKey(thruMonth).year,monthFromKey(thruMonth).month+1,0));
-  return val(reserve,'funded')+list(d,'reserve_movements')
-   .where((r)=>val(r,'reserve_id')==id && st(r,'date').compareTo(lastDay)<=0)
-   .fold(0,(sum,r)=>sum+(st(r,'kind')=='add'?val(r,'amount'):-val(r,'amount')));
- }
- int monthlyReserves(Map<String,List<RowData>> d){
-  final chosen=monthFromKey(month);
-  final preceding=monthKey(DateTime(chosen.year,chosen.month-1));
-  return list(d,'reserves').where((r)=>st(r,'start_month').compareTo(month)<=0 &&
-    st(r,'due').substring(0,7).compareTo(month)>=0)
-   .fold(0,(sum,r)=>sum+reserveAdditionalHold(
-    target:val(r,'target'),fundedBeforeMonth:reserveFundedAt(d,r,preceding),
-    netContributedThisMonth:reserveNetForMonth(d,month,reserveId:val(r,'id')),
-    due:parseDay(st(r,'due')),month:chosen));
- }
- int unpaidBills(Map<String,List<RowData>> d){
-  return list(d,'bills').where((b)=>st(b,'due').startsWith(month)).fold(0,(n,b)=>n+billOutstanding(val(b,'amount'),billPaid(d,b)));
- }
+ // Money rules live in ledger.dart (unit tested); these keep the screen code short.
+ int sumType(Iterable<RowData> tx,String type)=>Ledger.sumType(tx,type);
+ int budgetFor(Map<String,List<RowData>> d,String key,String category)=>Ledger(d).budgetFor(key,category);
+ int billPaid(Map<String,List<RowData>> d,RowData bill)=>Ledger(d).billPaid(bill);
+ int totalPool(Map<String,List<RowData>> d)=>Ledger(d).totalPool();
+ int allocated(Map<String,List<RowData>> d)=>Ledger(d).allocated();
+ int buffer(Map<String,List<RowData>> d)=>Ledger(d).buffer();
+ List<RowData> reserveHistory(Map<String,List<RowData>> d,int reserveId)=>Ledger(d).reserveHistory(reserveId);
+ int reserveNetForMonth(Map<String,List<RowData>> d,String key,{int? reserveId})=>Ledger(d).reserveNetForMonth(key,reserveId:reserveId);
+ int reserveFundedAt(Map<String,List<RowData>> d,RowData reserve,String thruMonth)=>Ledger(d).reserveFundedAt(reserve,thruMonth);
+ int monthlyReserves(Map<String,List<RowData>> d)=>Ledger(d).monthlyReserves(month);
+ int unpaidBills(Map<String,List<RowData>> d)=>Ledger(d).unpaidBills(month);
  String monthLabel(DateTime d)=>localizedMonth(d,language,short:true);
  Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,12,4,10),
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
