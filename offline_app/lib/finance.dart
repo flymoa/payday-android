@@ -309,3 +309,14 @@ int? projectedMonthSpend({required int spentSoFar,required DateTime month,requir
 int categoryMonthTotal(Iterable<Map<String,Object?>> transactions,String category,String month)=>transactions
  .where((t)=>t['type']=='Expense'&&t['category']==category&&(t['date']?.toString()??'').startsWith(month))
  .fold(0,(n,t)=>n+((t['amount'] as num?)?.toInt()??0));
+
+enum BudgetCrossing { nearLimit, overBudget }
+
+/// Reports only the save that crosses a threshold (85% or over budget),
+/// so the warning appears once rather than on every later expense.
+BudgetCrossing? budgetCrossing({required int before,required int after,required int budget}){
+ if(budget<=0||after<=before)return null;
+ if(after>budget&&before<=budget)return BudgetCrossing.overBudget;
+ if(after<=budget&&after*100>=budget*85&&before*100<budget*85)return BudgetCrossing.nearLimit;
+ return null;
+}

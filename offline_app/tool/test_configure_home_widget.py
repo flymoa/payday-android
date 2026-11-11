@@ -35,6 +35,9 @@ class HomeWidgetSetupTest(unittest.TestCase):
             self.assertTrue((main / 'res/xml/payday_widget_info.xml').exists())
             layout = (main / 'res/layout/payday_widget.xml').read_text()
             self.assertEqual(layout.count('android:textAlignment="center"'), 2)
+            self.assertIn('payday_widget_add', layout)
+            self.assertEqual(source.count('PAYDAY_WIDGET_ACTION'), 1)
+            self.assertIn('takeAction', source)
 
     def test_refuses_before_app_lock_setup(self):
         with tempfile.TemporaryDirectory() as directory:

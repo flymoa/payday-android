@@ -192,8 +192,23 @@ extension _Forms on _FinanceState {
       type:type,category:category,amount:cents,
       description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()));
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
+    if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
+     existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
    },
   ),fullScreen:true);
+ }
+ /// After saving an expense, says once when its category reaches 85% or goes over.
+ Future<void> warnIfBudgetCrossed(String category,String key,int cents,int replacedAmount)async{
+  try{
+   final d=await store.snapshot();
+   final budget=budgetFor(d,key,category);
+   final after=categoryMonthTotal(list(d,'transactions'),category,key);
+   final crossing=budgetCrossing(before:after-cents+replacedAmount,after:after,budget:budget);
+   if(crossing==null||!mounted)return;
+   final name=categoryLabel(context,category);
+   inputError(crossing==BudgetCrossing.overBudget?'$name is over its budget by ${money(after-budget)}.':
+    '$name has used ${(after*100/budget).round()}% of its budget.');
+  }catch(_){}
  }
  Future<void> copyBudgetForm(Map<String,List<RowData>> d)async{
   final targetMonth=month;

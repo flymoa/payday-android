@@ -24,3 +24,11 @@ Future<void> pushHomeWidget(HomeWidgetText text)async{
  }on MissingPluginException{/* widget support not built in */}
  on PlatformException{/* never block finance screens on the widget */}
 }
+
+/// The widget's + button leaves "add_expense" for the app to pick up once.
+Future<String?> takeHomeWidgetAction()async{
+ if(!Platform.isAndroid)return null;
+ try{return await const MethodChannel('ma.payday/widget').invokeMethod<String>('takeAction');}
+ on MissingPluginException{return null;}
+ on PlatformException{return null;}
+}

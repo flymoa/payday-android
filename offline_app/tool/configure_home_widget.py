@@ -34,10 +34,31 @@ def configure(root=Path('.')):
                         .apply()
                     PaydayWidget.refreshAll(this)
                     result.success(null)
+                } else if (call.method == "takeAction") {
+                    result.success(PaydayWidget.takeAction())
                 } else {
                     result.notImplemented()
                 }
             }
+''')
+        activity.write_text(source)
+    source = activity.read_text()
+    if 'PAYDAY_WIDGET_ACTION' not in source:
+        header = 'class MainActivity : FlutterFragmentActivity() {\n'
+        if source.count(header) != 1:
+            raise RuntimeError('MainActivity class header changed; refusing to edit')
+        source = source.replace(header, header + '''    // PAYDAY_WIDGET_ACTION: the widget's + button asks Payday to open a new expense.
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        PaydayWidget.capture(intent)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        PaydayWidget.capture(intent)
+    }
+
 ''')
         activity.write_text(source)
     (activity.parent / 'PaydayWidget.kt').write_text('''package __PACKAGE__
@@ -47,6 +68,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.widget.RemoteViews
 
 class PaydayWidget : AppWidgetProvider() {
@@ -63,9 +85,30 @@ class PaydayWidget : AppWidgetProvider() {
             context.packageManager.getLaunchIntentForPackage(context.packageName)?.let { launch ->
                 val pending = PendingIntent.getActivity(context, 0, launch,
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                views.setOnClickPendingIntent(R.id.payday_widget_root, pending)
+                views.setOnClickPendingIntent(R.id.payday_widget_info, pending)
+                val add = Intent(launch).putExtra(ACTION_EXTRA, ADD_EXPENSE)
+                    .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                val addPending = PendingIntent.getActivity(context, 1, add,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                views.setOnClickPendingIntent(R.id.payday_widget_add, addPending)
             }
             manager.updateAppWidget(id, views)
+        }
+
+        const val ACTION_EXTRA = "payday_action"
+        const val ADD_EXPENSE = "add_expense"
+        @Volatile private var pendingAction: String? = null
+
+        fun capture(intent: Intent?) {
+            val action = intent?.getStringExtra(ACTION_EXTRA) ?: return
+            pendingAction = action
+            intent.removeExtra(ACTION_EXTRA)
+        }
+
+        fun takeAction(): String? {
+            val action = pendingAction
+            pendingAction = null
+            return action
         }
 
         fun refreshAll(context: Context) {
@@ -85,23 +128,39 @@ class PaydayWidget : AppWidgetProvider() {
     <corners android:radius="20dp" />
 </shape>
 ''')
+    (res / 'drawable/payday_widget_add_background.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FFF4B740" />
+</shape>
+''')
     (res / 'layout/payday_widget.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/payday_widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:gravity="center"
-    android:padding="14dp" android:background="@drawable/payday_widget_background">
-    <TextView android:id="@+id/payday_widget_title"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center" android:textAlignment="center"
-        android:text="Payday" android:textColor="#FFF4B740" android:textSize="13sp" android:textStyle="bold" />
-    <TextView android:id="@+id/payday_widget_body"
-        android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:gravity="center" android:textAlignment="center"
-        android:text="Tap to open" android:textColor="#FFFFFFFF" android:textSize="18sp" android:textStyle="bold"
-        android:maxLines="2" android:ellipsize="end" />
+    android:orientation="horizontal" android:gravity="center_vertical"
+    android:paddingStart="14dp" android:paddingEnd="10dp" android:paddingTop="10dp" android:paddingBottom="10dp"
+    android:background="@drawable/payday_widget_background">
+    <LinearLayout android:id="@+id/payday_widget_info"
+        android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"
+        android:orientation="vertical" android:gravity="center">
+        <TextView android:id="@+id/payday_widget_title"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center" android:textAlignment="center"
+            android:text="Payday" android:textColor="#FFF4B740" android:textSize="13sp" android:textStyle="bold" />
+        <TextView android:id="@+id/payday_widget_body"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center" android:textAlignment="center"
+            android:text="Tap to open" android:textColor="#FFFFFFFF" android:textSize="18sp" android:textStyle="bold"
+            android:maxLines="2" android:ellipsize="end" />
+    </LinearLayout>
+    <TextView android:id="@+id/payday_widget_add"
+        android:layout_width="40dp" android:layout_height="40dp" android:layout_marginStart="8dp"
+        android:gravity="center" android:text="+" android:textColor="#FF12261F" android:textSize="24sp"
+        android:textStyle="bold" android:contentDescription="Add expense"
+        android:background="@drawable/payday_widget_add_background" />
 </LinearLayout>
 ''')
+
     (res / 'xml/payday_widget_info.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp" android:minHeight="70dp"

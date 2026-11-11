@@ -227,13 +227,23 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   unawaited(runRecurring());
   unawaited(updateHomeWidget());
   unawaited(syncBillReminders());
+  WidgetsBinding.instance.addPostFrameCallback((_)=>unawaited(openWidgetAction()));
   unawaited(syncReserveReminders());
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
   if(state==AppLifecycleState.resumed){
    unawaited(runRecurring());
+   unawaited(openWidgetAction());
    unawaited(syncBillReminders());
    unawaited(syncReserveReminders());
+  }
+ }
+ Future<void> openWidgetAction()async{
+  if(widget.initialData!=null)return;
+  final action=await takeHomeWidgetAction();
+  if(action=='add_expense'&&mounted){
+   setState((){page=0;moreSection=null;});
+   await transactionForm(null);
   }
  }
  Future<void> runRecurring()async{
