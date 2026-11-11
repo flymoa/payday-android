@@ -37,27 +37,26 @@ extension _HomeScreen on _FinanceState {
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[
      PaydayCategoryIcon(category,size:34),SizedBox(width:10),
-     Expanded(child:LText(category,category:true,style:TextStyle(color:ink,
-      fontWeight:FontWeight.w700,fontSize:14))),
-     if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
-      child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
-     // Large text: the status shrinks and wraps instead of pushing off screen.
-     SizedBox(width:6),
-     Flexible(child:LText(description,textAlign:TextAlign.end,style:TextStyle(color:isOver?homeOver:
-      (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
-      fontWeight:FontWeight.w700,fontSize:12))),
+     // Name on its own line and the status under it, so neither is squeezed.
+     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+      LText(category,category:true,maxLines:2,style:TextStyle(color:ink,fontWeight:FontWeight.w700,fontSize:14)),
+      SizedBox(height:2),
+      Row(children:[
+       if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
+        child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:15)),
+       Flexible(child:LText(description,style:TextStyle(color:isOver?homeOver:
+        (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
+        fontWeight:FontWeight.w700,fontSize:12))),
+      ]),
+     ])),
     ]),
     SizedBox(height:9),
-    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
-      maxLines:2,style:TextStyle(color:homeText,fontSize:12))),
-     SizedBox(width:5),
-     Flexible(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
-      isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
-      textAlign:TextAlign.end,softWrap:true,
-      style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,
-       color:isOver?homeOver:homeText))),
-    ]),
+    LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
+     style:TextStyle(color:homeText,fontSize:12)),
+    SizedBox(height:2),
+    LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
+     isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
+     style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:isOver?homeOver:homeText)),
     SizedBox(height:11),
     ClipRRect(borderRadius:BorderRadius.circular(12),
      child:LinearProgressIndicator(value:progress,minHeight:9,

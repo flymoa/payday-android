@@ -52,7 +52,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
   }
   return rows;
  }
- /// Name and budget on top, a progress bar, then spent and remaining on their
+ /// Name and budget on top, then spent and remaining on their
  /// own wrapping line, so nothing is cut off however long the amounts are.
  Widget budgetCategoryCard(String name,String group,int spent,int budget,VoidCallback onTap){
   final over=budget>0&&spent>budget;
@@ -70,10 +70,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      Flexible(child:LText(money(budget),textAlign:TextAlign.end,style:TextStyle(fontWeight:FontWeight.w800,color:ink))),
     ]),
     if(budget>0||spent>0)...[
-     SizedBox(height:10),
-     LinearProgressIndicator(value:budget<=0?1:(spent/budget).clamp(0,1).toDouble(),minHeight:7,
-      color:tone,borderRadius:BorderRadius.circular(8)),
-     SizedBox(height:6),
+     SizedBox(height:8),
      Wrap(spacing:14,runSpacing:2,children:[
       LText('Spent ${money(spent)}',style:TextStyle(color:muted,fontSize:13)),
       if(status.isNotEmpty)LText(status,style:TextStyle(color:tone,fontSize:13,fontWeight:FontWeight.w700)),
