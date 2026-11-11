@@ -39,7 +39,7 @@ class OfflineStore {
  }
  Future<Database> get db async {
   if (_database!=null) return _database!;
-  final root = await cipher.getDatabasesPath();
+  final root = await getDatabasesPath();
   final file=path.join(root,'payday_local_v1.db');
   final key=await DatabaseKey.obtain();
   String? password=key;
