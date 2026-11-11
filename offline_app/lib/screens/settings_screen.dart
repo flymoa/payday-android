@@ -8,7 +8,7 @@ extension _SettingsScreen on _FinanceState {
   if(preferencesSaving||widget.onPreferencesChanged==null)return false;
   setState(()=>preferencesSaving=true);
   try{return await widget.onPreferencesChanged!(next);}
-  finally{if(mounted)setState(()=>preferencesSaving=false);}
+  finally{if(mounted)setState(()=>preferencesSaving=false);unawaited(updateHomeWidget());}
  }
  Future<void> openSettingsPage(WidgetBuilder builder)async{
   await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:builder));
@@ -53,6 +53,11 @@ extension _SettingsScreen on _FinanceState {
      onTap:()=>openSettingsPage((_)=>SecuritySettingsPage(
       initialEnabled:widget.preferences.appLock,onChanged:widget.onPreferencesChanged==null?null:
        (value)=>changePreferences(widget.preferences.copyWith(appLock:value))))),
+    SwitchListTile(key:ValueKey('home-widget-amount'),secondary:PaydayAppIcon(Icons.widgets_outlined),
+     title:LText('Show amount on home-screen widget'),
+     subtitle:LText(prefs.appLock?'Hidden while App lock is on':'Shows this month\'s safe-to-spend amount without unlocking Payday'),
+     value:Ledger(d).setting(homeWidgetAmountKey)=='1',
+     onChanged:prefs.appLock?null:(on)async{await execute(()=>store.setSetting(homeWidgetAmountKey,on?'1':'0'));}),
    ]),
    settingsGroup('Money & data',[
     ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:LText('Currency'),

@@ -123,13 +123,26 @@ extension _HomeScreen on _FinanceState {
    ]));
  }
 
- MonthlyBalance monthlyBalance(Map<String,List<RowData>> d){
-  final ts=monthTransactions(d);
+ MonthlyBalance monthlyBalance(Map<String,List<RowData>> d)=>balanceFor(d,month);
+ /// Same calculation as the selected month, for any month (the widget uses this month).
+ MonthlyBalance balanceFor(Map<String,List<RowData>> d,String key){
+  final ts=monthTransactionsFor(d,key);
   final saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
+  final l=Ledger(d);
   return MonthlyBalance(income:sumType(ts,'Income'),expenses:sumType(ts,'Expense'),
-   savingsNet:saved,reserveNet:reserveNetForMonth(d,month),unpaidBills:unpaidBills(d),
-   savingsGap:(budgetFor(d,month,'Savings goal')-saved).clamp(0,1000000000).toInt(),
-   reserveHold:monthlyReserves(d),buffer:buffer(d));
+   savingsNet:saved,reserveNet:l.reserveNetForMonth(key),unpaidBills:l.unpaidBills(key),
+   savingsGap:(budgetFor(d,key,'Savings goal')-saved).clamp(0,1000000000).toInt(),
+   reserveHold:l.monthlyReserves(key),buffer:buffer(d));
+ }
+ Future<void> updateHomeWidget()async{
+  if(!Platform.isAndroid)return;
+  try{
+   final d=await store.snapshot();
+   final show=Ledger(d).setting(homeWidgetAmountKey)=='1';
+   final safe=balanceFor(d,monthKey(DateTime.now())).safe;
+   await pushHomeWidget(homeWidgetText(showAmount:show,appLock:widget.preferences.appLock||Ledger(d).setting('app_lock_enabled')=='1',
+    safeToSpend:money(safe),translate:(s)=>translateMessage(s,language)));
+  }catch(_){}
  }
  BackupReminder backupReminder(Map<String,List<RowData>> d){
   String? setting(String key)=>list(d,'settings').where((r)=>st(r,'key')==key).firstOrNull?['value']?.toString();

@@ -67,6 +67,11 @@ jobs:
         run: |
           python3 tool/test_configure_notifications.py
           python3 tool/configure_notifications.py
+      - name: Add optional home-screen widget
+        working-directory: offline_app
+        run: |
+          (cd tool && python3 test_configure_home_widget.py)
+          python3 tool/configure_home_widget.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |
@@ -156,5 +161,61 @@ jobs:
           Path(os.environ['RUNNER_TEMP'], 'payday-release.p12').unlink(missing_ok=True)
           PY
 
-
-
+  emulator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Pinned so every build uses the same toolchain; update deliberately.
+          flutter-version: 3.47.9
+          cache: true
+      - name: Create isolated Android project
+        working-directory: offline_app
+        run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Apply approved PAYDAY launcher artwork
+        working-directory: offline_app
+        run: python3 tool/apply_brand.py
+      - name: Configure device authentication and screen privacy
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_app_lock.py
+          python3 tool/configure_app_lock.py
+      - name: Configure optional local notifications
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_notifications.py
+          python3 tool/configure_notifications.py
+      - name: Add optional home-screen widget
+        working-directory: offline_app
+        run: |
+          (cd tool && python3 test_configure_home_widget.py)
+          python3 tool/configure_home_widget.py
+      - name: Rename Android launcher
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday" android:allowBackup="false" android:usesCleartextTraffic="false"')
+          p.write_text(text)
+          PY
+      - name: Install dependencies
+        working-directory: offline_app
+        run: flutter pub get
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run app flow on an Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: offline_app
+          script: flutter test integration_test/app_flow_test.dart -d emulator-5554

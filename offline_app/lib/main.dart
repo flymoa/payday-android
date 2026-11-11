@@ -16,6 +16,7 @@ import 'restore_snapshot.dart';
 import 'csv_export.dart';
 import 'recurring.dart';
 import 'ledger.dart';
+import 'home_widget.dart';
 import 'dart:async';
 import 'app_lock.dart';
 import 'app_preferences.dart';
@@ -222,6 +223,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
   unawaited(runRecurring());
+  unawaited(updateHomeWidget());
   unawaited(syncBillReminders());
   unawaited(syncReserveReminders());
  }
@@ -272,6 +274,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   setState((){data=next;});
   unawaited(syncBillReminders());
   unawaited(syncReserveReminders());
+  unawaited(updateHomeWidget());
  }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}

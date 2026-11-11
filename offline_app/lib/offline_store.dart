@@ -11,7 +11,7 @@ const defaultCategories = <String,String>{
  'Eating out':'Flexible','Shopping':'Flexible','Leisure':'Flexible',
  'Subscriptions':'Essential','Debt payment':'Essential','Other':'Essential'
 };
-const deviceLocalSettingKeys=['app_lock_enabled','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days','reserve_notifications_enabled','reserve_notifications_day'];
+const deviceLocalSettingKeys=['app_lock_enabled','home_widget_show_amount','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days','reserve_notifications_enabled','reserve_notifications_day'];
 const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
