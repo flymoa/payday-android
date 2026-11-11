@@ -41,9 +41,11 @@ extension _HomeScreen on _FinanceState {
       fontWeight:FontWeight.w700,fontSize:14))),
      if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
       child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
-     LText(description,style:TextStyle(color:isOver?homeOver:
+     // Large text: the status shrinks and wraps instead of pushing off screen.
+     SizedBox(width:6),
+     Flexible(child:LText(description,textAlign:TextAlign.end,style:TextStyle(color:isOver?homeOver:
       (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
-      fontWeight:FontWeight.w700,fontSize:12)),
+      fontWeight:FontWeight.w700,fontSize:12))),
     ]),
     SizedBox(height:9),
     Row(crossAxisAlignment:CrossAxisAlignment.start,children:[

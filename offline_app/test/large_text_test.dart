@@ -36,19 +36,27 @@ void main() {
         t.binding.setSurfaceSize(null);
         t.platformDispatcher.clearTextScaleFactorTestValue();
       });
+      final problems = <String>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = (details) {
+        final where = details.informationCollector?.call().map((e) => e.toString()).where((e) => e.contains('lib/')).join(' ') ?? '';
+        problems.add('${details.exceptionAsString().split('\n').first} $where');
+      };
+      addTearDown(() => FlutterError.onError = previous);
       await t.pumpWidget(PaydayLocal(
           initialData: Future.value(sample()),
           preferencesWriter: (_) async {},
           initialPreferences: AppPreferences(language: language)));
       await t.pumpAndSettle();
-      expect(t.takeException(), isNull, reason: 'Home');
       for (final tab in [1, 2, 3]) {
         final items = find.byKey(ValueKey('bottom-$tab'));
         if (items.evaluate().isEmpty) continue;
         await t.tap(items.first);
         await t.pumpAndSettle();
-        expect(t.takeException(), isNull, reason: 'tab $tab');
+        if (problems.isNotEmpty) problems.add('  ^ on tab $tab');
       }
+      FlutterError.onError = previous;
+      expect(problems, isEmpty, reason: problems.join('\n'));
     });
   }
 }
