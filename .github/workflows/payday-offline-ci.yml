@@ -72,6 +72,7 @@ jobs:
         run: |
           (cd tool && python3 test_configure_home_widget.py)
           python3 tool/configure_home_widget.py
+          python3 tool/configure_sqlcipher.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |
@@ -193,6 +194,7 @@ jobs:
         run: |
           (cd tool && python3 test_configure_home_widget.py)
           python3 tool/configure_home_widget.py
+          python3 tool/configure_sqlcipher.py
       - name: Rename Android launcher
         working-directory: offline_app
         run: |

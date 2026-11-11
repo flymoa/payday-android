@@ -4,6 +4,8 @@ import 'finance.dart';
 import 'recurring.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
+import 'package:sqflite_sqlcipher/sqflite.dart' as cipher;
+import 'db_encryption.dart';
 
 const defaultCategories = <String,String>{
  'Housing':'Essential','Utilities':'Essential','Groceries':'Essential',
@@ -37,8 +39,17 @@ class OfflineStore {
  }
  Future<Database> get db async {
   if (_database!=null) return _database!;
-  final root = await getDatabasesPath();
-  _database=await openDatabase(path.join(root,'payday_local_v1.db'),version:3,onCreate:(d,v) async {
+  final root = await cipher.getDatabasesPath();
+  final file=path.join(root,'payday_local_v1.db');
+  final key=await DatabaseKey.obtain();
+  String? password=key;
+  try{
+   await encryptDatabaseIfNeeded(file,key);
+  }catch(_){
+   // Rollback path: keep using the untouched unencrypted file; retry next launch.
+   if(await fileIsPlainSqlite(file))password=null;
+  }
+  _database=await cipher.openDatabase(file,password:password,version:3,onCreate:(d,v) async {
    await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "")');
    await d.execute('CREATE INDEX ix_transactions_date ON transactions(date)');
    await d.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month, category))');

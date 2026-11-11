@@ -89,13 +89,15 @@ class PaydayWidget : AppWidgetProvider() {
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/payday_widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:gravity="center_vertical"
+    android:orientation="vertical" android:gravity="center"
     android:padding="14dp" android:background="@drawable/payday_widget_background">
     <TextView android:id="@+id/payday_widget_title"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:textAlignment="center"
         android:text="Payday" android:textColor="#FFF4B740" android:textSize="13sp" android:textStyle="bold" />
     <TextView android:id="@+id/payday_widget_body"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center" android:textAlignment="center"
         android:text="Tap to open" android:textColor="#FFFFFFFF" android:textSize="18sp" android:textStyle="bold"
         android:maxLines="2" android:ellipsize="end" />
 </LinearLayout>

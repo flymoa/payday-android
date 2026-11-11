@@ -33,6 +33,8 @@ class HomeWidgetSetupTest(unittest.TestCase):
             self.assertEqual(manifest.count('.PaydayWidget'), 1)
             self.assertNotIn('INTERNET', manifest)
             self.assertTrue((main / 'res/xml/payday_widget_info.xml').exists())
+            layout = (main / 'res/layout/payday_widget.xml').read_text()
+            self.assertEqual(layout.count('android:textAlignment="center"'), 2)
 
     def test_refuses_before_app_lock_setup(self):
         with tempfile.TemporaryDirectory() as directory:
