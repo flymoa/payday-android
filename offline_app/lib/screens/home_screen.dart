@@ -6,27 +6,6 @@ part of '../main.dart';
 extension _HomeScreen on _FinanceState {
  String homeDigits(int cents)=>localizedNumber(cents,language,grouped:true);
  String get decimalSeparator=>language=='fr'?',':'.';
- String homeMonthName()=>localizedMonth(selected,language);
- Widget homeSummary(String label,int value,String glyph){
-  return Expanded(child:Container(
-   padding:EdgeInsets.all(13),
-   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
-    border:Border.all(color:line)),
-   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    PaydayCategoryIcon(glyph,size:38),
-    SizedBox(height:11),
-    LText(label,maxLines:2,style:TextStyle(color:muted,fontSize:12,height:1.2)),
-    SizedBox(height:8),
-    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-     child:Row(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.baseline,
-      textBaseline:TextBaseline.alphabetic,children:[
-      LText(homeDigits(value),style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:homeNavy)),
-      SizedBox(width:5),
-      LText(currency,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,color:homeText)),
-     ])),
-   ]),
-  ));
- }
  Widget homeQuickAction(String label,String glyph,VoidCallback onPressed){
   return Expanded(child:InkWell(
    borderRadius:BorderRadius.circular(15),onTap:onPressed,
