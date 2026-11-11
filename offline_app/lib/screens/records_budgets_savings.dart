@@ -71,10 +71,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
     ]),
     if(budget>0||spent>0)...[
      SizedBox(height:8),
-     Wrap(spacing:14,runSpacing:2,children:[
+     SizedBox(width:double.infinity,child:Wrap(alignment:WrapAlignment.center,spacing:14,runSpacing:2,children:[
       LText('Spent ${money(spent)}',style:TextStyle(color:muted,fontSize:13)),
       if(status.isNotEmpty)LText(status,style:TextStyle(color:tone,fontSize:13,fontWeight:FontWeight.w700)),
-     ]),
+     ])),
     ],
    ]))));
  }
