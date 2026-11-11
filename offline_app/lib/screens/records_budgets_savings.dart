@@ -67,7 +67,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
       LText(group,style:TextStyle(color:muted,fontSize:12)),
      ])),
      SizedBox(width:8),
-     LText(money(budget),style:TextStyle(fontWeight:FontWeight.w800,color:ink)),
+     Flexible(child:LText(money(budget),textAlign:TextAlign.end,style:TextStyle(fontWeight:FontWeight.w800,color:ink))),
     ]),
     if(budget>0||spent>0)...[
      SizedBox(height:10),
