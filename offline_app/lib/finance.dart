@@ -304,3 +304,8 @@ int? projectedMonthSpend({required int spentSoFar,required DateTime month,requir
  final days=DateTime(now.year,now.month+1,0).day;
  return (spentSoFar*days/now.day).round();
 }
+
+/// Total Expense amount of one category in one month (YYYY-MM).
+int categoryMonthTotal(Iterable<Map<String,Object?>> transactions,String category,String month)=>transactions
+ .where((t)=>t['type']=='Expense'&&t['category']==category&&(t['date']?.toString()??'').startsWith(month))
+ .fold(0,(n,t)=>n+((t['amount'] as num?)?.toInt()??0));

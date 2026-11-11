@@ -149,6 +149,8 @@ const paydayTranslations=<String,List<String>>{
  "{0} of {1} entries · All months":["{0} sur {1} opérations · Tous les mois","{0} من {1} معاملة · كل الأشهر"],
  "Duplicate as new (today)":["Dupliquer (aujourd’hui)","تكرار كمعاملة جديدة (اليوم)"],
  "Duplicate transaction":["Dupliquer l’opération","تكرار المعاملة"],
+ "Last 12 months":["12 derniers mois","آخر 12 شهرًا"],
+ "Average in months with spending: {0}":["Moyenne des mois avec dépenses : {0}","المتوسط في الأشهر التي فيها إنفاق: {0}"],
  "Delete goal":["Supprimer l’objectif","حذف الهدف"],
  "Delete this goal and its allocations?":["Supprimer cet objectif et ses affectations ?","حذف هذا الهدف وتخصيصاته؟"],
  "Money allocated to this goal returns to unassigned savings.":["L’argent affecté à cet objectif retourne à l’épargne non affectée.","تعود الأموال المخصصة لهذا الهدف إلى المدخرات غير المخصصة."],
