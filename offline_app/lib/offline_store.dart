@@ -311,9 +311,16 @@ class OfflineStore {
    await txn.delete('reserves',where:'id=?',whereArgs:[id]);
   });
  }
- Future<void> saveMonthClose(String month,{required bool entriesOk,required bool balanceOk,required int extra,required int openingBalance}) async {
+ Future<void> saveMonthClose(String month,{required bool entriesOk,required bool balanceOk,required int extra,required int openingBalance,Map<String,int>? carryToNext}) async {
   if(extra<0)throw ArgumentError('Invalid savings');
+  if(carryToNext!=null&&carryToNext.values.any((v)=>v<=0||v>100000000000))throw ArgumentError('Invalid carry-over');
   await (await db).transaction((txn)async{
+   // The carry-over choice is saved with the close and replaced if the close is saved again.
+   final m=monthFromKey(month),next='budget_carry_${monthKey(DateTime(m.year,m.month+1))}';
+   await txn.delete('settings',where:'key=?',whereArgs:[next]);
+   if(carryToNext!=null&&carryToNext.isNotEmpty){
+    await txn.insert('settings',{'key':next,'value':jsonEncode(carryToNext)});
+   }
    await txn.insert('month_closes',{
     'month':month,'entries_ok':entriesOk?1:0,'balance_ok':balanceOk?1:0,
     'extra':extra,'opening_balance':openingBalance
@@ -331,6 +338,8 @@ class OfflineStore {
    final allocations=Sqflite.firstIntValue(await txn.rawQuery('SELECT COUNT(*) FROM allocations WHERE month=?',[month]))??0;
    if(allocations>0)throw StateError('Remove this month\'s allocations before reopening it.');
    await txn.update('month_closes',{'entries_ok':0,'balance_ok':0},where:'month=?',whereArgs:[month]);
+   final m=monthFromKey(month);
+   await txn.delete('settings',where:'key=?',whereArgs:['budget_carry_${monthKey(DateTime(m.year,m.month+1))}']);
    if(await _allocatedTotal(txn)>await _savingsPool(txn)){
     throw StateError('Reopening would leave more allocated than your savings. Remove an allocation first.');
    }

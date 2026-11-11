@@ -54,4 +54,25 @@ void main() {
     // 1,200.00 over 6 months = 200.00/month, minus 80.00 already put aside.
     expect(l.monthlyReserves('2026-11'), 12000);
   });
+
+  test('carry-over adds to next month limit but not to the plan', () {
+    final c = Ledger({
+      'budgets': [
+        {'month': '2026-10', 'category': 'Groceries', 'amount': 80000},
+        {'month': '2026-10', 'category': 'Leisure', 'amount': 10000},
+        {'month': '2026-10', 'category': 'Savings goal', 'amount': 50000},
+        {'month': '2026-11', 'category': 'Groceries', 'amount': 80000},
+      ],
+      'transactions': [
+        {'date': '2026-10-04', 'type': 'Expense', 'category': 'Groceries', 'amount': 60000},
+        {'date': '2026-10-05', 'type': 'Expense', 'category': 'Leisure', 'amount': 15000},
+      ],
+      'settings': [{'key': budgetCarryKey('2026-11'), 'value': '{"Groceries":20000,"Savings goal":5}'}],
+    });
+    expect(c.unspentBudgets('2026-10'), {'Groceries': 20000});
+    expect(c.plannedBudget('2026-11', 'Groceries'), 80000);
+    expect(c.budgetFor('2026-11', 'Groceries'), 100000);
+    expect(c.budgetFor('2026-11', 'Savings goal'), 0);
+    expect(Ledger({'settings': [{'key': budgetCarryKey('2026-11'), 'value': 'broken'}]}).carriedIntoMonth('2026-11'), isEmpty);
+  });
 }

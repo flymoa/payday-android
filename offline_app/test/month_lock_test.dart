@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:payday_local/offline_store.dart';
+import 'package:payday_local/ledger.dart';
 
 class LockStore extends OfflineStore {
   LockStore(Database database) : super(database: database);
@@ -143,5 +144,16 @@ void main() {
       expect(left.single['goal_id'], 2);
       await store.allocate('2026-09', 2, 30000);
     });
+  });
+
+  test('closing with carry-over saves it for next month; re-saving or reopening clears it', () async {
+    Future<String?> carry() async => (await db.query('settings', where: 'key=?', whereArgs: [budgetCarryKey('2026-10')])).firstOrNull?['value'] as String?;
+    await store.saveMonthClose('2026-09', entriesOk: true, balanceOk: true, extra: 0, openingBalance: 0, carryToNext: {'Groceries': 2000});
+    expect(await carry(), '{"Groceries":2000}');
+    await store.saveMonthClose('2026-09', entriesOk: true, balanceOk: true, extra: 0, openingBalance: 0, carryToNext: const {});
+    expect(await carry(), isNull);
+    await store.saveMonthClose('2026-09', entriesOk: true, balanceOk: true, extra: 0, openingBalance: 0, carryToNext: {'Groceries': 2000});
+    await store.reopenMonth('2026-09');
+    expect(await carry(), isNull);
   });
 }

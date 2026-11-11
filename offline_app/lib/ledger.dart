@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'finance.dart';
 
 typedef LedgerRow=Map<String,Object?>;
@@ -14,7 +15,28 @@ class Ledger {
 
  List<LedgerRow> monthTransactions(String month)=>rows('transactions').where((t)=>_s(t,'date').startsWith(month)).toList();
  static int sumType(Iterable<LedgerRow> tx,String type)=>tx.where((t)=>_s(t,'type')==type).fold(0,(n,t)=>n+_v(t,'amount'));
- int budgetFor(String month,String category)=>rows('budgets').where((x)=>_s(x,'month')==month&&_s(x,'category')==category).fold(0,(n,x)=>n+_v(x,'amount'));
+ /// Budget as planned on the Budgets screen (no carry-over). Use this to edit plans.
+ int plannedBudget(String month,String category)=>rows('budgets').where((x)=>_s(x,'month')==month&&_s(x,'category')==category).fold(0,(n,x)=>n+_v(x,'amount'));
+ /// Spending limit for a month: the plan plus any unspent budget carried in.
+ int budgetFor(String month,String category)=>plannedBudget(month,category)+carriedInto(month,category);
+ static const notCarried={'Income plan','Savings goal'};
+ Map<String,int> carriedIntoMonth(String month){
+  try{
+   final raw=jsonDecode(setting(budgetCarryKey(month))??'{}');
+   if(raw is! Map)return {};
+   return {for(final e in raw.entries)if(e.value is num&&(e.value as num)>0)'${e.key}':(e.value as num).toInt()};
+  }catch(_){return {};}
+ }
+ int carriedInto(String month,String category)=>notCarried.contains(category)?0:carriedIntoMonth(month)[category]??0;
+ /// Unspent amount per budgeted spending category (only positive amounts).
+ Map<String,int> unspentBudgets(String month){
+  final spent=<String,int>{};
+  for(final t in monthTransactions(month).where((t)=>_s(t,'type')=='Expense')){spent[_s(t,'category')]=(spent[_s(t,'category')]??0)+_v(t,'amount');}
+  final cats=rows('budgets').where((r)=>_s(r,'month')==month).map((r)=>_s(r,'category')).toSet()..removeAll(notCarried);
+  final out=<String,int>{};
+  for(final c in cats){final left=budgetFor(month,c)-(spent[c]??0);if(left>0)out[c]=left;}
+  return out;
+ }
  int billPaid(LedgerRow bill)=>rows('transactions').where((x)=>_s(x,'type')=='Expense'&&_s(x,'bill_id')==_s(bill,'code')).fold(0,(n,x)=>n+_v(x,'amount'));
  int unpaidBills(String month)=>rows('bills').where((b)=>_s(b,'due').startsWith(month)).fold(0,(n,b)=>n+billOutstanding(_v(b,'amount'),billPaid(b)));
  int totalPool(){
@@ -46,3 +68,5 @@ class Ledger {
     due:DateTime.tryParse(_s(r,'due'))??DateTime.now(),month:chosen));
  }
 }
+
+String budgetCarryKey(String month)=>'budget_carry_$month';

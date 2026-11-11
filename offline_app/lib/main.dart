@@ -1280,7 +1280,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
 
  Future<void> budgetForm(Map<String,List<RowData>> d,String category)async{
   final budgetMonth=month;
-  final original=budgetFor(d,budgetMonth,category);
+  final original=Ledger(d).plannedBudget(budgetMonth,category);
   final a=TextEditingController(text:inputNumber(original));
   final initial=checkBudgetAssignment(rows:list(d,'budgets'),month:budgetMonth,
    category:category,proposed:original);
@@ -1575,16 +1575,36 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   final currentMonth=DateTime(DateTime.now().year,DateTime.now().month);
   final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
   final closedNow=val(current,'entries_ok')==1&&val(current,'balance_ok')==1;
+  final unspent=Ledger(d).unspentBudgets(month);
+  final unspentTotal=unspent.values.fold<int>(0,(a,b)=>a+b);
+  final nextMonth=DateTime(selected.year,selected.month+1);
+  // Previous choice: carried if the next month has a carry-over saved.
+  var leftover=Ledger(d).carriedIntoMonth(monthKey(nextMonth)).isNotEmpty?'carry':'none';
   await sheet('Close ${monthLabel(selected)}',(c,rebuild)=>Column(children:[
    LText('Estimated available extra: ${money(available)}\nOnly extra savings beyond recorded transfers should be entered.'),
    SizedBox(height:8),CheckboxListTile(value:checked,onChanged:(v)=>rebuild(()=>checked=v??false),title:LText('All transactions checked')),
    CheckboxListTile(value:balanced,onChanged:(v)=>rebuild(()=>balanced=v??false),title:LText('Cash balance checked')),
+   if(unspentTotal>0)...[
+    SizedBox(height:8),
+    LText('Unspent budget this month: ${money(unspentTotal)}',style:TextStyle(fontWeight:FontWeight.w700)),
+    RadioGroup<String>(groupValue:leftover,onChanged:(v){if(v==null)return;rebuild((){
+      leftover=v;
+      if(v=='save')extra.text=inputNumber(unspentTotal<available?unspentTotal:available);
+     });},
+     child:Column(children:[
+      RadioListTile<String>(value:'carry',title:LText('Carry to ${monthLabel(nextMonth)}'),
+       subtitle:LText('Each category gets its unspent amount added to next month\'s budget.')),
+      RadioListTile<String>(value:'save',title:LText('Add to savings'),
+       subtitle:LText('Fills Extra saved below with the unspent amount (up to available cash).')),
+      RadioListTile<String>(value:'none',title:LText('Do nothing')),
+     ])),
+   ],
    field(opening,'Opening spendable cash ($currency)',number:true),field(extra,'Extra saved ($currency)',number:true),
    FilledButton(onPressed:()async{
     if(!selected.isBefore(currentMonth))return inputError('Wait until the month ends before closing it.');
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
     if(n==null||o==null||n>available||!checked||!balanced)return inputError('Complete the checks. Extra savings cannot exceed available cash.');
-    final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o));if(saveSucceeded&&c.mounted)Navigator.pop(c);
+    final saveSucceeded=await execute(()=>store.saveMonthClose(month,entriesOk:checked,balanceOk:balanced,extra:n,openingBalance:o,carryToNext:leftover=='carry'?unspent:const {}));if(saveSucceeded&&c.mounted)Navigator.pop(c);
    },child:LText('Confirm month close')),
    if(closedNow)Padding(padding:EdgeInsets.only(top:8),child:TextButton(onPressed:()async{
     final reopened=await execute(()=>store.reopenMonth(month));if(reopened&&c.mounted)Navigator.pop(c);
