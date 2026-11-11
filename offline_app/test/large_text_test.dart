@@ -4,6 +4,16 @@ import 'package:payday_local/app_preferences.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/add_button.dart';
+import 'package:payday_local/offline_store.dart';
+
+class SampleStore extends OfflineStore {
+  @override
+  Future<Map<String, List<RowData>>> snapshot() async => sample();
+  @override
+  Future<List<Map<String, Object?>>> table(String name) async => sample()[name] ?? [];
+  @override
+  Future<void> close() async {}
+}
 
 Map<String, List<RowData>> sample() {
   final m = monthKey(DateTime.now());
@@ -46,6 +56,7 @@ void main() {
       addTearDown(() => FlutterError.onError = previous);
       await t.pumpWidget(PaydayLocal(
           initialData: Future.value(sample()),
+          store: SampleStore(),
           preferencesWriter: (_) async {},
           initialPreferences: AppPreferences(language: language)));
       await t.pumpAndSettle();
