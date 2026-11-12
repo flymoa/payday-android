@@ -30,8 +30,11 @@ extension _HomeScreen on _FinanceState {
   final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
   final description=isOver?'Over budget':
     isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':'${(spent*100/limit).round()}% used';
-  return Container(
-   margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.all(15),
+  // Tap a card to see this month's records for the category.
+  return Padding(padding:EdgeInsets.only(bottom:10),child:Material(color:Colors.transparent,
+   child:InkWell(key:ValueKey('home-category-$category'),borderRadius:BorderRadius.circular(19),
+    onTap:()=>openCategoryRecords(category),child:Ink(
+   padding:EdgeInsets.all(15),
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
     border:Border.all(color:isOver?Color(0xffE9BEB8):line)),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -72,7 +75,7 @@ extension _HomeScreen on _FinanceState {
        '(${((spent/limit-1)*100).round()}% over).',
        style:TextStyle(color:homeOver,fontSize:12))),
    ]),
-  );
+  ))));
  }
  Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
   IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
@@ -230,4 +233,51 @@ extension _HomeScreen on _FinanceState {
       style:TextStyle(fontWeight:FontWeight.w700,color:ink)))),
    ]))));
  }
+ /// Pop-up with every record of one category in the selected month.
+ /// Scales and fades in from the centre; instant when Android animations are off.
+ Future<void> openCategoryRecords(String category)async{
+  final reduce=MediaQuery.disableAnimationsOf(context);
+  await showGeneralDialog<void>(context:context,barrierDismissible:true,
+   barrierLabel:tr(context,'Close'),barrierColor:Colors.black.withValues(alpha:.35),
+   transitionDuration:reduce?Duration.zero:const Duration(milliseconds:280),
+   transitionBuilder:(c,animation,_,child){
+    final curve=CurvedAnimation(parent:animation,curve:Curves.easeOutCubic,reverseCurve:Curves.easeInCubic);
+    return FadeTransition(opacity:curve,child:ScaleTransition(scale:Tween(begin:.92,end:1.0).animate(curve),child:child));
+   },
+   pageBuilder:(c,_,__)=>SafeArea(child:Center(child:Padding(padding:const EdgeInsets.symmetric(horizontal:18,vertical:28),
+    child:Material(color:surface,borderRadius:BorderRadius.circular(26),clipBehavior:Clip.antiAlias,
+     child:ConstrainedBox(constraints:BoxConstraints(maxWidth:520,maxHeight:MediaQuery.sizeOf(c).height*.8),
+      child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(c,snap){
+       final d=snap.data;
+       if(d==null)return const SizedBox(height:160);
+       final rows=monthTransactions(d).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category).toList();
+       final spent=rows.fold<int>(0,(n,t)=>n+val(t,'amount')),limit=budgetFor(d,month,category);
+       return Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+        Padding(padding:const EdgeInsetsDirectional.fromSTEB(18,16,8,6),child:Row(children:[
+         PaydayCategoryIcon(category,size:40),const SizedBox(width:12),
+         Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          LText(category,category:true,style:TextStyle(fontWeight:FontWeight.w800,fontSize:18,color:ink)),
+          LText(monthLabel(selected),style:TextStyle(color:muted,fontSize:12)),
+         ])),
+         IconButton(tooltip:tr(context,'Close'),onPressed:()=>Navigator.pop(c),icon:const PaydayAppIcon(Icons.close)),
+        ])),
+        Padding(padding:const EdgeInsets.fromLTRB(18,0,18,12),child:LText(
+         limit>0?'${money(spent)} of ${money(limit)} · ${rows.length} records':'${money(spent)} · ${rows.length} records',
+         style:TextStyle(color:homeText,fontWeight:FontWeight.w700))),
+        Divider(height:1,color:line),
+        Flexible(child:rows.isEmpty
+         ?Padding(padding:const EdgeInsets.all(28),child:LText('No records in this category this month.',textAlign:TextAlign.center,style:TextStyle(color:muted)))
+         :ListView.builder(shrinkWrap:true,padding:const EdgeInsets.fromLTRB(10,8,10,12),itemCount:rows.length,
+          itemBuilder:(c,i)=>recordTileForDialog(rows[i],c))),
+       ]);
+      })))))),
+  );
+ }
+ /// Same row as Records; editing closes the pop-up first so the form opens on top.
+ Widget recordTileForDialog(RowData t,BuildContext dialog)=>ListTile(
+  title:Text(st(t,'description').isEmpty?categoryLabel(context,st(t,'category')):st(t,'description'),
+   maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w700)),
+  subtitle:LText(displayDay(context,st(t,'date'))),
+  trailing:LText(money(val(t,'amount')),style:TextStyle(fontWeight:FontWeight.w800,color:ink)),
+  onTap:(){Navigator.pop(dialog);transactionForm(t);});
 }
