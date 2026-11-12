@@ -37,23 +37,26 @@ extension _HomeScreen on _FinanceState {
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     // Original layout: name and status on one line, centred vertically.
     // The status only shrinks (never wraps) if the phone's text is very large.
-    Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
+    // Name on the left, status pinned to the right edge of the card.
+    LayoutBuilder(builder:(context,box)=>Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
      PaydayCategoryIcon(category,size:34),SizedBox(width:10),
      Expanded(child:LText(category,category:true,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:ink,
       fontWeight:FontWeight.w700,fontSize:14))),
+     SizedBox(width:8),
      if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
       child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
-     Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-      child:LText(description,maxLines:1,style:TextStyle(color:isOver?homeOver:
-       (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
-       fontWeight:FontWeight.w700,fontSize:12)))),
-    ]),
+     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.5),
+      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+       child:LText(description,maxLines:1,style:TextStyle(color:isOver?homeOver:
+        (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
+        fontWeight:FontWeight.w700,fontSize:12)))),
+    ])),
     SizedBox(height:9),
     Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
      Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
       maxLines:2,style:TextStyle(color:homeText,fontSize:12))),
      SizedBox(width:5),
-     Flexible(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
+     Expanded(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
       textAlign:TextAlign.end,softWrap:true,
       style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,

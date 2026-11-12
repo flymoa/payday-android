@@ -65,7 +65,7 @@ class _PaydayStartupState extends State<PaydayStartup>{
     Column(mainAxisSize:MainAxisSize.min,children:[
      const LText('Could not read your app settings. Your records have not been opened.',textAlign:TextAlign.center),
      const SizedBox(height:16),FilledButton(onPressed:(){final next=store.loadAppPreferences();setState((){preferences=next;});},child:const LText('Try again')),
-    ]):const CircularProgressIndicator())))));
+    ]):const SizedBox.shrink())))));
  });
 }
 const kInk=Color(0xff12261F), kJade=paydayEmerald, kCream=paydaySand, amber=Color(0xff986318);
@@ -364,7 +364,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More'))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:LText('Local database error: ${snap.error}'));
-   if(!snap.hasData)return Center(child:CircularProgressIndicator());
+   // Blank while records load (encrypted open), so no spinner flashes before Home.
+   if(!snap.hasData)return const SizedBox.shrink();
    final d=snap.data!;
    Widget screen;
    switch(page){
