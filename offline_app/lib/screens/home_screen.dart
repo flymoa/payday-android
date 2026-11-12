@@ -35,19 +35,21 @@ extension _HomeScreen on _FinanceState {
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
     border:Border.all(color:isOver?Color(0xffE9BEB8):line)),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[
+    // Original layout: name and status on one line, centred vertically.
+    // The status only shrinks (never wraps) if the phone's text is very large.
+    Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
      PaydayCategoryIcon(category,size:34),SizedBox(width:10),
-     Expanded(child:LText(category,category:true,style:TextStyle(color:ink,
+     Expanded(child:LText(category,category:true,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:ink,
       fontWeight:FontWeight.w700,fontSize:14))),
      if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
       child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
-     ConstrainedBox(constraints:BoxConstraints(maxWidth:150),child:LText(description,maxLines:1,overflow:TextOverflow.ellipsis,
-      style:TextStyle(color:isOver?homeOver:
-      (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
-      fontWeight:FontWeight.w700,fontSize:12))),
+     Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+      child:LText(description,maxLines:1,style:TextStyle(color:isOver?homeOver:
+       (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
+       fontWeight:FontWeight.w700,fontSize:12)))),
     ]),
     SizedBox(height:9),
-    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
      Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
       maxLines:2,style:TextStyle(color:homeText,fontSize:12))),
      SizedBox(width:5),
