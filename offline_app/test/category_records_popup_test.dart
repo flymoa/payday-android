@@ -5,7 +5,7 @@ import 'package:payday_local/main.dart';
 
 void main() {
   testWidgets('tapping a Home budget card shows that category\'s records in a pop-up', (t) async {
-    await t.binding.setSurfaceSize(const Size(390, 844));
+    await t.binding.setSurfaceSize(const Size(390, 2000));
     addTearDown(() => t.binding.setSurfaceSize(null));
     final m = monthKey(DateTime.now());
     final data = <String, List<RowData>>{
