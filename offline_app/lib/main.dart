@@ -372,7 +372,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     })),
    ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
-   title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:tr(context,'Open settings'),padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
+   title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:10),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText(uiDay(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
      FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,

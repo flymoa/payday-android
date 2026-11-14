@@ -100,7 +100,7 @@ void main() {
     await settle(t);
     await t.tap(find.byKey(const ValueKey('bottom-0')).first);
     await settle(t, seconds: 1);
-    await t.tap(find.byKey(const ValueKey('home-settings-logo')));
+    await t.tap(find.byKey(const ValueKey('home-settings-button')));
     await settle(t, seconds: 2);
     await t.tap(find.byKey(const ValueKey('language-setting')));
     await settle(t, seconds: 2);

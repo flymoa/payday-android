@@ -74,7 +74,7 @@ void main(){
   }
  });
  Future<void> openSettings(WidgetTester tester)async{
-  await tester.tap(find.byKey(const ValueKey('home-settings-logo')));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
  }
  Future<void> chooseTheme(WidgetTester tester,String name)async{
   await tester.tap(find.text('Theme'));await tester.pumpAndSettle();

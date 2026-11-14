@@ -109,7 +109,7 @@ void main() {
         await shot('7_new_transaction');
         await t.tap(find.byTooltip('Close transaction'));
         await t.pumpAndSettle();
-        await t.tap(find.byKey(const ValueKey('home-settings-logo')));
+        await t.tap(find.byKey(const ValueKey('home-settings-button')));
         await t.pumpAndSettle();
         await shot('8_settings');
       } finally {

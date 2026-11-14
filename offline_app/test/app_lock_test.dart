@@ -53,7 +53,7 @@ void main(){
   expect((await store.loadAppPreferences()).appLock,isFalse);
  });
  Future<void> openSettings(WidgetTester tester)async{
-  await tester.tap(find.byKey(const ValueKey('home-settings-logo')));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
   await tester.ensureVisible(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
  }
@@ -62,7 +62,7 @@ void main(){
   await tester.dragFrom(const Offset(1,200),const Offset(280,0));await tester.pumpAndSettle();
   expect(find.text('Theme'),findsNothing);
   await tester.tap(find.text('More'));await tester.pumpAndSettle();
-  expect(find.text('Settings'),findsNothing);expect(find.byKey(const ValueKey('home-settings-logo')),findsNothing);
+  expect(find.text('Settings'),findsNothing);expect(find.byKey(const ValueKey('home-settings-button')),findsNothing);
   expect(find.text('Bills & payments'),findsOneWidget);
   await tester.dragFrom(const Offset(1,200),const Offset(280,0));await tester.pumpAndSettle();
   expect(find.text('Theme'),findsNothing);
@@ -124,7 +124,7 @@ void main(){
   var calls=0;var result=Completer<bool>();
   final lock=AppLockController(enabled:true,authenticate:(_){calls++;return result.future;},privacyWriter:(_)async{});
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:const AppPreferences(appLock:true),appLockController:lock));await tester.pumpAndSettle();
-  expect(find.byKey(const ValueKey('home-settings-logo')),findsNothing);
+  expect(find.byKey(const ValueKey('home-settings-button')),findsNothing);
   await tester.tap(find.text('Unlock'));await tester.pump();
   await lock.unlock();expect(calls,1);
   result.complete(false);await tester.pumpAndSettle();
@@ -136,9 +136,9 @@ void main(){
   lock.didChangeAppLifecycleState(AppLifecycleState.paused);
   lock.didChangeAppLifecycleState(AppLifecycleState.resumed);
   result.complete(true);await tester.pumpAndSettle();
-  expect(calls,2);expect(find.byKey(const ValueKey('home-settings-logo')),findsOneWidget);
+  expect(calls,2);expect(find.byKey(const ValueKey('home-settings-button')),findsOneWidget);
   lock.didChangeAppLifecycleState(AppLifecycleState.inactive);await tester.pumpAndSettle();
-  expect(find.byKey(const ValueKey('home-settings-logo')),findsNothing);
+  expect(find.byKey(const ValueKey('home-settings-button')),findsNothing);
   lock.didChangeAppLifecycleState(AppLifecycleState.resumed);await tester.pumpAndSettle();
   result=Completer<bool>();await tester.tap(find.text('Unlock'));await tester.pump();
   result.completeError(const AppLockProblem('Set a screen lock in Android Settings, then try again.'));await tester.pumpAndSettle();

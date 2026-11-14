@@ -52,7 +52,7 @@ void main(){
  testWidgets('settings routes return to the drawer without adding entry points in More',(tester)async{
   await tester.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{}));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('home-settings-logo')));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
   await tester.ensureVisible(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('security-setting')));await tester.pumpAndSettle();
   expect(find.byKey(const ValueKey('app-lock-setting')),findsOneWidget);

@@ -75,7 +75,7 @@ void main() {
       if (problems.isNotEmpty) problems.add('  ^ in the transaction form');
       await t.binding.handlePopRoute();
       await t.pumpAndSettle();
-      final logo = find.byKey(const ValueKey('home-settings-logo'));
+      final logo = find.byKey(const ValueKey('home-settings-button'));
       if (logo.evaluate().isNotEmpty) {
         await t.tap(logo);
         await t.pumpAndSettle();

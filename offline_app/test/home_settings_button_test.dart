@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/app_preferences.dart';
+import 'package:payday_local/brand.dart';
 import 'package:payday_local/main.dart';
 
 void main() {
@@ -13,6 +14,8 @@ void main() {
       initialPreferences: const AppPreferences(),
     ));
     await t.pumpAndSettle();
+    // The logo is decoration only; the gear button is the one way in.
+    expect(find.ancestor(of: find.byType(PaydayMark).first, matching: find.byType(IconButton)), findsNothing);
     final button = find.byKey(const ValueKey('home-settings-button'));
     expect(button, findsOneWidget);
     await t.tap(button);
