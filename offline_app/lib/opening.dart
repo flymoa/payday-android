@@ -113,7 +113,7 @@ class PaydayOpeningPainter extends CustomPainter {
     canvas.scale(1.12);
     canvas.translate(-50, -50);
     canvas.saveLayer(const Rect.fromLTWH(-5, -5, 110, 110), Paint()..color = Colors.white.withValues(alpha: appear));
-    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0, 0, 100, 100), const Radius.circular(PaydayRadius.sheet)), Paint()..color = paydayEmerald);
+    canvas.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0, 0, 100, 100), const Radius.circular(paydayMarkCorner)), Paint()..color = paydayEmerald);
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(0, 100 * (1 - appear), 100, 100));
     final p = Paint()..color = paydaySand;

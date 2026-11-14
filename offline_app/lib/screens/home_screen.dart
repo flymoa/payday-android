@@ -6,52 +6,52 @@ part of '../main.dart';
 extension _HomeScreen on _FinanceState {
  String homeDigits(int cents)=>localizedNumber(cents,language,grouped:true);
  String get decimalSeparator=>language=='fr'?',':'.';
+ /// Shortcut tile on Home. The four tiles share one height.
  Widget homeQuickAction(String label,String glyph,VoidCallback onPressed){
-  return Expanded(child:InkWell(
-   borderRadius:BorderRadius.circular(15),onTap:onPressed,
-   child:Padding(padding:EdgeInsets.symmetric(vertical:4),child:Column(children:[
-    if(glyph=='budgets')Container(key:ValueKey('home-budget-icon'),width:52,height:52,padding:EdgeInsets.all(10.4),
-     decoration:BoxDecoration(shape:BoxShape.circle,color:isDark?PaydayColors.darkBudgetDisc:PaydayColors.mintTint),
-     child:PaydayAppIcon(Icons.pie_chart_outline,size:31.2))
-    else PaydayCategoryIcon(glyph,size:52),
-    SizedBox(height:7),
-    LText(label,maxLines:2,textAlign:TextAlign.center,
-     style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:homeText)),
-   ])),
-  ));
+  return Expanded(child:Material(color:surface,clipBehavior:Clip.antiAlias,
+   shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),side:BorderSide(color:line)),
+   child:InkWell(onTap:onPressed,
+    child:Padding(padding:EdgeInsets.symmetric(vertical:12,horizontal:4),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+     if(glyph=='budgets')Container(key:ValueKey('home-budget-icon'),width:44,height:44,padding:EdgeInsets.all(9),
+      decoration:BoxDecoration(shape:BoxShape.circle,color:isDark?PaydayColors.darkBudgetDisc:PaydayColors.mintTint),
+      child:PaydayAppIcon(Icons.pie_chart_outline,size:26))
+     else PaydayCategoryIcon(glyph,size:44),
+     SizedBox(height:7),
+     LText(label,maxLines:2,textAlign:TextAlign.center,
+      style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:ink)),
+    ])))));
  }
+ /// One budget row inside the grouped Budgets panel on Home.
+ /// Tap a row to see this month's records for the category.
  Widget homeCategory(String category,int spent,int limit){
   final status=categoryBudgetStatus(spent,limit);
   final isOver=status==CategoryBudgetStatus.overBudget;
   final isNear=status==CategoryBudgetStatus.nearLimit;
   final isSpent=status==CategoryBudgetStatus.fullySpent;
   final isUnbudgeted=status==CategoryBudgetStatus.unbudgeted;
-  final statusColor=isOver?homeOver:(isNear||isSpent||isUnbudgeted)?homeNear:homeGreen;
+  final caution=isNear||isSpent||isUnbudgeted;
+  final statusColor=isOver?danger:caution?warn:homeGreen;
+  final noteColor=isOver?danger:caution?(isDark?warn:PaydayColors.statusNearText):homeText;
   final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
   final description=isOver?'Over budget':
     isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':'${(spent*100/limit).round()}% used';
-  // Tap a card to see this month's records for the category.
-  return Padding(padding:EdgeInsets.only(bottom:10),child:Material(color:Colors.transparent,
-   child:InkWell(key:ValueKey('home-category-$category'),borderRadius:BorderRadius.circular(19),
-    onTap:()=>openCategoryRecords(category),child:Ink(
-   padding:EdgeInsets.all(15),
-   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
-    border:Border.all(color:isOver?PaydayColors.statusOverBorder:line)),
+  return Material(color:Colors.transparent,
+   child:InkWell(key:ValueKey('home-category-$category'),
+    onTap:()=>openCategoryRecords(category),child:Padding(
+   padding:EdgeInsets.symmetric(horizontal:14,vertical:13),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    // Original layout: name and status on one line, centred vertically.
+    // Name on the left, status pinned to the right edge of the row.
     // The status only shrinks (never wraps) if the phone's text is very large.
-    // Name on the left, status pinned to the right edge of the card.
     LayoutBuilder(builder:(context,box)=>Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
-     PaydayCategoryIcon(category,size:34),SizedBox(width:10),
+     PaydayCategoryIcon(category,size:36),SizedBox(width:10),
      Expanded(child:LText(category,category:true,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:ink,
-      fontWeight:FontWeight.w700,fontSize:14))),
+      fontWeight:FontWeight.w700,fontSize:15))),
      SizedBox(width:8),
      if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
-      child:PaydayAppIcon(Icons.error_outline,color:homeOver,size:17)),
+      child:PaydayAppIcon(Icons.error_outline,color:danger,size:17)),
      ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.5),
       child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-       child:LText(description,maxLines:1,style:TextStyle(color:isOver?homeOver:
-        (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:PaydayColors.statusNearText):homeText,
+       child:LText(description,maxLines:1,style:TextStyle(color:noteColor,
         fontWeight:FontWeight.w700,fontSize:12)))),
     ])),
     SizedBox(height:9),
@@ -63,26 +63,31 @@ extension _HomeScreen on _FinanceState {
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
       textAlign:TextAlign.end,softWrap:true,
       style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,
-       color:isOver?homeOver:homeText))),
+       color:isOver?danger:homeText))),
     ]),
-    SizedBox(height:11),
-    ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.md),
-     child:LinearProgressIndicator(value:progress,minHeight:9,
-      color:statusColor,
-      backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?PaydayColors.statusOverTrack:PaydayColors.trackLight)),
+    SizedBox(height:10),
+    PaydayProgress(value:progress,color:statusColor,
+     trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null),
    ]),
-  ))));
+  )));
  }
- Widget navMonth()=>Row(mainAxisAlignment:MainAxisAlignment.center,children:[
-  IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-  Flexible(child:LText(monthLabel(selected),textAlign:TextAlign.center,style:TextStyle(fontWeight:FontWeight.bold,fontSize:16))),
-  IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
- ]);
+ /// Month switcher shown at the top of each page.
+ Widget navMonth()=>Center(child:Material(color:surface,clipBehavior:Clip.antiAlias,
+  shape:StadiumBorder(side:BorderSide(color:line)),
+  child:Row(mainAxisSize:MainAxisSize.min,children:[
+   IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
+   Flexible(child:Padding(padding:EdgeInsets.symmetric(horizontal:6),child:LText(monthLabel(selected),textAlign:TextAlign.center,
+    style:TextStyle(fontWeight:FontWeight.w800,fontSize:15,color:ink)))),
+   IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
+  ])));
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
-  style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
+  style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:6,horizontal:2),foregroundColor:page==index?jade:muted,
+   shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
   onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
-   Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.xs))),
-   SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),LText(label,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
+   Container(padding:EdgeInsets.symmetric(horizontal:12,vertical:5),
+    decoration:BoxDecoration(color:page==index?jade.withValues(alpha:.14):Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
+    child:PaydayAppIcon(icon,size:22)),
+   SizedBox(height:4),LText(label,style:TextStyle(fontSize:PaydayType.caption,fontWeight:page==index?FontWeight.w800:FontWeight.w600)),
   ])));
 
  Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
@@ -180,35 +185,63 @@ extension _HomeScreen on _FinanceState {
   final ts=monthTransactions(d),balance=monthlyBalance(d);
   final recent=recentActivityRows(list(d,'transactions'),DateTime.now());
   final categories=spendingCategories(d).where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
-  Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsets.only(top:23,bottom:12),child:Row(children:[
-   Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
-  final heroInk=paydaySand;
+  Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,22,0,8),child:Row(children:[
+   Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
+  const heroInk=paydaySand;
+  Widget heroStat(IconData icon,String text)=>Expanded(child:Container(
+   padding:EdgeInsets.symmetric(horizontal:10,vertical:9),
+   decoration:BoxDecoration(color:heroInk.withValues(alpha:.10),borderRadius:BorderRadius.circular(PaydayRadius.md)),
+   child:Row(children:[PaydayAppIcon(icon,color:paydaySaffron,size:16),SizedBox(width:6),
+    Expanded(child:LText(text,style:TextStyle(color:heroInk,fontSize:PaydayType.caption,fontWeight:FontWeight.w600)))])));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    navMonth(),SizedBox(height:12),
-   Container(width:double.infinity,padding:EdgeInsets.all(22),decoration:BoxDecoration(color:paydayEmerald,borderRadius:BorderRadius.circular(30)),
+   // Hero: the month's money at a glance, on PAYDAY emerald in both themes.
+   Container(width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
+     gradient:LinearGradient(begin:AlignmentDirectional.topStart,end:AlignmentDirectional.bottomEnd,
+      colors:[PaydayColors.heroTop,PaydayColors.heroBottom]),
+     borderRadius:BorderRadius.circular(PaydayRadius.hero)),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      balanceTap('Explain available balance',()=>balanceDetails(balance,false),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       Row(children:[Expanded(child:LText('Available this month',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
        PaydayAppIcon(Icons.info_outline,color:heroInk,size:18)]),
-      SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.available).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
-      SizedBox(height:16),MonthUsageBar(value:balance.usedFraction,
+      SizedBox(height:12),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.available).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
+      SizedBox(height:14),MonthUsageBar(value:balance.usedFraction,
        trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
-      SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[LText('Spent ${money(balance.expenses)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:12,fontWeight:FontWeight.w600)),
-       LText('Income ${money(balance.income)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:12,fontWeight:FontWeight.w600))]),
+      SizedBox(height:14),IntrinsicHeight(child:Row(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+       heroStat(Icons.arrow_downward,'Income ${money(balance.income)}'),SizedBox(width:8),
+       heroStat(Icons.arrow_upward,'Spent ${money(balance.expenses)}'),
+      ])),
      ])),
-     Divider(color:heroInk.withValues(alpha:.18),height:24),
-     SafeToSpendRow(amount:money(balance.safe),color:heroInk,onTap:()=>balanceDetails(balance,true)),
+     SizedBox(height:10),
+     Container(padding:EdgeInsetsDirectional.fromSTEB(12,2,12,2),
+      decoration:BoxDecoration(color:Colors.black.withValues(alpha:.18),borderRadius:BorderRadius.circular(PaydayRadius.md)),
+      child:SafeToSpendRow(amount:money(balance.safe),color:heroInk,onTap:()=>balanceDetails(balance,true))),
     ])),
-   SizedBox(height:20),Row(children:[
-    homeQuickAction('Expense','expense',()=>transactionForm(null)),homeQuickAction('Income','income',()=>transactionForm(null,initialType:'Income')),
-    homeQuickAction('Budgets','budgets',()=>setState(()=>page=2)),homeQuickAction('Save','savings',()=>setState(()=>page=3)),
-   ]),
+   SizedBox(height:14),IntrinsicHeight(child:Row(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+    homeQuickAction('Expense','expense',()=>transactionForm(null)),SizedBox(width:8),
+    homeQuickAction('Income','income',()=>transactionForm(null,initialType:'Income')),SizedBox(width:8),
+    homeQuickAction('Budgets','budgets',()=>setState(()=>page=2)),SizedBox(width:8),
+    homeQuickAction('Save','savings',()=>setState(()=>page=3)),
+   ])),
    backupReminderCard(d),
    section('Budgets','See all',()=>setState(()=>page=2)),
-   if(categories.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending or category budgets for this month.')),
-   ...categories.map((c){final name=st(c,'name');final spent=ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==name).fold(0,(n,t)=>n+val(t,'amount'));return homeCategory(name,spent,budgetFor(d,month,name));}),
+   if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')
+   else PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
+    for(var i=0;i<categories.length;i++)...[
+     if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
+     homeCategory(st(categories[i],'name'),
+      ts.where((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(categories[i],'name')).fold(0,(n,t)=>n+val(t,'amount')),
+      budgetFor(d,month,st(categories[i],'name'))),
+    ],
+   ])),
    section('Recent activity','See all',()=>setState(()=>page=1)),
-   ...recent.map(recentActivityTile),if(recent.isEmpty)Padding(padding:EdgeInsets.symmetric(vertical:12),child:LText('No activity today or yesterday.')),
+   if(recent.isEmpty)PaydayEmpty(icon:Icons.receipt_long_outlined,message:'No activity today or yesterday.')
+   else PaydayPanel(padding:EdgeInsets.symmetric(horizontal:14,vertical:4),child:Column(children:[
+    for(var i=0;i<recent.length;i++)...[
+     if(i>0)Divider(height:1,thickness:1,color:line),
+     recentActivityTile(recent[i]),
+    ],
+   ])),
   ]);
  }
  Widget recentActivityTile(RowData row){
@@ -217,7 +250,7 @@ extension _HomeScreen on _FinanceState {
   final outgoing=type=='Expense'||type=='Savings out';
   return Material(color:Colors.transparent,child:InkWell(
    borderRadius:BorderRadius.circular(14),onTap:()=>transactionForm(row),
-   child:Padding(padding:EdgeInsets.symmetric(vertical:10),child:Row(children:[
+   child:Padding(padding:EdgeInsets.symmetric(vertical:11),child:Row(children:[
     PaydayCategoryIcon(category,size:42),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
@@ -226,7 +259,7 @@ extension _HomeScreen on _FinanceState {
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.32),
      child:FittedBox(fit:BoxFit.scaleDown,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
-      style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:ink)))),
+      style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:outgoing?ink:jade)))),
    ]))));
  }
  /// Pop-up with every record of one category in the selected month.

@@ -11,6 +11,7 @@ import 'package:payday_local/main.dart';
 import 'package:payday_local/offline_store.dart';
 import 'package:payday_local/opening.dart';
 import 'package:payday_local/brand.dart';
+import 'package:payday_local/design_tokens.dart';
 
 class LocaleMemoryStore extends OfflineStore{
  LocaleMemoryStore(this.rows);
@@ -70,7 +71,7 @@ void main(){
     await t.pumpAndSettle();expect(find.text(translateMessage('Available this month',code)),findsOneWidget);
     expect(find.text('Settings'),findsOneWidget,reason:'A user-entered transaction title must remain verbatim');
     final home=t.element(find.byType(FinanceScreen));expect(Directionality.of(home),code=='ar'?TextDirection.rtl:TextDirection.ltr);
-    expect(find.byType(PaydayMark),findsOneWidget);expect(Theme.of(home).scaffoldBackgroundColor,brightness==Brightness.dark?const Color(0xff101D17):paydaySand);
+    expect(find.byType(PaydayMark),findsOneWidget);expect(Theme.of(home).scaffoldBackgroundColor,brightness==Brightness.dark?PaydayColors.darkBackground:paydaySand);
     await t.tap(find.byKey(const ValueKey('home-settings-logo')));await t.pumpAndSettle();
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);
     await t.ensureVisible(find.byKey(const ValueKey('language-setting')));await t.tap(find.byKey(const ValueKey('language-setting')));await t.pumpAndSettle();

@@ -3,6 +3,8 @@ import 'localization.dart';
 import 'package:flutter/material.dart';
 
 const paydaySlogan = 'Plan today, enjoy tomorrow.';
+/// Corner of the approved PAYDAY mark on its 100-unit grid. Part of the logo, not a UI token.
+const paydayMarkCorner = 26.0;
 
 const paydayEmerald=PaydayColors.emerald,paydaySaffron=PaydayColors.saffron,paydaySand=PaydayColors.sand;
 class PaydayMark extends StatelessWidget{
@@ -15,7 +17,7 @@ class _MarkPainter extends CustomPainter{
  const _MarkPainter();
  @override void paint(Canvas c,Size size){
   c.scale(size.width/100,size.height/100);
-  c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0,0,100,100),const Radius.circular(PaydayRadius.sheet)),Paint()..color=paydayEmerald);
+  c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0,0,100,100),const Radius.circular(paydayMarkCorner)),Paint()..color=paydayEmerald);
   final p=Paint()..color=paydaySand;
   c.drawRect(const Rect.fromLTWH(25,19,16,62),p);
   c.drawPath(Path()..moveTo(25,19)..lineTo(53,19)..cubicTo(85,19,85,63,53,63)..lineTo(25,63)..close(),p);

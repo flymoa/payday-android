@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:payday_local/finance.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/offline_store.dart';
 class DesignStore extends OfflineStore{
@@ -30,6 +31,10 @@ void main(){
     await tester.ensureVisible(field);await tester.pumpAndSettle();await tester.enterText(field,value);
    }
    await enter('Amount (MAD)','312.40');await enter('Description','Weekly shop');
+   // Optional fields stay folded away until asked for.
+   expect(find.widgetWithText(TextField,'Note (optional)'),findsNothing);
+   await tester.ensureVisible(find.text('More details'));await tester.pumpAndSettle();
+   await tester.tap(find.text('More details'));await tester.pumpAndSettle();
    await enter('Note (optional)','Original note');await enter('Bill ID (optional)','B001');
    await tester.tap(find.text('Save locally'));await tester.pumpAndSettle();
    expect(store.saved!['amount'],31240);expect(store.saved!['type'],'Expense');expect(store.saved!['category'],'Groceries');
@@ -37,4 +42,25 @@ void main(){
    expect(find.text('Save locally'),findsNothing);expect(tester.takeException(),isNull);
   });
  }
+ testWidgets('amount is ready to type and Yesterday dates the entry in one tap',(tester)async{
+  await tester.binding.setSurfaceSize(const Size(360,800));addTearDown(()=>tester.binding.setSurfaceSize(null));
+  final store=DesignStore();
+  await tester.pumpWidget(MaterialApp(home:FinanceScreen(store:store,initialData:store.snapshot())));
+  await tester.pumpAndSettle();
+  final semantics=tester.ensureSemantics();
+  await tester.tap(find.bySemanticsLabel('Add transaction'));
+  await tester.pumpAndSettle();
+  semantics.dispose();
+  final amount=find.widgetWithText(TextField,'Amount (MAD)');
+  expect(tester.widget<TextField>(amount).autofocus,isTrue);
+  await tester.enterText(amount,'45');
+  final yesterday=find.byKey(const ValueKey('transaction-date-yesterday'));
+  await tester.ensureVisible(yesterday);await tester.pumpAndSettle();
+  await tester.tap(yesterday);await tester.pumpAndSettle();
+  await tester.tap(find.text('Save locally'));await tester.pumpAndSettle();
+  final now=DateTime.now();
+  expect(store.saved!['date'],dayKey(DateTime(now.year,now.month,now.day-1)));
+  expect(store.saved!['amount'],4500);expect(store.saved!['note'],'');expect(store.saved!['bill_id'],'');
+  expect(tester.takeException(),isNull);
+ });
 }

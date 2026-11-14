@@ -22,8 +22,13 @@ extension _SettingsScreen on _FinanceState {
  }));
  Widget settingsGroup(String title,List<Widget> children)=>Column(
   crossAxisAlignment:CrossAxisAlignment.start,children:[
-   Padding(padding:EdgeInsetsDirectional.fromSTEB(4,18,4,8),child:LText(title,style:TextStyle(color:jade,fontWeight:FontWeight.w800))),
-   Card(clipBehavior:Clip.antiAlias,child:Column(children:children)),
+   Padding(padding:EdgeInsetsDirectional.fromSTEB(8,20,8,8),child:LText(title,style:TextStyle(color:muted,fontSize:PaydayType.small,fontWeight:FontWeight.w800))),
+   Card(clipBehavior:Clip.antiAlias,margin:EdgeInsets.zero,child:Column(children:[
+    for(var i=0;i<children.length;i++)...[
+     if(i>0)Divider(height:1,thickness:1,indent:56,color:line),
+     children[i],
+    ],
+   ])),
   ]);
  Widget appSettings(Map<String,List<RowData>> d){
   final prefs=widget.preferences;

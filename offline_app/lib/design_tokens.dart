@@ -23,23 +23,30 @@ abstract final class PaydayColors {
   static const mintTint = Color(0xffDDEBE2); // icon discs, light
   static const trackLight = Color(0xffE9F0EB); // progress track, light
 
-  // Dark palette.
-  static const darkBackground = Color(0xff101D17);
-  static const darkSurface = Color(0xff192A22);
-  static const darkSurfaceLow = Color(0xff1F3228);
-  static const darkSurfaceHigh = Color(0xff293F32);
-  static const darkLine = Color(0xff33483B);
-  static const darkMuted = Color(0xffAEBFB3);
-  static const darkPrimary = Color(0xff98CDB5);
-  static const darkOnPrimary = Color(0xff102B20);
-  static const darkIcon = Color(0xffE2EAF0);
-  static const darkIconDisc = Color(0xff243F30);
-  static const darkBudgetDisc = Color(0xff234D3D);
+  // Dark palette: neutral charcoal, with emerald and saffron as accents.
+  static const darkBackground = Color(0xff131516);
+  static const darkSurface = Color(0xff1D2022);
+  static const darkSurfaceLow = Color(0xff25292B);
+  static const darkSurfaceHigh = Color(0xff2E3336);
+  static const darkLine = Color(0xff353A3D);
+  static const darkText = Color(0xffF3F2ED);
+  static const darkMuted = Color(0xffA9B0B3);
+  static const darkPrimary = Color(0xff5FD3A9); // bright emerald, readable on charcoal
+  static const darkOnPrimary = Color(0xff06241B);
+  static const darkIcon = Color(0xffE6E9E7);
+  static const darkIconDisc = Color(0xff22332D);
+  static const darkBudgetDisc = Color(0xff22332D);
   static const darkOpeningMark = Color(0xff8CC8AD);
-  static const darkCopper = Color(0xffE7AD79);
+  static const darkCopper = Color(0xffF6B95A);
+  static const darkStatusOver = Color(0xffF08A7C); // readable red on charcoal
+  static const darkStatusOverBorder = Color(0xff6B3A35);
+  static const darkStatusOverTrack = Color(0xff4A2B28);
+  static const darkStatusNear = Color(0xffE5B56E);
 
   // Hero card (emerald background).
   static const heroMuted = Color(0xffB8D0BF);
+  static const heroTop = Color(0xff137259);
+  static const heroBottom = Color(0xff0B4A3B);
 
   // Budget status.
   static const statusGood = Color(0xff2C8979);
@@ -60,6 +67,9 @@ abstract final class PaydayRadius {
   static const xl = 20.0;
   static const sheet = 26.0;
   static const dialog = 28.0;
+  static const card = 22.0;
+  static const hero = 28.0;
+  static const pill = 999.0;
 }
 
 /// Spacing scale (4-pt grid).

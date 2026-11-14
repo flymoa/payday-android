@@ -16,7 +16,7 @@ extension _MoreScreen on _FinanceState {
     Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
      LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
     SizedBox(height:5),
-    LinearProgressIndicator(value:share,minHeight:8,borderRadius:BorderRadius.circular(PaydayRadius.sm)),
+    PaydayProgress(value:share),
     SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:12)),
    ])));
   }).toList();
@@ -53,12 +53,12 @@ extension _MoreScreen on _FinanceState {
     icon:Icons.receipt_long_outlined,onTap:()=>setState(()=>moreSection=0)),
    tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
    tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
-   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:Colors.deepOrange)),
+   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:danger)),
    ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
    if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
    if(projectedMonthSpend(spentSoFar:balance.expenses,month:selected,now:DateTime.now()) case final projected?)
     tile('Spending forecast','If you keep spending at this pace until the month ends',money(projected),icon:Icons.trending_up,
-     tone:balance.income>0&&projected>balance.income?homeOver:null),
+     tone:balance.income>0&&projected>balance.income?danger:null),
    header('Spending by category'),
    ...spendingBreakdown(d,review),
    if(review.spending.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No spending recorded.')),
@@ -84,10 +84,13 @@ extension _MoreScreen on _FinanceState {
       Icons.bar_chart_rounded,2,selected.year.toString()),
     moreLink('Recurring entries','Salary, rent and subscriptions added automatically each month',
       Icons.repeat,5,decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString()).length.toString()+' active'),
-    SizedBox(height:15),
-    Padding(padding:EdgeInsets.all(8),child:LText(
+    SizedBox(height:6),
+    Padding(padding:EdgeInsets.all(8),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     PaydayAppIcon(Icons.lock_outline,size:18,color:muted),SizedBox(width:10),
+     Expanded(child:LText(
       'All your financial records stay on this device, with no Google account or internet required.',
       style:TextStyle(color:muted,fontSize:12))),
+    ])),
    ]);
   }
   Widget section;
@@ -106,21 +109,21 @@ extension _MoreScreen on _FinanceState {
   ]);
  }
  Widget moreLink(String name,String description,IconData symbol,int section,String summary)=>
-  Card(clipBehavior:Clip.antiAlias,child:InkWell(
+  PaydayPanel(margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.zero,child:Material(color:Colors.transparent,child:InkWell(
    onTap:()=>setState(()=>moreSection=section),
-   child:Padding(padding:EdgeInsets.all(16),child:Row(children:[
+   child:Padding(padding:EdgeInsetsDirectional.fromSTEB(14,14,10,14),child:Row(children:[
     Container(width:48,height:48,
-     decoration:BoxDecoration(color:jade.withValues(alpha:.10),borderRadius:BorderRadius.circular(14)),
-     child:PaydayAppIcon(symbol,color:jade)),
+     decoration:BoxDecoration(color:jade.withValues(alpha:.12),borderRadius:BorderRadius.circular(14)),
+     child:Center(child:PaydayAppIcon(symbol,color:jade))),
     SizedBox(width:14),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText(name,style:TextStyle(fontWeight:FontWeight.w800,color:ink,fontSize:16)),
-     SizedBox(height:4),LText(description,style:TextStyle(color:muted,fontSize:12)),
-     SizedBox(height:7),LText(summary,style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w700)),
+     LText(name,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink,fontSize:16)),
+     SizedBox(height:3),LText(description,style:TextStyle(color:muted,fontSize:PaydayType.small)),
+     SizedBox(height:8),PaydayTag(summary),
     ])),
     PaydayAppIcon(Icons.chevron_right,color:muted)
    ])),
-  ));
+  )));
  List<RecurringRule> rulesOf(Map<String,List<RowData>> d)=>decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString());
  Widget moreRecurring(Map<String,List<RowData>> d){
   final rules=rulesOf(d);
@@ -235,8 +238,7 @@ extension _MoreScreen on _FinanceState {
       SizedBox(height:4),
       LText('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:12)),
       SizedBox(height:14),
-      LinearProgressIndicator(value:goal==0?0:(held/goal).clamp(0,1).toDouble(),
-       minHeight:7,borderRadius:BorderRadius.circular(10),backgroundColor:cream,color:jade),
+      PaydayProgress(value:goal==0?0.0:held/goal),
       SizedBox(height:8),
       Wrap(alignment:WrapAlignment.spaceBetween,spacing:16,runSpacing:4,children:[
        LText('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:12)),
@@ -244,10 +246,10 @@ extension _MoreScreen on _FinanceState {
       ]),
       SizedBox(height:14),
       Container(width:double.infinity,padding:EdgeInsets.all(12),
-       decoration:BoxDecoration(color:(overdue&&needed>0?Colors.deepOrange:jade).withValues(alpha:.07),
+       decoration:BoxDecoration(color:(overdue&&needed>0?danger:jade).withValues(alpha:.07),
         borderRadius:BorderRadius.circular(PaydayRadius.md)),
        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        LText(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade,fontSize:13)),
+        LText(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?danger:jade,fontSize:13)),
         if(active&&!overdue&&needed>0&&next>0)...[
          SizedBox(height:4),LText('Next month: ${money(next)} suggested',style:TextStyle(fontSize:12,color:muted)),
         ],
@@ -320,7 +322,7 @@ extension _MoreScreen on _FinanceState {
    SizedBox(height:12),
    for(var i=months.length-1;i>=0;i--)Padding(padding:EdgeInsets.symmetric(vertical:4),child:Row(children:[
     SizedBox(width:76,child:LText(monthLabel(months[i]))),
-    Expanded(child:LinearProgressIndicator(value:top<=0?0:totals[i]/top,minHeight:8,borderRadius:BorderRadius.circular(PaydayRadius.sm))),
+    Expanded(child:PaydayProgress(value:top<=0?0.0:totals[i]/top)),
     SizedBox(width:10),
     SizedBox(width:110,child:Text(money(totals[i]),textAlign:TextAlign.end)),
    ])),
