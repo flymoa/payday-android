@@ -286,7 +286,7 @@ extension _MoreScreen on _FinanceState {
    ]))),
    SizedBox(height:4),
    Row(children:[for(var i=0;i<12;i++)Expanded(child:Text(localizedMonth(DateTime(selected.year,i+1),language).characters.first,
-    textAlign:TextAlign.center,style:TextStyle(fontSize:11,color:muted)))]),
+    textAlign:TextAlign.center,style:TextStyle(fontSize:PaydayType.caption,color:muted)))]),
    SizedBox(height:8),
    Row(mainAxisAlignment:MainAxisAlignment.center,children:[
     Container(width:10,height:10,color:jade),SizedBox(width:4),LText('Income',style:TextStyle(fontSize:12)),SizedBox(width:16),

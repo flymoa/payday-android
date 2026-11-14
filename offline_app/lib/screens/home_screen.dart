@@ -16,7 +16,7 @@ extension _HomeScreen on _FinanceState {
     else PaydayCategoryIcon(glyph,size:52),
     SizedBox(height:7),
     LText(label,maxLines:2,textAlign:TextAlign.center,
-     style:TextStyle(fontSize:11,fontWeight:FontWeight.w600,color:homeText)),
+     style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:homeText)),
    ])),
   ));
  }
@@ -62,7 +62,7 @@ extension _HomeScreen on _FinanceState {
      Expanded(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
       textAlign:TextAlign.end,softWrap:true,
-      style:TextStyle(fontSize:11,fontWeight:FontWeight.w700,
+      style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,
        color:isOver?homeOver:homeText))),
     ]),
     SizedBox(height:11),
@@ -70,10 +70,6 @@ extension _HomeScreen on _FinanceState {
      child:LinearProgressIndicator(value:progress,minHeight:9,
       color:statusColor,
       backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?PaydayColors.statusOverTrack:PaydayColors.trackLight)),
-    if(isOver)Padding(padding:EdgeInsets.only(top:10),
-      child:LText('Exceeded your budget by ${homeDigits(spent-limit)} $currency '
-       '(${((spent/limit-1)*100).round()}% over).',
-       style:TextStyle(color:homeOver,fontSize:12))),
    ]),
   ))));
  }
@@ -86,7 +82,7 @@ extension _HomeScreen on _FinanceState {
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
   onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
    Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.xs))),
-   SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),LText(label,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700)),
+   SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),LText(label,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
   ])));
 
  Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
@@ -230,7 +226,7 @@ extension _HomeScreen on _FinanceState {
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.32),
      child:FittedBox(fit:BoxFit.scaleDown,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
-      style:TextStyle(fontWeight:FontWeight.w700,color:ink)))),
+      style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:ink)))),
    ]))));
  }
  /// Pop-up with every record of one category in the selected month.

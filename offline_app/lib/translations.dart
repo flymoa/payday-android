@@ -526,6 +526,7 @@ const paydayTranslations=<String,List<String>>{
  "Transfer would make the historical reserve balance negative.":["Ce transfert rendrait négatif le solde historique de la réserve.","سيجعل التحويل الرصيد التاريخي للاحتياطي سالبًا."],
  "Transport":["Transport","النقل"],
  "Try again":["Réessayer","حاول مجددًا"],
+ "Your records could not be opened. Nothing was changed.":["Impossible d’ouvrir vos données. Rien n’a été modifié.","تعذّر فتح سجلاتك. لم يتم تغيير أي شيء."],
  "Turn off PAYDAY app lock":["Désactiver le verrouillage de PAYDAY","إيقاف قفل PAYDAY"],
  "US dollar":["Dollar américain","الدولار الأمريكي"],
  "Unassigned":["Non affecté","غير مخصّص"],
