@@ -33,3 +33,8 @@ jobs:
           name: payday-screen-previews
           path: offline_app/tool/previews/shots
           retention-days: 14
+      - name: Print images for review tools (base64)
+        if: always()
+        working-directory: offline_app/tool/previews/shots
+        run: |
+          for f in *.png; do echo "PREVIEW-BEGIN $f"; base64 -w0 "$f"; echo; echo "PREVIEW-END $f"; done
