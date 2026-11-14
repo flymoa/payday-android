@@ -1,3 +1,4 @@
+import 'design_tokens.dart';
 import 'package:flutter/material.dart';
 
 /// PAYDAY's category glyphs share a 24-unit grid and rounded strokes.
@@ -11,7 +12,7 @@ class PaydayCategoryIcon extends StatelessWidget {
   return ExcludeSemantics(child:Container(width:size,height:size,
    padding:EdgeInsets.all(size*.20),
    decoration:BoxDecoration(shape:BoxShape.circle,
-    color:dark?const Color(0xff243F30):const Color(0xffDDEBE2)),
+    color:dark?PaydayColors.darkIconDisc:PaydayColors.mintTint),
    child:CustomPaint(painter:PaydayGlyphPainter(categoryGlyph(category),dark))));
  }
 }
@@ -23,11 +24,11 @@ class PaydayGlyphPainter extends CustomPainter {
  final bool dark;
  @override void paint(Canvas canvas,Size size){
   canvas.save();canvas.scale(size.width/24,size.height/24);
-  final navy=Paint()..color=foreground??(dark?const Color(0xffE2EAF0):const Color(0xff0E5A47))
+  final navy=Paint()..color=foreground??(dark?PaydayColors.darkIcon:PaydayColors.emerald)
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final teal=Paint()..color=dark?const Color(0xff98CDB5):const Color(0xff0E5A47)
+  final teal=Paint()..color=dark?PaydayColors.darkPrimary:PaydayColors.emerald
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final copper=Paint()..color=dark?const Color(0xffE7AD79):const Color(0xffF4A62A)
+  final copper=Paint()..color=dark?PaydayColors.darkCopper:PaydayColors.saffron
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   void line(double x,double y,double x2,double y2,Paint p)=>canvas.drawLine(Offset(x,y),Offset(x2,y2),p);
   void path(List<Offset> points,Paint p,{bool close=false}){

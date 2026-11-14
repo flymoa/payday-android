@@ -11,12 +11,12 @@ extension _MoreScreen on _FinanceState {
   return review.rankedCategories.map((c){
    final spent=review.spending[c]!,before=previous[c]??0,share=spent/total;
    final change=before<=0?'New this month':spent>=before?'+${money(spent-before)} vs last month':'−${money(before-spent)} vs last month';
-   return InkWell(key:ValueKey('category-history-$c'),borderRadius:BorderRadius.circular(8),onTap:()=>categoryHistory(d,c),
+   return InkWell(key:ValueKey('category-history-$c'),borderRadius:BorderRadius.circular(PaydayRadius.sm),onTap:()=>categoryHistory(d,c),
     child:Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
      LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
     SizedBox(height:5),
-    LinearProgressIndicator(value:share,minHeight:8,borderRadius:BorderRadius.circular(8)),
+    LinearProgressIndicator(value:share,minHeight:8,borderRadius:BorderRadius.circular(PaydayRadius.sm)),
     SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:12)),
    ])));
   }).toList();
@@ -245,7 +245,7 @@ extension _MoreScreen on _FinanceState {
       SizedBox(height:14),
       Container(width:double.infinity,padding:EdgeInsets.all(12),
        decoration:BoxDecoration(color:(overdue&&needed>0?Colors.deepOrange:jade).withValues(alpha:.07),
-        borderRadius:BorderRadius.circular(12)),
+        borderRadius:BorderRadius.circular(PaydayRadius.md)),
        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         LText(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?Colors.deepOrange:jade,fontSize:13)),
         if(active&&!overdue&&needed>0&&next>0)...[
@@ -320,7 +320,7 @@ extension _MoreScreen on _FinanceState {
    SizedBox(height:12),
    for(var i=months.length-1;i>=0;i--)Padding(padding:EdgeInsets.symmetric(vertical:4),child:Row(children:[
     SizedBox(width:76,child:LText(monthLabel(months[i]))),
-    Expanded(child:LinearProgressIndicator(value:top<=0?0:totals[i]/top,minHeight:8,borderRadius:BorderRadius.circular(8))),
+    Expanded(child:LinearProgressIndicator(value:top<=0?0:totals[i]/top,minHeight:8,borderRadius:BorderRadius.circular(PaydayRadius.sm))),
     SizedBox(width:10),
     SizedBox(width:110,child:Text(money(totals[i]),textAlign:TextAlign.end)),
    ])),

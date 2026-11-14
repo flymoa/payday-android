@@ -1,9 +1,10 @@
+import 'design_tokens.dart';
 import 'localization.dart';
 import 'package:flutter/material.dart';
 
 const paydaySlogan = 'Plan today, enjoy tomorrow.';
 
-const paydayEmerald=Color(0xff0E5A47),paydaySaffron=Color(0xffF4A62A),paydaySand=Color(0xffFBF6EA);
+const paydayEmerald=PaydayColors.emerald,paydaySaffron=PaydayColors.saffron,paydaySand=PaydayColors.sand;
 class PaydayMark extends StatelessWidget{
  const PaydayMark({super.key,this.size=48});
  final double size;
@@ -14,7 +15,7 @@ class _MarkPainter extends CustomPainter{
  const _MarkPainter();
  @override void paint(Canvas c,Size size){
   c.scale(size.width/100,size.height/100);
-  c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0,0,100,100),const Radius.circular(26)),Paint()..color=paydayEmerald);
+  c.drawRRect(RRect.fromRectAndRadius(const Rect.fromLTWH(0,0,100,100),const Radius.circular(PaydayRadius.sheet)),Paint()..color=paydayEmerald);
   final p=Paint()..color=paydaySand;
   c.drawRect(const Rect.fromLTWH(25,19,16,62),p);
   c.drawPath(Path()..moveTo(25,19)..lineTo(53,19)..cubicTo(85,19,85,63,53,63)..lineTo(25,63)..close(),p);

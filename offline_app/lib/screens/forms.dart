@@ -116,7 +116,7 @@ extension _Forms on _FinanceState {
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
       style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
    Container(padding:EdgeInsets.all(4),decoration:BoxDecoration(
-    color:Theme.of(c).colorScheme.surfaceContainerLow,borderRadius:BorderRadius.circular(18)),
+    color:Theme.of(c).colorScheme.surfaceContainerLow,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
     child:Row(children:['Expense','Income','Savings'].map((entry){
      final selected=entry=='Savings'?type.startsWith('Savings'):type==entry;
      return Expanded(child:TextButton(style:TextButton.styleFrom(
@@ -159,12 +159,12 @@ extension _Forms on _FinanceState {
     return Wrap(key:ValueKey('transaction-category-grid'),spacing:8,runSpacing:8,children:[
      ...choices.map((name)=>SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
-       side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
+       side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
       onPressed:()=>rebuild(()=>category=name),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
        PaydayCategoryIcon(name,size:32),SizedBox(height:5),LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:11,fontWeight:FontWeight.w600)),
       ])))),
      if(!allCategories&&ordered.length>7)SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
-      style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(18))),
+      style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
       onPressed:()=>rebuild(()=>allCategories=true),child:LText('More',style:TextStyle(fontSize:11)))),
     ]);
    }),

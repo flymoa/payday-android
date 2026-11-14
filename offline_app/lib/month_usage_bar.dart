@@ -1,3 +1,4 @@
+import 'design_tokens.dart';
 import 'localization.dart';
 import 'package:flutter/material.dart';
 
@@ -19,7 +20,7 @@ class MonthUsageBar extends StatelessWidget {
        final fill=(progress*28-i).clamp(0,1).toDouble();
        return Expanded(child:Padding(padding:const EdgeInsetsDirectional.only(end:3),
         child:SizedBox(height:i==last?27:15,child:ClipRRect(
-         borderRadius:BorderRadius.circular(4),child:Stack(fit:StackFit.expand,children:[
+         borderRadius:BorderRadius.circular(PaydayRadius.xs),child:Stack(fit:StackFit.expand,children:[
           ColoredBox(color:trackColor),
           if(i==last)ColoredBox(key:const ValueKey('month-usage-marker'),color:markerColor)
           else FractionallySizedBox(alignment:AlignmentDirectional.centerStart,widthFactor:fill,

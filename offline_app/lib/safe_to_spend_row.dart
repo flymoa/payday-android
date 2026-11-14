@@ -1,3 +1,4 @@
+import 'design_tokens.dart';
 import 'localization.dart';
 import 'package:flutter/material.dart';
 import 'app_icon.dart';
@@ -9,7 +10,7 @@ class SafeToSpendRow extends StatelessWidget {
  final Color color;
  final VoidCallback onTap;
  @override Widget build(BuildContext context)=>Semantics(button:true,label:tr(context,'Explain safe to spend'),child:InkWell(
-  onTap:onTap,borderRadius:BorderRadius.circular(12),
+  onTap:onTap,borderRadius:BorderRadius.circular(PaydayRadius.md),
   child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Row(children:[
    Expanded(flex:5,child:Row(children:[
     Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('Safe to spend',style:TextStyle(color:color,fontSize:12)))),

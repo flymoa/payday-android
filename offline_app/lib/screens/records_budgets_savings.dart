@@ -113,7 +113,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     final target=val(g,'target');return Card(child:Padding(padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:Text(st(g,'name'),style:TextStyle(fontWeight:FontWeight.w800))),IconButton(tooltip:tr(context,'Edit goal'),onPressed:()=>goalForm(g),icon:PaydayAppIcon(Icons.edit_outlined))]),
     LText('${money(sum)} / ${money(target)}',style:TextStyle(color:muted)),
-    SizedBox(height:9),LinearProgressIndicator(value:(sum/target).clamp(0,1).toDouble(),minHeight:8,borderRadius:BorderRadius.circular(8)),
+    SizedBox(height:9),LinearProgressIndicator(value:(sum/target).clamp(0,1).toDouble(),minHeight:8,borderRadius:BorderRadius.circular(PaydayRadius.sm)),
     SizedBox(height:5),LText('Still needed: ${money((target-sum).clamp(0,target).toInt())}'),
     Align(alignment:AlignmentDirectional.centerEnd,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:PaydayAppIcon(Icons.add),label:LText('Allocate'))),
    ])));}),

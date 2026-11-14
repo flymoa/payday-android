@@ -11,7 +11,7 @@ extension _HomeScreen on _FinanceState {
    borderRadius:BorderRadius.circular(15),onTap:onPressed,
    child:Padding(padding:EdgeInsets.symmetric(vertical:4),child:Column(children:[
     if(glyph=='budgets')Container(key:ValueKey('home-budget-icon'),width:52,height:52,padding:EdgeInsets.all(10.4),
-     decoration:BoxDecoration(shape:BoxShape.circle,color:isDark?Color(0xff234D3D):Color(0xffDDEBE2)),
+     decoration:BoxDecoration(shape:BoxShape.circle,color:isDark?PaydayColors.darkBudgetDisc:PaydayColors.mintTint),
      child:PaydayAppIcon(Icons.pie_chart_outline,size:31.2))
     else PaydayCategoryIcon(glyph,size:52),
     SizedBox(height:7),
@@ -36,7 +36,7 @@ extension _HomeScreen on _FinanceState {
     onTap:()=>openCategoryRecords(category),child:Ink(
    padding:EdgeInsets.all(15),
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(19),
-    border:Border.all(color:isOver?Color(0xffE9BEB8):line)),
+    border:Border.all(color:isOver?PaydayColors.statusOverBorder:line)),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     // Original layout: name and status on one line, centred vertically.
     // The status only shrinks (never wraps) if the phone's text is very large.
@@ -51,7 +51,7 @@ extension _HomeScreen on _FinanceState {
      ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.5),
       child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
        child:LText(description,maxLines:1,style:TextStyle(color:isOver?homeOver:
-        (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:Color(0xff996522)):homeText,
+        (isNear||isSpent||isUnbudgeted)?(isDark?homeNear:PaydayColors.statusNearText):homeText,
         fontWeight:FontWeight.w700,fontSize:12)))),
     ])),
     SizedBox(height:9),
@@ -66,10 +66,10 @@ extension _HomeScreen on _FinanceState {
        color:isOver?homeOver:homeText))),
     ]),
     SizedBox(height:11),
-    ClipRRect(borderRadius:BorderRadius.circular(12),
+    ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.md),
      child:LinearProgressIndicator(value:progress,minHeight:9,
       color:statusColor,
-      backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?Color(0xffF4D9D4):Color(0xffE9F0EB))),
+      backgroundColor:isDark?Theme.of(context).colorScheme.surfaceContainerHigh:isOver?PaydayColors.statusOverTrack:PaydayColors.trackLight)),
     if(isOver)Padding(padding:EdgeInsets.only(top:10),
       child:LText('Exceeded your budget by ${homeDigits(spent-limit)} $currency '
        '(${((spent/limit-1)*100).round()}% over).',
@@ -85,13 +85,13 @@ extension _HomeScreen on _FinanceState {
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:10,horizontal:2),foregroundColor:page==index?jade:muted),
   onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
-   Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(4))),
+   Container(width:22,height:3,decoration:BoxDecoration(color:page==index?paydaySaffron:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.xs))),
    SizedBox(height:7),PaydayAppIcon(icon,size:24),SizedBox(height:5),LText(label,style:TextStyle(fontSize:11,fontWeight:FontWeight.w700)),
   ])));
 
  Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
   button:true,label:tr(context,label),child:InkWell(onTap:onTap,
-   borderRadius:BorderRadius.circular(12),child:Padding(
+   borderRadius:BorderRadius.circular(PaydayRadius.md),child:Padding(
     padding:EdgeInsets.symmetric(vertical:4),child:child)));
 
  Future<void> balanceDetails(MonthlyBalance balance,bool showSafe)async{
@@ -192,13 +192,13 @@ extension _HomeScreen on _FinanceState {
    Container(width:double.infinity,padding:EdgeInsets.all(22),decoration:BoxDecoration(color:paydayEmerald,borderRadius:BorderRadius.circular(30)),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      balanceTap('Explain available balance',()=>balanceDetails(balance,false),Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-      Row(children:[Expanded(child:LText('Available this month',style:TextStyle(color:Color(0xffB8D0BF),fontWeight:FontWeight.w700))),
+      Row(children:[Expanded(child:LText('Available this month',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
        PaydayAppIcon(Icons.info_outline,color:heroInk,size:18)]),
-      SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.available).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:Color(0xffB8D0BF)))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
+      SizedBox(height:16),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.available).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.available).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
       SizedBox(height:16),MonthUsageBar(value:balance.usedFraction,
        trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
-      SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[LText('Spent ${money(balance.expenses)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600)),
-       LText('Income ${money(balance.income)}',style:TextStyle(color:Color(0xffB8D0BF),fontSize:12,fontWeight:FontWeight.w600))]),
+      SizedBox(height:10),Wrap(spacing:16,runSpacing:5,children:[LText('Spent ${money(balance.expenses)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:12,fontWeight:FontWeight.w600)),
+       LText('Income ${money(balance.income)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:12,fontWeight:FontWeight.w600))]),
      ])),
      Divider(color:heroInk.withValues(alpha:.18),height:24),
      SafeToSpendRow(amount:money(balance.safe),color:heroInk,onTap:()=>balanceDetails(balance,true)),
@@ -245,7 +245,7 @@ extension _HomeScreen on _FinanceState {
     return FadeTransition(opacity:curve,child:ScaleTransition(scale:Tween(begin:.92,end:1.0).animate(curve),child:child));
    },
    pageBuilder:(c,_,__)=>SafeArea(child:Center(child:Padding(padding:const EdgeInsets.symmetric(horizontal:18,vertical:28),
-    child:Material(color:surface,borderRadius:BorderRadius.circular(26),clipBehavior:Clip.antiAlias,
+    child:Material(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.sheet),clipBehavior:Clip.antiAlias,
      child:ConstrainedBox(constraints:BoxConstraints(maxWidth:520,maxHeight:MediaQuery.sizeOf(c).height*.8),
       child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(c,snap){
        final d=snap.data;
