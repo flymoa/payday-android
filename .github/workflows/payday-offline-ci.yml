@@ -1,0 +1,237 @@
+name: Payday — standalone offline APK
+on:
+  push:
+    branches: [payday-local-offline-v1]
+  pull_request:
+    paths:
+      - 'offline_app/**'
+      - '.github/workflows/payday-offline-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-local:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Pinned so every build uses the same toolchain; update deliberately.
+          flutter-version: 3.47.9
+          cache: true
+      - name: Load permanent PAYDAY release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PAYDAY_SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.PAYDAY_SIGNING_BACKUP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test -n "$KEYSTORE_BASE64" || { echo "::error::Permanent signing secret missing; refusing to generate a key."; exit 1; }
+          test -n "$SIGNING_PASSWORD"
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n\t ' | base64 --decode > "$RUNNER_TEMP/payday-release.p12"
+          keytool -exportcert -keystore "$RUNNER_TEMP/payday-release.p12" -storepass:env SIGNING_PASSWORD -alias payday -file "$RUNNER_TEMP/payday-release.cer"
+          actual=$(sha256sum "$RUNNER_TEMP/payday-release.cer" | cut -d' ' -f1)
+          test "$actual" = 65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf || { echo "::error::Wrong signing certificate; APK publication blocked."; exit 1; }
+      - name: Create isolated Android project
+        working-directory: offline_app
+        run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Configure explicit release signing
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/build.gradle.kts')
+          text = p.read_text()
+          old = 'signingConfig = signingConfigs.getByName("debug")'
+          assert text.count(old) == 1, 'Flutter signing template changed; refusing to build'
+          new = '''signingConfig = signingConfigs.create("paydayRelease") {
+                  storeFile = file(System.getenv("PAYDAY_KEYSTORE_PATH"))
+                  storePassword = System.getenv("PAYDAY_SIGNING_PASSWORD")
+                  keyAlias = "payday"
+                  keyPassword = System.getenv("PAYDAY_SIGNING_PASSWORD")
+              }'''
+          p.write_text(text.replace(old, new))
+          PY
+      - name: Apply approved PAYDAY launcher artwork
+        working-directory: offline_app
+        run: python3 tool/apply_brand.py
+      - name: Configure device authentication and screen privacy
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_app_lock.py
+          python3 tool/configure_app_lock.py
+      - name: Configure optional local notifications
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_notifications.py
+          python3 tool/configure_notifications.py
+      - name: Add optional home-screen widget
+        working-directory: offline_app
+        run: |
+          (cd tool && python3 test_configure_home_widget.py)
+          python3 tool/configure_home_widget.py
+          python3 tool/configure_sqlcipher.py
+      - name: Rename Android launcher
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday" android:allowBackup="false" android:usesCleartextTraffic="false"')
+          p.write_text(text)
+          PY
+      - name: Install dependencies
+        working-directory: offline_app
+        run: flutter pub get
+      - name: Static analysis
+        working-directory: offline_app
+        run: flutter analyze --no-fatal-infos
+      - name: Logic tests
+        working-directory: offline_app
+        run: flutter test
+      - name: Build standalone release APK
+        env:
+          PAYDAY_KEYSTORE_PATH: ${{ runner.temp }}/payday-release.p12
+          PAYDAY_SIGNING_PASSWORD: ${{ secrets.PAYDAY_SIGNING_BACKUP_PASSWORD }}
+        working-directory: offline_app
+        run: flutter build apk --release
+      - name: Verify offline APK identity and permissions
+        working-directory: offline_app
+        run: |
+          set -euo pipefail
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          test -s "$apk"
+          aapt="$(find "$ANDROID_HOME/build-tools" -name aapt -type f | sort -V | tail -n1)"
+          "$aapt" dump badging "$apk" > "$RUNNER_TEMP/payday-badging.txt"
+          grep -q "package: name='ma.payday.payday_local'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected Android package identity"; exit 1; }
+          grep -q "application-label:'Payday'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected launcher name"; exit 1; }
+          grep -q "versionCode='38' versionName='2.0.18'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected release version"; exit 1; }
+          "$aapt" dump permissions "$apk" > "$RUNNER_TEMP/payday-permissions.txt"
+          if grep -q 'android.permission.INTERNET' "$RUNNER_TEMP/payday-permissions.txt"; then
+            echo 'ERROR: offline APK requests INTERNET permission'
+            exit 1
+          fi
+          grep -q 'android.permission.USE_BIOMETRIC' "$RUNNER_TEMP/payday-permissions.txt" || { echo "::error::Device authentication permission missing"; exit 1; }
+          apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
+          "$apksigner" verify --print-certs "$apk" > "$RUNNER_TEMP/payday-apk-certs.txt"
+          cat "$RUNNER_TEMP/payday-apk-certs.txt"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path(os.environ['RUNNER_TEMP'], 'payday-apk-certs.txt').read_text()
+          marker = 'certificate SHA-256 digest: '
+          digests = {line.split(marker, 1)[1].strip().lower() for line in text.splitlines() if marker in line}
+          expected = '65f6c3e364086af883d657bf699fccc3e7edc6b07ebbcf2b5fdff975e6b682cf'
+          if digests != {expected}:
+              raise SystemExit('::error::APK certificate mismatch or missing certificate; publication blocked')
+          print('Permanent PAYDAY signing certificate verified')
+          PY
+          echo '### Payday' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Package: ma.payday.payday_local (different from Google Payday).' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Google Sign-In, Google Sheets or INTERNET permission.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'APK certificate verified against permanent PAYDAY release key.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: payday-local-offline-v1-apk
+          path: offline_app/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 5
+
+      - name: Publish phone download (rolling pre-release)
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=payday-local-latest
+          cp offline_app/build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/payday-local.apk"
+          gh release delete "$tag" --cleanup-tag --yes -R "$GITHUB_REPOSITORY" || true
+          gh release create "$tag" "$RUNNER_TEMP/payday-local.apk" -R "$GITHUB_REPOSITORY" \
+            --target "${{ github.event.pull_request.head.sha || github.sha }}" --prerelease \
+            --title "Payday Local — latest test build" \
+            --notes "Built from ${{ github.head_ref || github.ref_name }} @ ${{ github.event.pull_request.head.sha || github.sha }}. Signed with the permanent PAYDAY key: install over the existing app, do not uninstall."
+
+      - name: Remove temporary signing key
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          Path(os.environ['RUNNER_TEMP'], 'payday-release.p12').unlink(missing_ok=True)
+          PY
+
+  emulator-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free runner disk space for the emulator
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/local/.ghcup \
+            /usr/share/swift /usr/local/share/powershell /opt/microsoft /opt/az /usr/local/lib/node_modules \
+            /opt/hostedtoolcache/go /opt/hostedtoolcache/PyPy /opt/hostedtoolcache/Ruby /usr/local/julia* /usr/share/miniconda
+          docker system prune -af >/dev/null 2>&1 || true
+          df -h /
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          # Pinned so every build uses the same toolchain; update deliberately.
+          flutter-version: 3.47.9
+          cache: true
+      - name: Create isolated Android project
+        working-directory: offline_app
+        run: flutter create --platforms android --org ma.payday --project-name payday_local .
+      - name: Apply approved PAYDAY launcher artwork
+        working-directory: offline_app
+        run: python3 tool/apply_brand.py
+      - name: Configure device authentication and screen privacy
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_app_lock.py
+          python3 tool/configure_app_lock.py
+      - name: Configure optional local notifications
+        working-directory: offline_app
+        run: |
+          python3 tool/test_configure_notifications.py
+          python3 tool/configure_notifications.py
+      - name: Add optional home-screen widget
+        working-directory: offline_app
+        run: |
+          (cd tool && python3 test_configure_home_widget.py)
+          python3 tool/configure_home_widget.py
+          python3 tool/configure_sqlcipher.py
+      - name: Rename Android launcher
+        working-directory: offline_app
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text().replace('android:label="payday_local"', 'android:label="Payday" android:allowBackup="false" android:usesCleartextTraffic="false"')
+          p.write_text(text)
+          PY
+      - name: Install dependencies
+        working-directory: offline_app
+        run: flutter pub get
+      - name: Build the debug app before starting the emulator
+        working-directory: offline_app
+        run: |
+          flutter build apk --debug
+          (cd android && ./gradlew --stop) || true
+      - name: Enable KVM for the Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run app flow on an Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          disk-size: 3000M
+          ram-size: 2048M
+          working-directory: offline_app
+          script: flutter test integration_test/app_flow_test.dart -d emulator-5554

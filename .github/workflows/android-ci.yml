@@ -3,6 +3,12 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - 'tool/**'
+      - '.github/workflows/android-ci.yml'
   workflow_dispatch:
     inputs:
       web_client_id:
@@ -67,7 +73,9 @@ jobs:
           echo '### Google Sign-In compatibility trial' >> "$GITHUB_STEP_SUMMARY"
           echo 'Android implementation: 7.2.7 (temporary regression test).' >> "$GITHUB_STEP_SUMMARY"
       - name: Check Dart source
-        run: flutter analyze
+        run: |
+          flutter analyze lib
+          flutter analyze test
       - name: Run unit tests
         run: flutter test
       - name: Check Google OAuth build configuration
