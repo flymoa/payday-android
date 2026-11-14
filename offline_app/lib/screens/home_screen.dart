@@ -250,17 +250,17 @@ extension _HomeScreen on _FinanceState {
   final outgoing=type=='Expense'||type=='Savings out';
   return Material(color:Colors.transparent,child:InkWell(
    borderRadius:BorderRadius.circular(14),onTap:()=>transactionForm(row),
-   child:Padding(padding:EdgeInsets.symmetric(vertical:11),child:Row(children:[
+   child:Padding(padding:EdgeInsets.symmetric(vertical:11),child:LayoutBuilder(builder:(context,box)=>Row(children:[
     PaydayCategoryIcon(category,size:42),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:3),LText('${categoryLabel(context,category)} · ${tr(context,recentActivityDay(st(row,'date'),DateTime.now()))}',
       style:TextStyle(fontSize:12,color:muted)),
     ])),SizedBox(width:8),
-    ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.32),
-     child:FittedBox(fit:BoxFit.scaleDown,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
+    ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
+     child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:outgoing?ink:jade)))),
-   ]))));
+   ])))));
  }
  /// Pop-up with every record of one category in the selected month.
  /// Scales and fades in from the centre; instant when Android animations are off.

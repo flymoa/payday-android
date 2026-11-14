@@ -9,7 +9,8 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final type=st(t,'type'),category=st(t,'category');
   final incoming=type=='Income'||type=='Savings in';
   return Material(color:Colors.transparent,child:InkWell(onTap:()=>transactionForm(t),
-   child:Padding(padding:EdgeInsets.symmetric(horizontal:14,vertical:11),child:Row(children:[
+   // The amount may use up to 40% of the row itself (not of the screen), then shrinks.
+   child:Padding(padding:EdgeInsets.symmetric(horizontal:14,vertical:11),child:LayoutBuilder(builder:(context,box)=>Row(children:[
     PaydayCategoryIcon(category,size:40),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(st(t,'description').isEmpty?categoryLabel(context,category):st(t,'description'),
@@ -18,11 +19,11 @@ extension _RecordsBudgetsSavings on _FinanceState {
      LText('${categoryLabel(context,category)} · ${tr(context,type)}',maxLines:2,overflow:TextOverflow.ellipsis,
       style:TextStyle(fontSize:12,color:muted)),
     ])),SizedBox(width:8),
-    ConstrainedBox(constraints:BoxConstraints(maxWidth:MediaQuery.sizeOf(context).width*.34),
+    ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
       child:LText('${incoming?'+':'−'}${money(val(t,'amount'))}',
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:incoming?jade:ink)))),
-   ]))));
+   ])))));
  }
  /// Records grouped by day, newest first, each day in its own panel.
  List<Widget> recordDays(List<RowData> rows){
