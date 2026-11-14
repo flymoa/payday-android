@@ -1,0 +1,35 @@
+name: Payday — screen previews
+# Renders the main screens to PNG files (light and dark) so design changes can
+# be reviewed without installing the app. Download them from the run's artifacts.
+on:
+  pull_request:
+    paths:
+      - 'offline_app/lib/**'
+      - 'offline_app/tool/previews/**'
+      - '.github/workflows/payday-previews.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  previews:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+      - name: Install dependencies
+        working-directory: offline_app
+        run: flutter pub get
+      - name: Render screens
+        working-directory: offline_app
+        run: flutter test --update-goldens tool/previews/previews_test.dart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: payday-screen-previews
+          path: offline_app/tool/previews/shots
+          retention-days: 14
