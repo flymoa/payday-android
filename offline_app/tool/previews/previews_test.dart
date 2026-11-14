@@ -107,7 +107,7 @@ void main() {
         await t.tap(find.byType(PaydayAddButton));
         await t.pumpAndSettle();
         await shot('7_new_transaction');
-        await t.binding.handlePopRoute();
+        await t.tap(find.byTooltip('Close transaction'));
         await t.pumpAndSettle();
         await t.tap(find.byKey(const ValueKey('home-settings-logo')));
         await t.pumpAndSettle();
