@@ -1,7 +1,7 @@
 name: Payday — standalone offline APK
 on:
   push:
-    branches: [payday-local-offline-v1]
+    branches: [main, payday-local-offline-v1]
   pull_request:
     paths:
       - 'offline_app/**'

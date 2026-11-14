@@ -1,14 +1,7 @@
 name: Android validation (DEMO only)
+# Legacy Google Sheets app: retired in favour of offline_app (Payday Local).
+# Manual runs only, so it no longer fails pushes and pull requests.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    paths:
-      - 'lib/**'
-      - 'test/**'
-      - 'pubspec.yaml'
-      - 'tool/**'
-      - '.github/workflows/android-ci.yml'
   workflow_dispatch:
     inputs:
       web_client_id:

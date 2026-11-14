@@ -360,9 +360,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       child:LText(paydaySlogan,maxLines:1,softWrap:false,
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
-   actions:[TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More'))]),
+   actions:[if(page==0)IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,icon:PaydayAppIcon(Icons.settings_outlined)),
+    TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More'))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-   if(snap.hasError)return Center(child:LText('Local database error: ${snap.error}'));
+   if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
+    PaydayAppIcon(Icons.error_outline,color:homeOver,size:36),SizedBox(height:PaydaySpace.md),
+    LText('Your records could not be opened. Nothing was changed.',textAlign:TextAlign.center),
+    SizedBox(height:PaydaySpace.lg),FilledButton(onPressed:refresh,child:LText('Try again')),
+   ])));
    // Blank while records load (encrypted open), so no spinner flashes before Home.
    if(!snap.hasData)return const SizedBox.shrink();
    final d=snap.data!;
