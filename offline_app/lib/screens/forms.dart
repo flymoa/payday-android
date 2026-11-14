@@ -154,8 +154,8 @@ extension _Forms on _FinanceState {
    LayoutBuilder(builder:(context,limits){
     final ordered={category,...cats}.toList();
     final choices=allCategories?ordered:ordered.take(7).toList();
-    // Grows with the phone's text size so two-line names always fit (82 at normal size).
-    final tileHeight=max(82.0,46+MediaQuery.textScalerOf(c).scale(11)*2.9);
+    // Grows with the phone's text size so two-line names always fit (86 at normal size).
+    final tileHeight=max(86.0,46+MediaQuery.textScalerOf(c).scale(PaydayType.caption)*3.2);
     return Wrap(key:ValueKey('transaction-category-grid'),spacing:8,runSpacing:8,children:[
      ...choices.map((name)=>SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
