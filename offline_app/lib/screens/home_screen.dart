@@ -188,11 +188,16 @@ extension _HomeScreen on _FinanceState {
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,22,0,8),child:Row(children:[
    Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   const heroInk=paydaySand;
-  Widget heroStat(IconData icon,String text)=>Expanded(child:Container(
-   padding:EdgeInsets.symmetric(horizontal:10,vertical:9),
+  Widget heroStat(IconData icon,String label,String value)=>Expanded(child:Container(
+   padding:EdgeInsets.symmetric(horizontal:12,vertical:10),
    decoration:BoxDecoration(color:heroInk.withValues(alpha:.10),borderRadius:BorderRadius.circular(PaydayRadius.md)),
-   child:Row(children:[PaydayAppIcon(icon,color:paydaySaffron,size:16),SizedBox(width:6),
-    Expanded(child:LText(text,style:TextStyle(color:heroInk,fontSize:PaydayType.caption,fontWeight:FontWeight.w600)))])));
+   child:Row(children:[PaydayAppIcon(icon,color:paydaySaffron,size:18),SizedBox(width:8),
+    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.center,children:[
+     LText(label,style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption,fontWeight:FontWeight.w600)),
+     SizedBox(height:2),
+     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+      child:LText(value,style:TextStyle(color:heroInk,fontFamily:'Bricolage',fontSize:15,fontWeight:FontWeight.w800))),
+    ]))])));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    navMonth(),SizedBox(height:12),
    // Hero: the month's money at a glance, on PAYDAY emerald in both themes.
@@ -208,8 +213,8 @@ extension _HomeScreen on _FinanceState {
       SizedBox(height:14),MonthUsageBar(value:balance.usedFraction,
        trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
       SizedBox(height:14),IntrinsicHeight(child:Row(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-       heroStat(Icons.arrow_downward,'Income ${money(balance.income)}'),SizedBox(width:8),
-       heroStat(Icons.arrow_upward,'Spent ${money(balance.expenses)}'),
+       heroStat(Icons.arrow_downward,'Income',money(balance.income)),SizedBox(width:8),
+       heroStat(Icons.arrow_upward,'Spent',money(balance.expenses)),
       ])),
      ])),
      SizedBox(height:10),

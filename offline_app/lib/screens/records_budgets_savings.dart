@@ -36,7 +36,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,8),child:Row(children:[
      Expanded(child:LText(entry.key==today?'Today':entry.key==yesterday?'Yesterday':displayDay(context,entry.key),
       style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.small))),
-     if(sumType(entry.value,'Expense')>0)...[SizedBox(width:8),Flexible(child:LText('Spent ${money(sumType(entry.value,'Expense'))}',
+     if(sumType(entry.value,'Expense')>0)...[SizedBox(width:8),Expanded(child:LText('Spent ${money(sumType(entry.value,'Expense'))}',
       textAlign:TextAlign.end,style:TextStyle(color:muted,fontSize:PaydayType.caption)))],
     ])),
     PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
@@ -104,15 +104,18 @@ extension _RecordsBudgetsSavings on _FinanceState {
   return PaydayPanel(margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.zero,
    child:Material(color:Colors.transparent,child:InkWell(onTap:onTap,child:Padding(padding:EdgeInsets.fromLTRB(14,13,14,13),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[
+    // The budget sits at the right edge and shrinks before it can crowd the name.
+    LayoutBuilder(builder:(context,box)=>Row(children:[
      PaydayCategoryIcon(name,size:38),SizedBox(width:12),
      Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       LText(name,category:true,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
       LText(group,style:TextStyle(color:muted,fontSize:12)),
      ])),
      SizedBox(width:8),
-     Flexible(child:LText(money(budget),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink))),
-    ]),
+     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.45),
+      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+       child:LText(money(budget),style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)))),
+    ])),
     if(budget>0||spent>0)...[
      SizedBox(height:11),
      PaydayProgress(value:budget<=0?1.0:spent/budget,color:over?danger:budget<=0?warn:jade,
@@ -192,7 +195,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     PaydayProgress(value:pool<=0?0.0:used/pool),
     SizedBox(height:10),
     Row(children:[Expanded(child:LText('Unassigned',style:TextStyle(color:muted))),SizedBox(width:8),
-     Flexible(child:LText(money(pool-used),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)))]),
+     Expanded(child:LText(money(pool-used),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)))]),
    ])),
    header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
    if(goals.isEmpty)PaydayEmpty(icon:Icons.savings_outlined,message:'No savings goals yet. Tap New to add one.'),

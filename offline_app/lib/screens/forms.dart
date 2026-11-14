@@ -150,6 +150,7 @@ extension _Forms on _FinanceState {
    TextField(controller:amt,autofocus:fresh,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
     style:TextStyle(fontFamily:'Bricolage',fontSize:48,fontWeight:FontWeight.w800,color:jade),
     decoration:InputDecoration(labelText:tr(context,'Amount ($currency)'),floatingLabelAlignment:FloatingLabelAlignment.center,
+     floatingLabelBehavior:FloatingLabelBehavior.always,hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:false,border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
    if(type=='Expense')Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(
     budgetFor(d,monthKey(date),category)<=0?'No budget set for $category':
