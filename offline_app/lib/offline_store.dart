@@ -119,14 +119,20 @@ class OfflineStore {
   Sqflite.firstIntValue(await executor.rawQuery('SELECT COALESCE(SUM(amount),0) FROM allocations'))??0;
  Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId}) async{
   if(!['Income','Expense','Savings out','Savings in'].contains(type) || amount<=0)throw ArgumentError('Invalid entry');
+  final parsed=DateTime.tryParse(date);
+  if(parsed==null||date.length!=10||parsed.year<2000)throw ArgumentError('Choose a valid payment date, not a future date.');
+  final future=DateTime(parsed.year,parsed.month,parsed.day).isAfter(DateTime.now());
   final values={'date':date,'type':type,'category':category,'amount':amount,'description':description,'note':note,'bill_id':billId};
   final d=await db;
   await d.transaction((txn)async{
    final dates=<Object?>[date];
+   Object? oldDate;
    if(id!=null){
     final old=await txn.query('transactions',columns:['date'],where:'id=?',whereArgs:[id]);
-    if(old.isNotEmpty)dates.add(old.first['date']);
+    if(old.isNotEmpty){oldDate=old.first['date'];dates.add(oldDate);}
    }
+   // A typo must not file money in a later month. Older future-dated records can still be edited.
+   if(future&&oldDate!=date)throw ArgumentError('Choose a valid payment date, not a future date.');
    await _requireOpenMonths(txn,dates);
    if(id==null){await txn.insert('transactions',values);}else{await txn.update('transactions',values,where:'id=?',whereArgs:[id]);}
   });
@@ -214,9 +220,21 @@ class OfflineStore {
  Future<void> saveBill({int? id,required String code,required String name,required String due,required int amount,required String category,required String note}) async{
   if(code.trim().isEmpty||name.trim().isEmpty||amount<=0)throw ArgumentError('Invalid bill');
   final v={'code':code.trim(),'name':name.trim(),'due':due,'amount':amount,'category':category,'note':note};
-  final d=await db;
-  if(id==null){await d.insert('bills',v);}else{await d.update('bills',v,where:'id=?',whereArgs:[id]);}
+  await (await db).transaction((txn)async{
+   final taken=await txn.query('bills',columns:['id'],where:id==null?'code=?':'code=? AND id<>?',whereArgs:id==null?[v['code']]:[v['code'],id]);
+   if(taken.isNotEmpty)throw StateError(billIdTakenMessage);
+   if(id==null){await txn.insert('bills',v);return;}
+   final old=await txn.query('bills',columns:['code'],where:'id=?',whereArgs:[id]);
+   if(old.isEmpty)throw StateError('This bill no longer exists.');
+   final oldCode=old.single['code']?.toString()??'';
+   // Payments are linked by Bill ID: move them with the bill so it never looks unpaid again.
+   if(oldCode.isNotEmpty&&oldCode!=v['code']){
+    await txn.update('transactions',{'bill_id':v['code']},where:'bill_id=?',whereArgs:[oldCode]);
+   }
+   await txn.update('bills',v,where:'id=?',whereArgs:[id]);
+  });
  }
+ static const billIdTakenMessage='Another bill already uses this Bill ID. Choose a different one.';
  /// Re-read the saved source and insert the copy in one transaction.
  /// Separate bill IDs keep payments attached to their original month.
  Future<bool> repeatBill(int id,{required Map<String,Object?> expected})async{
@@ -491,6 +509,12 @@ class OfflineStore {
       .any((t)=>tables[t] is! List)) {
    throw const FormatException('Incomplete backup');
   }
+  for(final name in localTables){
+   if(legacy&&name=='reserve_movements')continue;
+   for(final item in tables[name] as List){
+    if(item is! Map||!validBackupRow(name,item))throw const FormatException('This backup is incomplete or has invalid records.');
+   }
+  }
   final d=await db;
   await d.transaction((txn) async{
    final localDeviceSettings=await txn.query('settings',where:'key IN (${List.filled(deviceLocalSettingKeys.length,'?').join(',')})',whereArgs:deviceLocalSettingKeys);
@@ -507,6 +531,25 @@ class OfflineStore {
    // Export reminders belong to this installation, not the imported file.
    await txn.delete('settings',where:'key IN (?, ?)',whereArgs:['last_backup_export','backup_snooze_until']);
   });
+ }
+/// Columns that must hold whole numbers, and columns that must hold dates, when present.
+ static const _wholeNumbers={'id','amount','target','funded','goal_id','reserve_id','entries_ok','balance_ok','extra','opening_balance'};
+ static const _dayColumns={'date','due'};
+ static const _monthColumns={'month','start_month'};
+ static final _day=RegExp(r'^\d{4}-\d{2}-\d{2}$'),_month=RegExp(r'^\d{4}-\d{2}$');
+ /// A restored row must have the value types the app reads, or every screen fails later.
+ static bool validBackupRow(String table,Map row){
+  for(final entry in row.entries){
+   final key=entry.key,value=entry.value;
+   if(key is! String)return false;
+   if(value==null)continue;
+   if(value is! String&&value is! num)return false;
+   if(table=='settings')continue;
+   if(_wholeNumbers.contains(key)&&(value is! num||value!=value.roundToDouble()))return false;
+   if(_dayColumns.contains(key)&&(value is! String||!_day.hasMatch(value)||DateTime.tryParse(value)==null))return false;
+   if(_monthColumns.contains(key)&&(value is! String||!_month.hasMatch(value)))return false;
+  }
+  return true;
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }
