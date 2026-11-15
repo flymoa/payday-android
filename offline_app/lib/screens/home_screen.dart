@@ -29,12 +29,13 @@ extension _HomeScreen on _FinanceState {
   final isNear=status==CategoryBudgetStatus.nearLimit;
   final isSpent=status==CategoryBudgetStatus.fullySpent;
   final isUnbudgeted=status==CategoryBudgetStatus.unbudgeted;
-  final caution=isNear||isSpent||isUnbudgeted;
+  final ahead=status==CategoryBudgetStatus.withinBudget&&spendingAheadOfPace(spent:spent,budget:limit,month:selected,now:DateTime.now());
+  final caution=isNear||isSpent||isUnbudgeted||ahead;
   final statusColor=isOver?danger:caution?warn:homeGreen;
   final noteColor=isOver?danger:caution?(isDark?warn:PaydayColors.statusNearText):homeText;
   final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
   final description=isOver?'Over budget':
-    isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':'${(spent*100/limit).round()}% used';
+    isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':ahead?'Spending fast':'${(spent*100/limit).round()}% used';
   return Material(color:Colors.transparent,
    child:InkWell(key:ValueKey('home-category-$category'),
     onTap:()=>openCategoryRecords(category),child:Padding(
@@ -231,6 +232,17 @@ extension _HomeScreen on _FinanceState {
     homeQuickAction('Budgets','budgets',()=>setState(()=>page=2)),SizedBox(width:8),
     homeQuickAction('Save','savings',()=>setState(()=>page=3)),
    ])),
+   // Cash & Bank at a glance, once tracking is on.
+   if(walletSetupOf(d) case final setup?)Padding(padding:EdgeInsets.only(top:12),child:PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,
+    child:InkWell(key:ValueKey('home-wallets'),onTap:()=>setState((){page=4;moreSection=6;}),child:Padding(padding:EdgeInsets.symmetric(horizontal:16,vertical:14),
+     child:Builder(builder:(_){
+      final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
+      Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(b[w]!),
+        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:17,color:b[w]!<0?danger:ink)))]));
+      return Row(children:[one('Cash'),SizedBox(width:12),one('Bank'),PaydayAppIcon(Icons.chevron_right,color:muted)]);
+     })))))),
    backupReminderCard(d),
    section('Budgets','See all',()=>setState(()=>page=2)),
    if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')

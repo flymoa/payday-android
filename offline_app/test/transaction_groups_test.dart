@@ -8,7 +8,7 @@ class GroupStore extends OfflineStore{
   {'name':'Groceries','group_name':'Essential'},{'name':'Housing','group_name':'Essential'},
  ]};
  @override Future<void> close()async{}
- @override Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId})async{
+ @override Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId,String? account})async{
   saved={'type':type,'category':category,'amount':amount};
  }
 }

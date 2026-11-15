@@ -1,7 +1,7 @@
 name: payday_local
 description: Fully offline personal finance tracker. No accounts or network services.
 publish_to: none
-version: 2.1.0+39
+version: 2.2.0+40
 environment:
   sdk: ">=3.8.0 <4.0.0"
 dependencies:
