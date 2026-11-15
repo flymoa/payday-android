@@ -14,7 +14,7 @@ void main(){
    await t.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{},
     initialPreferences:AppPreferences(appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light)));
    await t.pumpAndSettle();
-   await t.tap(find.byKey(const ValueKey('home-settings-logo')));await t.pumpAndSettle();
+   await t.tap(find.byKey(const ValueKey('home-settings-button')));await t.pumpAndSettle();
    for(final title in ['Theme','Notifications','App lock','Currency','Money settings','Backups & data','About & Help']){
     final entry=find.text(title);await t.ensureVisible(entry);await t.pumpAndSettle();await t.tap(entry);await t.pumpAndSettle();
     final scaffold=find.byType(SettingsPageScaffold);expect(scaffold,findsOneWidget,reason:title);

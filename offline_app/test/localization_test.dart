@@ -11,6 +11,7 @@ import 'package:payday_local/main.dart';
 import 'package:payday_local/offline_store.dart';
 import 'package:payday_local/opening.dart';
 import 'package:payday_local/brand.dart';
+import 'package:payday_local/design_tokens.dart';
 
 class LocaleMemoryStore extends OfflineStore{
  LocaleMemoryStore(this.rows);
@@ -70,8 +71,8 @@ void main(){
     await t.pumpAndSettle();expect(find.text(translateMessage('Available this month',code)),findsOneWidget);
     expect(find.text('Settings'),findsOneWidget,reason:'A user-entered transaction title must remain verbatim');
     final home=t.element(find.byType(FinanceScreen));expect(Directionality.of(home),code=='ar'?TextDirection.rtl:TextDirection.ltr);
-    expect(find.byType(PaydayMark),findsOneWidget);expect(Theme.of(home).scaffoldBackgroundColor,brightness==Brightness.dark?const Color(0xff101D17):paydaySand);
-    await t.tap(find.byKey(const ValueKey('home-settings-logo')));await t.pumpAndSettle();
+    expect(find.byType(PaydayMark),findsOneWidget);expect(Theme.of(home).scaffoldBackgroundColor,brightness==Brightness.dark?PaydayColors.darkBackground:paydaySand);
+    await t.tap(find.byKey(const ValueKey('home-settings-button')));await t.pumpAndSettle();
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);
     await t.ensureVisible(find.byKey(const ValueKey('language-setting')));await t.tap(find.byKey(const ValueKey('language-setting')));await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('language-en')),findsOneWidget);expect(find.byKey(const ValueKey('language-fr')),findsOneWidget);expect(find.byKey(const ValueKey('language-ar')),findsOneWidget);
@@ -87,7 +88,7 @@ void main(){
  testWidgets('language selection persists, switches direction immediately and never replays opening',(t)async{
   AppPreferences? saved;
   await t.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(value)async{saved=value;}));await t.pumpAndSettle();
-  await t.tap(find.byKey(const ValueKey('home-settings-logo')));await t.pumpAndSettle();
+  await t.tap(find.byKey(const ValueKey('home-settings-button')));await t.pumpAndSettle();
   await t.tap(find.byKey(const ValueKey('language-setting')));await t.pumpAndSettle();await t.tap(find.byKey(const ValueKey('language-ar')));await t.pumpAndSettle();
   expect(saved!.language,'ar');expect(t.widget<MaterialApp>(find.byType(MaterialApp)).locale,const Locale('ar'));
   expect(find.text('الإعدادات'),findsOneWidget);expect(find.byType(PaydayOpening),findsOneWidget);expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
@@ -95,7 +96,7 @@ void main(){
  });
  testWidgets('failed language save retains the active language and keeps selection open',(t)async{
   await t.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{throw StateError('storage');}));await t.pumpAndSettle();
-  await t.tap(find.byKey(const ValueKey('home-settings-logo')));await t.pumpAndSettle();await t.tap(find.byKey(const ValueKey('language-setting')));await t.pumpAndSettle();
+  await t.tap(find.byKey(const ValueKey('home-settings-button')));await t.pumpAndSettle();await t.tap(find.byKey(const ValueKey('language-setting')));await t.pumpAndSettle();
   await t.tap(find.byKey(const ValueKey('language-ar')));await t.pumpAndSettle();
   expect(t.widget<MaterialApp>(find.byType(MaterialApp)).locale,const Locale('en'));expect(find.byKey(const ValueKey('language-ar')),findsOneWidget);
   expect(find.text('Could not save preferences. Please try again.'),findsWidgets);expect(t.takeException(),isNull);

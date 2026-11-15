@@ -111,6 +111,12 @@ extension _Forms on _FinanceState {
   var date=existing==null?(prefill!=null||copyFrom!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
   var allCategories=false;
+  // Faster entry: a brand-new entry starts on the amount, and the rarely used
+  // fields stay folded away unless they already hold something.
+  final fresh=existing==null&&prefill==null&&copyFrom==null;
+  var details=note.text.isNotEmpty||bill.text.isNotEmpty;
+  bool sameDay(DateTime a,DateTime b)=>a.year==b.year&&a.month==b.month&&a.day==b.day;
+  DateTime dayOffset(int days){final n=DateTime.now();return DateTime(n.year,n.month,n.day+days);}
   await sheet(existing==null?(prefill==null?(copyFrom==null?'New transaction':'Duplicate transaction'):'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
    if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:LText(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
@@ -120,8 +126,8 @@ extension _Forms on _FinanceState {
     child:Row(children:['Expense','Income','Savings'].map((entry){
      final selected=entry=='Savings'?type.startsWith('Savings'):type==entry;
      return Expanded(child:TextButton(style:TextButton.styleFrom(
-      padding:EdgeInsets.symmetric(vertical:13,horizontal:2),backgroundColor:selected?surface:Colors.transparent,
-      foregroundColor:selected?jade:muted,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14))),
+      padding:EdgeInsets.symmetric(vertical:13,horizontal:2),backgroundColor:selected?jade:Colors.transparent,
+      foregroundColor:selected?Theme.of(c).colorScheme.onPrimary:muted,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14))),
       onPressed:submitting?null:()=>rebuild((){
        type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=cats.contains(entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings')?
         (entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
@@ -140,15 +146,15 @@ extension _Forms on _FinanceState {
     ]),SizedBox(height:6),LText(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
      style:TextStyle(fontSize:12,color:muted),textAlign:TextAlign.center),
    ],
-   SizedBox(height:22),
-   TextField(controller:amt,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
-    style:TextStyle(fontFamily:'Bricolage',fontSize:44,fontWeight:FontWeight.w800,color:jade),
+   SizedBox(height:18),
+   TextField(controller:amt,autofocus:fresh,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
+    style:TextStyle(fontFamily:'Bricolage',fontSize:48,fontWeight:FontWeight.w800,color:jade),
     decoration:InputDecoration(labelText:tr(context,'Amount ($currency)'),floatingLabelAlignment:FloatingLabelAlignment.center,
+     floatingLabelBehavior:FloatingLabelBehavior.always,hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:false,border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
-   if(type=='Expense')Padding(padding:EdgeInsets.symmetric(vertical:10),child:LText(
+   if(type=='Expense')Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(
     budgetFor(d,monthKey(date),category)<=0?'No budget set for $category':
-     '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in $category',
-    textAlign:TextAlign.center,style:TextStyle(color:jade,fontWeight:FontWeight.w700))),
+     '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in $category')),
    Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){
@@ -176,11 +182,21 @@ extension _Forms on _FinanceState {
      if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
       if(!cats.contains(category))category=cats.first;});
     })),
-   SizedBox(height:20),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)'),
-   Row(children:[PaydayAppIcon(Icons.today,size:18),Expanded(child:TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')))]),
+   SizedBox(height:18),
+   // One tap for the usual dates; the calendar is there for anything else.
+   SizedBox(width:double.infinity,child:Wrap(spacing:8,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
+    PaydayPill(key:ValueKey('transaction-date-today'),label:'Today',selected:sameDay(date,dayOffset(0)),onTap:()=>rebuild(()=>date=dayOffset(0))),
+    PaydayPill(key:ValueKey('transaction-date-yesterday'),label:'Yesterday',selected:sameDay(date,dayOffset(-1)),onTap:()=>rebuild(()=>date=dayOffset(-1))),
+    TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')),
+   ])),
+   SizedBox(height:12),field(desc,'Description'),
+   Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(key:ValueKey('transaction-more-details'),
+    onPressed:()=>rebuild(()=>details=!details),icon:PaydayAppIcon(details?Icons.remove:Icons.add,size:18),
+    label:LText(details?'Hide details':'More details'))),
+   if(details)...[SizedBox(height:6),field(note,'Note (optional)'),field(bill,'Bill ID (optional)')],
    if(existing!=null)TextButton.icon(key:ValueKey('duplicate-transaction'),onPressed:()async{Navigator.pop(c);await transactionForm(null,copyFrom:existing);},
     icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Duplicate as new (today)')),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:Colors.red)))
+   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:danger)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
    icon:PaydayAppIcon(Icons.check_circle_outline),label:LText(submitting?'Saving…':'Save locally'),
    onPressed:submitting?null:()async{
@@ -231,8 +247,8 @@ extension _Forms on _FinanceState {
     LText('Assigned after copy: ${money(plan.assigned)}'),
     SizedBox(height:8),
     if(!plan.allowed)LText('Cannot copy: allocations exceed planned income by ${money(plan.exceededBy)}. Update this month’s income plan or reduce existing allocations, then try again.',
-     style:TextStyle(color:Colors.deepOrange)),
-    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:Colors.deepOrange))),
+     style:TextStyle(color:danger)),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:danger))),
    ]),footer:(c,rebuild)=>FilledButton(
     onPressed:saving||!plan.allowed||plan.additions.isEmpty?null:()async{
      rebuild(()=>saving=true);
@@ -367,7 +383,7 @@ extension _Forms on _FinanceState {
     SizedBox(height:12),LText('Due: ${uiDay(due)}'),
     LText('Amount: ${money(val(bill,'amount'))}'),LText('Category: ${categoryLabel(context,st(bill,'category'))}'),
     SizedBox(height:12),LText('Creates one unpaid bill using the saved details above. Payments stay with the original bill. You can edit the new bill afterward. Repeat it again next month when needed; this does not schedule automatic payments.'),
-    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:Colors.deepOrange))),
+    if(error!=null)Padding(padding:EdgeInsets.only(top:12),child:LText(error!,style:TextStyle(color:danger))),
    ]),footer:(c,rebuild)=>FilledButton(
     onPressed:saving?null:()async{
      rebuild(()=>saving=true);
@@ -413,7 +429,7 @@ extension _Forms on _FinanceState {
       ?'Bill fully paid':'Record payment'),
     )),
    ]),
-   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:LText('Delete bill',style:TextStyle(color:Colors.red)))
+   if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete bill?',()=>store.removeBill(val(existing,'id')));},child:LText('Delete bill',style:TextStyle(color:danger)))
   ]));
  }
  Future<void> reserveMovementForm(RowData reserve,String kind) async {
@@ -519,7 +535,7 @@ extension _Forms on _FinanceState {
     child:LText('Start month: ${monthLabel(start)}')),
    if(existing!=null)TextButton(onPressed:()async{
      Navigator.pop(c);await confirmDelete('Delete reserve?',()=>store.removeReserve(val(existing,'id')));
-    },child:LText('Delete reserve',style:TextStyle(color:Colors.red))),
+    },child:LText('Delete reserve',style:TextStyle(color:danger))),
   ]),footer:(c,rebuild)=>FilledButton(
    onPressed:()async{
     final t=amount(target),f=amount(funded,allowZero:true);

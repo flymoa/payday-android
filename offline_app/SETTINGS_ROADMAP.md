@@ -1,6 +1,6 @@
 # PAYDAY settings
 
-Home's P logo is the only settings entry. It opens a partial-width left drawer.
+The settings button next to More on Home is the only settings entry; the logo is not tappable. It opens a partial-width left drawer.
 More contains financial tools only. Opening by an edge swipe is disabled; the
 close control, scrim tap, closing swipe and Android Back still close the drawer.
 Opening branding is always enabled; Android reduced-motion settings are respected.

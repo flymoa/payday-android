@@ -1,4 +1,5 @@
 import 'design_tokens.dart';
+import 'ui_kit.dart';
 import 'localization.dart';
 import 'app_language.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -69,8 +70,7 @@ class _PaydayStartupState extends State<PaydayStartup>{
     ]):const SizedBox.shrink())))));
  });
 }
-const kInk=PaydayColors.ink, kJade=paydayEmerald, kCream=paydaySand, amber=PaydayColors.amber;
-const homeNear=PaydayColors.statusNear, homeOver=PaydayColors.statusOver;
+const kInk=PaydayColors.ink, kJade=paydayEmerald, kCream=paydaySand;
 typedef RowData=Map<String,Object?>;
 String st(RowData row,String key)=>row[key]?.toString()??'';
 int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
@@ -123,34 +123,54 @@ class _PaydayLocalState extends State<PaydayLocal> {
    return false;
   }finally{savingPreferences=false;}
  }
+ /// Light: sand, emerald and saffron. Dark: neutral charcoal with the same accents.
  ThemeData palette(Brightness brightness){
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:kJade,brightness:brightness,
    primary:dark?PaydayColors.darkPrimary:kJade,
    surface:dark?PaydayColors.darkSurface:Colors.white,
-   onSurface:dark?paydaySand:kInk,onSurfaceVariant:dark?PaydayColors.darkMuted:PaydayColors.muted,
+   onSurface:dark?PaydayColors.darkText:kInk,onSurfaceVariant:dark?PaydayColors.darkMuted:PaydayColors.muted,
    outlineVariant:dark?PaydayColors.darkLine:PaydayColors.line).copyWith(
     onPrimary:dark?PaydayColors.darkOnPrimary:Colors.white,
+    primaryContainer:dark?PaydayColors.emerald:PaydayColors.mintTint,
+    onPrimaryContainer:dark?PaydayColors.sand:PaydayColors.emerald,
+    secondaryContainer:dark?PaydayColors.darkIconDisc:PaydayColors.mintTint,
+    onSecondaryContainer:dark?PaydayColors.darkText:PaydayColors.emerald,
+    tertiary:dark?PaydayColors.darkCopper:PaydayColors.saffron,onTertiary:PaydayColors.ink,
+    error:dark?PaydayColors.darkStatusOver:PaydayColors.statusOver,
+    surfaceTint:Colors.transparent,
+    surfaceContainerLowest:dark?PaydayColors.darkBackground:Colors.white,
     surfaceContainerLow:dark?PaydayColors.darkSurfaceLow:PaydayColors.surfaceLow,
-    surfaceContainerHigh:dark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh);
+    surfaceContainer:dark?PaydayColors.darkSurfaceLow:PaydayColors.surfaceLow,
+    surfaceContainerHigh:dark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,
+    surfaceContainerHighest:dark?PaydayColors.darkLine:PaydayColors.line);
+  final background=dark?PaydayColors.darkBackground:kCream;
   final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']);
   return base.copyWith(
    textTheme:base.textTheme.copyWith(
     titleLarge:base.textTheme.titleLarge?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800),
     headlineSmall:base.textTheme.headlineSmall?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800)),
-   scaffoldBackgroundColor:dark?PaydayColors.darkBackground:kCream,
-   appBarTheme:AppBarTheme(backgroundColor:dark?PaydayColors.darkBackground:kCream,
+   scaffoldBackgroundColor:background,
+   appBarTheme:AppBarTheme(backgroundColor:background,
     foregroundColor:scheme.onSurface,centerTitle:true,surfaceTintColor:Colors.transparent),
    bottomSheetTheme:BottomSheetThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent,
     shape:RoundedRectangleBorder(borderRadius:BorderRadius.vertical(top:Radius.circular(PaydayRadius.dialog)))),
    dialogTheme:DialogThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent),
    cardTheme:CardThemeData(elevation:0,color:scheme.surface,surfaceTintColor:Colors.transparent,
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.xl))),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.card),side:BorderSide(color:scheme.outlineVariant))),
    inputDecorationTheme:InputDecorationTheme(filled:true,
     fillColor:scheme.surfaceContainerLow,
-    border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md))),
+    border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md)),
+    enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.outlineVariant)),
+    focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
-    minimumSize:const Size(48,50),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans'))),
+    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans'))),
+   outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
+    side:BorderSide(color:scheme.outlineVariant),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)))),
+   listTileTheme:ListTileThemeData(iconColor:scheme.primary),
+   dividerTheme:DividerThemeData(color:scheme.outlineVariant,thickness:1),
+   snackBarTheme:SnackBarThemeData(backgroundColor:dark?PaydayColors.darkSurfaceHigh:kInk,
+    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans'),actionTextColor:paydaySaffron),
    navigationBarTheme:NavigationBarThemeData(backgroundColor:scheme.surface),
   );
  }
@@ -190,6 +210,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Color get homeText=>muted;
  Color get homeGreen=>jade;
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
+ /// Status colours that stay readable on both sand and charcoal.
+ Color get danger=>isDark?PaydayColors.darkStatusOver:PaydayColors.statusOver;
+ Color get warn=>isDark?PaydayColors.darkStatusNear:PaydayColors.statusNear;
+ Color get amber=>isDark?PaydayColors.darkStatusNear:PaydayColors.amber;
  bool writing=false;
  bool exportingBackup=false;
  bool restoringBackup=false;
@@ -314,7 +338,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  String monthLabel(DateTime d)=>localizedMonth(d,language,short:true);
  Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,12,4,10),
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   LText(title,style:TextStyle(fontSize:23,fontWeight:FontWeight.w800,color:ink)),
+   LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:24,fontWeight:FontWeight.w800,color:ink)),
    if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:LText(subtitle,style:TextStyle(color:muted)))
   ])),if(action!=null)action]));
  Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading,bool rawTitle=false,bool categoryTitle=false})=>
@@ -323,11 +347,6 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    title:rawTitle?Text(title,style:TextStyle(fontWeight:FontWeight.w700)):LText(title,category:categoryTitle,style:TextStyle(fontWeight:FontWeight.w700)),
    subtitle:LText(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
    trailing:LText(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
- Widget metric(String title,String value,IconData icon,{Color? color})=>Expanded(child:Card(child:Padding(
-  padding:EdgeInsets.all(15),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   PaydayAppIcon(icon,color:color??jade),SizedBox(height:12),LText(title,style:TextStyle(color:muted,fontSize:12)),
-   SizedBox(height:5),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(value,style:TextStyle(fontSize:20,fontWeight:FontWeight.w800,color:ink)))
-  ]))));
 
  // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
  @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
@@ -353,7 +372,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     })),
    ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
-   title:page==0?Row(children:[IconButton(key:ValueKey('home-settings-logo'),tooltip:tr(context,'Open settings'),padding:EdgeInsets.zero,constraints:BoxConstraints(minWidth:48,minHeight:48),onPressed:openSettingsDrawer,icon:const PaydayMark(size:42)),SizedBox(width:8),
+   title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:10),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText(uiDay(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
      FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
@@ -361,10 +380,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
    actions:[if(page==0)IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,icon:PaydayAppIcon(Icons.settings_outlined)),
-    TextButton(onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More'))]),
+    Padding(padding:EdgeInsetsDirectional.only(end:8),child:TextButton(
+     style:TextButton.styleFrom(backgroundColor:page==4?jade.withValues(alpha:.14):surface,foregroundColor:ink,
+      shape:StadiumBorder(side:BorderSide(color:page==4?jade:line))),
+     onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
-    PaydayAppIcon(Icons.error_outline,color:homeOver,size:36),SizedBox(height:PaydaySpace.md),
+    PaydayAppIcon(Icons.error_outline,color:danger,size:36),SizedBox(height:PaydaySpace.md),
     LText('Your records could not be opened. Nothing was changed.',textAlign:TextAlign.center),
     SizedBox(height:PaydaySpace.lg),FilledButton(onPressed:refresh,child:LText('Try again')),
    ])));
@@ -381,18 +403,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
    return SafeArea(child:ListView(key:ValueKey('page-$page-section-$moreSection'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
   }),
-  bottomNavigationBar:SafeArea(top:false,child:Container(
-   padding:EdgeInsetsDirectional.fromSTEB(8,0,8,8),
-   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.vertical(top:Radius.circular(PaydayRadius.sheet)),border:Border(top:BorderSide(color:line))),
+  // Floating navigation bar: the selected tab is marked by a tinted pill.
+  bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(
+   padding:EdgeInsets.all(6),
+   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.hero),border:Border.all(color:line),
+    boxShadow:[BoxShadow(color:Colors.black.withValues(alpha:isDark ? .40 : .08),blurRadius:18,offset:Offset(0,6))]),
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
     bottomItem('Budgets',Icons.pie_chart_outline,2),
-    Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-10),child:Semantics(button:true,label:tr(context,'Add transaction'),child:
-     Container(width:54,height:54,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(PaydayRadius.xl),
-      boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .10 : .20),blurRadius:14,offset:Offset(0,5))]),
-      padding:EdgeInsets.all(3),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
+    Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-12),child:Semantics(button:true,label:tr(context,'Add transaction'),child:
+     Container(width:56,height:56,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(PaydayRadius.xl),
+      boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .22 : .28),blurRadius:16,offset:Offset(0,6))]),
+      padding:EdgeInsets.all(4),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
-   ]))),
+   ])))),
  )));
 
 }
