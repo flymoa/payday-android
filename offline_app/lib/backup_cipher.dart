@@ -20,7 +20,7 @@ class BackupCipher {
    final value=jsonDecode(raw);
    if(value is! Map<String,dynamic>)throw const FormatException();
    return value;
-  }catch(_){throw const FormatException('This is not a valid PAYDAY backup.');}
+  }catch(_){throw const FormatException('This is not a valid Payday backup.');}
  }
  static bool isProtected(String raw){
   final d=document(raw);
@@ -31,7 +31,7 @@ class BackupCipher {
   if(utf8.encode(raw).length>maxPlainBytes)throw const FormatException('This backup is too large.');
   final d=document(raw);
   if(d['format']!='payday-local'||![1,2].contains(d['schema_version'])||d['tables'] is! Map){
-   throw const FormatException('This is not a supported PAYDAY backup.');
+   throw const FormatException('This is not a supported Payday backup.');
   }
  }
  static void _password(String password){
@@ -60,7 +60,7 @@ class BackupCipher {
  }
  static Future<String> _open(List<String> input)async{
   _password(input[1]);final d=document(input[0]);
-  if(d['format']!=format)throw const FormatException('This is not a protected PAYDAY backup.');
+  if(d['format']!=format)throw const FormatException('This is not a protected Payday backup.');
   final parts=_envelope(d);
   try{
    final plain=await AesGcm.with256bits().decrypt(SecretBox(parts['ciphertext']!,nonce:parts['nonce']!,mac:Mac(parts['tag']!)),

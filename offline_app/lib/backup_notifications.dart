@@ -5,8 +5,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'offline_store.dart';
 
 const backupReminderPreference='backup_notifications_enabled';
-const backupNotificationTitle='PAYDAY';
-const backupNotificationBody='Keep your records safe. Open PAYDAY to save a backup.';
+const backupNotificationTitle='Payday';
+const backupNotificationBody='Keep your records safe. Open Payday to save a backup.';
 
 abstract class ReminderPlatform {
  Future<void> initialize();
@@ -25,11 +25,11 @@ class AndroidReminderPlatform implements ReminderPlatform,NotificationLanguagePl
  Future<void>? _initializing;
  static const reminderId=21001,testId=21002,channelId='payday_backup_reminders';
  static const details=NotificationDetails(android:AndroidNotificationDetails(
-  channelId,'Backup reminders',channelDescription:'Optional weekly reminders to save a PAYDAY backup',
+  channelId,'Backup reminders',channelDescription:'Optional weekly reminders to save a Payday backup',
   icon:'payday_notification',importance:Importance.low,priority:Priority.low,
   playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  NotificationDetails get localizedDetails=>NotificationDetails(android:AndroidNotificationDetails(
-  channelId,translateMessage('Backup reminders',language),channelDescription:translateMessage('Optional weekly reminders to save a PAYDAY backup',language),
+  channelId,translateMessage('Backup reminders',language),channelDescription:translateMessage('Optional weekly reminders to save a Payday backup',language),
   icon:'payday_notification',importance:Importance.low,priority:Priority.low,
   playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  AndroidFlutterLocalNotificationsPlugin? get android=>plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -42,7 +42,7 @@ class AndroidReminderPlatform implements ReminderPlatform,NotificationLanguagePl
   final initialized=await plugin.initialize(settings:const InitializationSettings(android:AndroidInitializationSettings('payday_notification')));
   if(initialized!=true||android==null)throw StateError('Notifications are unavailable.');
   await android!.createNotificationChannel(AndroidNotificationChannel(channelId,translateMessage('Backup reminders',language),
-   description:translateMessage('Optional weekly reminders to save a PAYDAY backup',language),importance:Importance.low,playSound:false,enableVibration:false));
+   description:translateMessage('Optional weekly reminders to save a Payday backup',language),importance:Importance.low,playSound:false,enableVibration:false));
  }
  @override Future<bool> allowed()async{
   if(await android?.areNotificationsEnabled()!=true)return false;

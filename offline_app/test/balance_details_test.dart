@@ -22,7 +22,7 @@ void main(){
    await tester.tap(find.text('Available this month'));
    await tester.pumpAndSettle();
    expect(find.text('Income received'),findsOneWidget);
-   expect(find.text('+ 1000.00 MAD'),findsOneWidget);
+   expect(find.text('+ 1,000.00 MAD'),findsOneWidget);
    expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('800.00 MAD')),findsOneWidget);
    expect(tester.takeException(),isNull);
    await tester.ensureVisible(find.text('Got it'));

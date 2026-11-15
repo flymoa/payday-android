@@ -36,7 +36,7 @@ void main(){
   await platform.replace([reminder,fresh]);
   final scheduled=calls.singleWhere((c)=>c.method=='zonedSchedule').arguments as Map;
   expect(scheduled['id'],fresh.id);expect(scheduled['body'],billNotificationBody);
-  expect(scheduled['title'],'PAYDAY');expect(scheduled['payload'],fresh.payload);
+  expect(scheduled['title'],'Payday');expect(scheduled['payload'],fresh.payload);
   calls.clear();await platform.replace([]);
   final canceled=calls.where((c)=>c.method=='cancel').map((c)=>(c.arguments as Map)['id']);
   expect(canceled,containsAll([oldId,reminder.id,AndroidBillReminderPlatform.testId]));expect(canceled, isNot(contains(21001)));

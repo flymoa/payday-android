@@ -52,7 +52,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver{
  Future<void> initializePrivacy()async{
   if(!_enabled)return;
   try{await configurePrivacy(true);}catch(_){
-   error='Screen privacy could not be enabled. Try reopening PAYDAY.';_changed();
+   error='Screen privacy could not be enabled. Try reopening Payday.';_changed();
   }
  }
  // Only call after successful device authentication and durable preference save.
@@ -75,7 +75,7 @@ class AppLockController extends ChangeNotifier with WidgetsBindingObserver{
  }
  Future<void> unlock()async{
   if(!_enabled||!_locked||_busy)return;
-  if(await authorize('Unlock PAYDAY to view your finances',requirePrivacy:true)){
+  if(await authorize('Unlock Payday to view your finances',requirePrivacy:true)){
    if(!_disposed&&_enabled){_locked=false;error=null;_changed();}
   }
  }
@@ -137,7 +137,7 @@ class PaydayLockGate extends StatelessWidget{
      padding:const EdgeInsets.all(28),child:ConstrainedBox(constraints:const BoxConstraints(maxWidth:340),
       child:Column(mainAxisSize:MainAxisSize.min,children:[
        const PaydayMark(size:64),const SizedBox(height:24),
-       LText('PAYDAY is locked',style:Theme.of(context).textTheme.headlineSmall,textAlign:TextAlign.center),
+       LText('Payday is locked',style:Theme.of(context).textTheme.headlineSmall,textAlign:TextAlign.center),
        const SizedBox(height:10),const LText('Use your phone’s fingerprint, face unlock, or screen lock to continue.',textAlign:TextAlign.center),
        const SizedBox(height:24),
        FilledButton.icon(onPressed:controller.busy?null:controller.unlock,

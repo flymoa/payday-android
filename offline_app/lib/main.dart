@@ -103,7 +103,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
   var privacyChanged=false;
   try{
    if(lockChanged){
-    final allowed=await appLock.authorize(next.appLock?'Enable PAYDAY app lock':'Turn off PAYDAY app lock');
+    final allowed=await appLock.authorize(next.appLock?'Enable Payday app lock':'Turn off Payday app lock');
     if(!mounted)return false;
     if(!allowed){
      messengerKey.currentState?.showSnackBar(SnackBar(content:LText(appLock.error??'App lock was not changed.')));

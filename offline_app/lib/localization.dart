@@ -50,7 +50,8 @@ String localizedNumber(int cents,String language,{bool grouped=false}){
  if(grouped)whole=whole.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'),(_)=>language=='fr'?'\u202f':',');
  return '${negative?'−':''}$whole${language=='fr'?',':'.'}${(absolute%100).toString().padLeft(2,'0')}';
 }
-String localizedMoney(int cents,String currency,String language)=>'${language=='en'&&cents<0?'-'+localizedNumber(-cents,language):localizedNumber(cents,language)} $currency';
+/// Amounts on screen always group thousands (1,234.50 / 1 234,50). Inputs stay ungrouped.
+String localizedMoney(int cents,String currency,String language)=>'${language=='en'&&cents<0?'-'+localizedNumber(-cents,language,grouped:true):localizedNumber(cents,language,grouped:true)} $currency';
 const _monthsEn=['January','February','March','April','May','June','July','August','September','October','November','December'];
 String localizedMonth(DateTime date,String language,{bool short=false}){
  if(language=='en'&&short)return '${_monthsEn[date.month-1].substring(0,3)} ${date.year}';

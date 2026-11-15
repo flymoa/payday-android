@@ -103,7 +103,7 @@ void main(){
    await tester.pumpWidget(MaterialApp(navigatorObservers:[routes],theme:ThemeData(brightness:brightness),builder:(context,child)=>PaydayLockGate(controller:lock,child:child!),
     home:Builder(builder:(context)=>Scaffold(body:TextButton(onPressed:()=>showDialog<void>(context:context,builder:(_)=>AlertDialog(
      title:const Text('Private form'),content:TextField(controller:draft))),child:const Text('Edit'))))));
-   expect(find.text('PAYDAY is locked'),findsOneWidget);expect(find.text('Edit'),findsNothing);
+   expect(find.text('Payday is locked'),findsOneWidget);expect(find.text('Edit'),findsNothing);
    await tester.tap(find.text('Unlock'));await tester.pumpAndSettle();
    await tester.tap(find.text('Edit'));await tester.pumpAndSettle();
    expect(find.text('Private form'),findsOneWidget);

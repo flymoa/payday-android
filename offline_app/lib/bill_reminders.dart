@@ -9,7 +9,7 @@ import 'offline_store.dart';
 
 const billReminderEnabledKey='bill_notifications_enabled';
 const billReminderLeadKey='bill_notifications_lead_days';
-const billNotificationBody='You have a bill to review. Open PAYDAY for details.';
+const billNotificationBody='You have a bill to review. Open Payday for details.';
 const billReminderChoices={0:'On the due date',1:'1 day before',3:'3 days before'};
 
 class BillReminderPreferences {
@@ -78,10 +78,10 @@ class AndroidBillReminderPlatform implements BillReminderPlatform,NotificationLa
  Future<void>? _initializing;
  static const channelId='payday_bill_reminders',testId=22002;
  static const details=NotificationDetails(android:AndroidNotificationDetails(channelId,'Bill reminders',
-  channelDescription:'Optional reminders for unpaid PAYDAY bills',icon:'payday_notification',
+  channelDescription:'Optional reminders for unpaid Payday bills',icon:'payday_notification',
   importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  NotificationDetails get localizedDetails=>NotificationDetails(android:AndroidNotificationDetails(channelId,translateMessage('Bill reminders',language),
-  channelDescription:translateMessage('Optional reminders for unpaid PAYDAY bills',language),icon:'payday_notification',
+  channelDescription:translateMessage('Optional reminders for unpaid Payday bills',language),icon:'payday_notification',
   importance:Importance.low,priority:Priority.low,playSound:false,enableVibration:false,visibility:NotificationVisibility.private));
  AndroidFlutterLocalNotificationsPlugin? get android=>plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
  @override Future<void> initialize()async{
@@ -93,7 +93,7 @@ class AndroidBillReminderPlatform implements BillReminderPlatform,NotificationLa
   final result=await plugin.initialize(settings:const InitializationSettings(android:AndroidInitializationSettings('payday_notification')));
   if(result!=true||android==null)throw StateError('Notifications are unavailable.');
   await android!.createNotificationChannel(AndroidNotificationChannel(channelId,translateMessage('Bill reminders',language),
-   description:translateMessage('Optional reminders for unpaid PAYDAY bills',language),importance:Importance.low,playSound:false,enableVibration:false));
+   description:translateMessage('Optional reminders for unpaid Payday bills',language),importance:Importance.low,playSound:false,enableVibration:false));
  }
  @override Future<bool> allowed()async{
   if(await android?.areNotificationsEnabled()!=true)return false;
@@ -120,12 +120,12 @@ class AndroidBillReminderPlatform implements BillReminderPlatform,NotificationLa
    if(existing[reminder.id]==payload)continue;
    // Clear an earlier notification with the same day ID before replacing it.
    await plugin.cancel(id:reminder.id);
-   await plugin.zonedSchedule(id:reminder.id,title:'PAYDAY',body:translateMessage(billNotificationBody,language),
+   await plugin.zonedSchedule(id:reminder.id,title:'Payday',body:translateMessage(billNotificationBody,language),
     scheduledDate:reminder.at,notificationDetails:localizedDetails,payload:payload,
     androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle);
   }
  }
- @override Future<void> sendTest()=>plugin.show(id:testId,title:'PAYDAY',body:translateMessage(billNotificationBody,language),notificationDetails:localizedDetails);
+ @override Future<void> sendTest()=>plugin.show(id:testId,title:'Payday',body:translateMessage(billNotificationBody,language),notificationDetails:localizedDetails);
 }
 
 class BillNotificationState {
