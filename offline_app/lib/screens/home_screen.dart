@@ -52,12 +52,12 @@ extension _HomeScreen on _FinanceState {
      ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.5),
       child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
        child:LText(description,maxLines:1,style:TextStyle(color:noteColor,
-        fontWeight:FontWeight.w700,fontSize:12)))),
+        fontWeight:FontWeight.w700,fontSize:PaydayType.caption)))),
     ])),
     SizedBox(height:9),
     Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
      Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
-      maxLines:2,style:TextStyle(color:homeText,fontSize:12))),
+      maxLines:2,style:TextStyle(color:homeText,fontSize:PaydayType.caption))),
      SizedBox(width:5),
      Expanded(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
       isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
@@ -176,8 +176,8 @@ extension _HomeScreen on _FinanceState {
    child:Padding(padding:EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[PaydayAppIcon(Icons.ios_share,color:jade,size:20),SizedBox(width:8),
      Expanded(child:LText('Keep a backup',style:TextStyle(fontWeight:FontWeight.w700)))]),
-    SizedBox(height:6),LText(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:12)),
-    SizedBox(height:4),LText('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:12,color:muted)),
+    SizedBox(height:6),LText(backupDateLabel(reminder),style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+    SizedBox(height:4),LText('Save a copy somewhere you can access if you lose or reset this phone.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     Wrap(spacing:10,children:[TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
      child:LText(exportingBackup?'Exporting…':'Export backup')),
      TextButton(onPressed:snoozeBackup,child:LText('Remind tomorrow'))]),
@@ -263,7 +263,7 @@ extension _HomeScreen on _FinanceState {
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:3),LText('${categoryLabel(context,category)} · ${tr(context,recentActivityDay(st(row,'date'),DateTime.now()))}',
-      style:TextStyle(fontSize:12,color:muted)),
+      style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
@@ -294,7 +294,7 @@ extension _HomeScreen on _FinanceState {
          PaydayCategoryIcon(category,size:40),const SizedBox(width:12),
          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           LText(category,category:true,style:TextStyle(fontWeight:FontWeight.w800,fontSize:18,color:ink)),
-          LText(monthLabel(selected),style:TextStyle(color:muted,fontSize:12)),
+          LText(monthLabel(selected),style:TextStyle(color:muted,fontSize:PaydayType.caption)),
          ])),
          IconButton(tooltip:tr(context,'Close'),onPressed:()=>Navigator.pop(c),icon:const PaydayAppIcon(Icons.close)),
         ])),

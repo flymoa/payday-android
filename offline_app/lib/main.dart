@@ -1,5 +1,6 @@
 import 'design_tokens.dart';
 import 'ui_kit.dart';
+import 'settings_home.dart';
 import 'localization.dart';
 import 'app_language.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -145,7 +146,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
     surfaceContainerHigh:dark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,
     surfaceContainerHighest:dark?PaydayColors.darkLine:PaydayColors.line);
   final background=dark?PaydayColors.darkBackground:kCream;
-  final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']);
+  final base=ThemeData(useMaterial3:true,colorScheme:scheme,fontFamily:'DMSans',fontFamilyFallback:const ['PlexArabic','sans-serif']);
   return base.copyWith(
    textTheme:base.textTheme.copyWith(
     titleLarge:base.textTheme.titleLarge?.copyWith(fontFamily:'Bricolage',fontWeight:FontWeight.w800),
@@ -164,13 +165,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.outlineVariant)),
     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
-    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']))),
+    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['PlexArabic','sans-serif']))),
    outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
     side:BorderSide(color:scheme.outlineVariant),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)))),
    listTileTheme:ListTileThemeData(iconColor:scheme.primary),
    dividerTheme:DividerThemeData(color:scheme.outlineVariant,thickness:1),
    snackBarTheme:SnackBarThemeData(backgroundColor:dark?PaydayColors.darkSurfaceHigh:kInk,
-    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']),actionTextColor:paydaySaffron),
+    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans',fontFamilyFallback:const ['PlexArabic','sans-serif']),actionTextColor:paydaySaffron),
    navigationBarTheme:NavigationBarThemeData(backgroundColor:scheme.surface),
   );
  }
@@ -227,8 +228,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  String inputNumber(int amount)=>localizedNumber(amount,language);
  String uiDay(DateTime day)=>localizedDay(day,language);
  String currencyMessage(String message)=>translateMessage(message.replaceAll(' MAD',' $currency'),language);
- void openSettingsDrawer(){
-  scaffoldKey.currentState?.openDrawer();
+ /// Rebuilds the open Settings page after this screen rebuilds (new preferences or data).
+ final settingsRefresh=ValueNotifier<int>(0);
+ bool settingsOpen=false;
+ Future<void> openSettingsDrawer()async{
+  if(settingsOpen)return;
+  settingsOpen=true;
+  try{
+   await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>SettingsHomePage(refresh:settingsRefresh,
+    builder:(page)=>FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(page,snap){
+     if(snap.hasError)return Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:LText('Could not load settings.'));
+     if(!snap.hasData)return SizedBox(height:200);
+     return appSettings(snap.data!);
+    }))));
+  }finally{settingsOpen=false;}
  }
  String recordQuery='';
  bool recordAllMonths=false;
@@ -302,7 +315,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
   }
  }
- @override void dispose(){WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
+ @override void dispose(){settingsRefresh.dispose();WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
  void refresh(){
   if(!mounted)return;
   final next=store.snapshot();
@@ -313,10 +326,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
- Future<bool> execute(Future<void> Function() fn)async{
+ Future<bool> execute(Future<void> Function() fn,{String saved='Saved on this phone.'})async{
   if(writing)return false;
   writing=true;
-  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText('Saved on this phone.')));return true;}
+  try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(saved)));return true;}
   catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText('Could not save: ${currencyMessage(e.toString())}')));return false;}
   finally{writing=false;}
  }
@@ -349,7 +362,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    trailing:LText(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
 
  // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
- @override Widget build(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
+ @override Widget build(BuildContext context){
+  if(settingsOpen)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)settingsRefresh.value++;});
+  return buildScreen(context);
+ }
+ Widget buildScreen(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
   canPop:page!=4||moreSection==null,
   onPopInvokedWithResult:(didPop,result){
    if(!didPop&&mounted&&page==4&&moreSection!=null){
@@ -357,29 +374,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
   },child:Scaffold(
   key:scaffoldKey,
-  drawerEnableOpenDragGesture:false,
-  drawer:page==0?Drawer(width:(constraints.maxWidth*.86).clamp(0,360).toDouble(),
-   backgroundColor:cream,child:SafeArea(child:Column(children:[
-    Padding(padding:EdgeInsetsDirectional.fromSTEB(16,12,4,8),child:Row(children:[
-     const Expanded(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:PaydayBrand(compact:true))),
-     IconButton(tooltip:tr(context,'Close settings'),onPressed:()=>scaffoldKey.currentState?.closeDrawer(),icon:PaydayAppIcon(Icons.close)),
-    ])),
-    Expanded(child:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-     if(snap.hasError)return Center(child:LText('Could not load settings.'));
-     if(!snap.hasData)return Center(child:CircularProgressIndicator());
-     return ListView(key:ValueKey('settings-drawer-list'),padding:EdgeInsetsDirectional.fromSTEB(12,0,12,24),
-      children:[appSettings(snap.data!)]);
-    })),
-   ]))):null,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
    title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:10),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText(uiDay(DateTime.now()),style:TextStyle(fontSize:12,color:muted)),
+     LText(uiDay(DateTime.now()),style:TextStyle(fontSize:PaydayType.caption,color:muted)),
      FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
       child:LText(paydaySlogan,maxLines:1,softWrap:false,
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
-   actions:[if(page==0)IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,icon:PaydayAppIcon(Icons.settings_outlined)),
+   actions:[if(page==0)IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
+     style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)),SizedBox(width:6),
     Padding(padding:EdgeInsetsDirectional.only(end:8),child:TextButton(
      style:TextButton.styleFrom(backgroundColor:page==4?jade.withValues(alpha:.14):surface,foregroundColor:ink,
       shape:StadiumBorder(side:BorderSide(color:page==4?jade:line))),

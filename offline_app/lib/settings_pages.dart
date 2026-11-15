@@ -1,3 +1,4 @@
+import 'design_tokens.dart';
 import 'localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,7 +78,7 @@ class AboutHelpPage extends StatelessWidget{
  @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'About & Help',
   body:ListView(padding:settingsPagePadding,children:[
    const Padding(padding:EdgeInsets.only(bottom:8),child:Align(alignment:AlignmentDirectional.centerStart,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:PaydayBrand(compact:true)))),
-   LText('Version $paydayVersion · Build $paydayBuildNumber',style:TextStyle(fontSize:12,color:Theme.of(context).colorScheme.onSurfaceVariant)),
+   LText('Version $paydayVersion · Build $paydayBuildNumber',style:TextStyle(fontSize:PaydayType.caption,color:Theme.of(context).colorScheme.onSurfaceVariant)),
    const SizedBox(height:20),
    topic(context,'Getting started',Icons.space_dashboard_outlined,
     'Use + to add income, expenses, or savings transfers. Set planned income and category amounts in Budgets. Find and edit your entries in Records.'),

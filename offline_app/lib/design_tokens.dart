@@ -51,10 +51,10 @@ abstract final class PaydayColors {
   // Budget status.
   static const statusGood = Color(0xff2C8979);
   static const statusNear = Color(0xffD2A15A);
-  static const statusNearText = Color(0xff996522); // readable on white
-  static const statusOver = Color(0xffCA554A);
+  static const statusNearText = Color(0xff7A4F12); // readable on white
+  static const statusOver = Color(0xffA63A30);
   static const statusOverBorder = Color(0xffE9BEB8);
-  static const statusOverTrack = Color(0xffF4D9D4);
+  static const statusOverTrack = Color(0xffF6DCD7);
   static const amber = Color(0xff986318);
 }
 
@@ -83,8 +83,8 @@ abstract final class PaydaySpace {
 
 /// Type sizes. `caption` is the smallest size text should use.
 abstract final class PaydayType {
-  static const caption = 12.0;
-  static const small = 13.0;
+  static const caption = 13.0;
+  static const small = 14.0;
   static const body = 14.0;
   static const title = 16.0;
   static const section = 23.0;

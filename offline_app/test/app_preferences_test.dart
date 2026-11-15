@@ -85,7 +85,7 @@ void main(){
   await tester.tap(find.byKey(const ValueKey('currency-setting')));await tester.pumpAndSettle();
   await tester.tap(find.text(code).last);await tester.pumpAndSettle();
  }
- testWidgets('logo opens partial left drawer, theme persists, no motion toggles and Back closes drawer',(tester)async{
+ testWidgets('settings button opens a full Settings page, theme persists, no motion toggles and Back closes it',(tester)async{
   await tester.binding.setSurfaceSize(const Size(360,900));
   addTearDown(()=>tester.binding.setSurfaceSize(null));
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -94,8 +94,9 @@ void main(){
   final slogan=tester.widget<Text>(find.text(paydaySlogan));
   expect(slogan.maxLines,1);expect(slogan.style!.fontWeight,FontWeight.w700);
   await openSettings(tester);
-  final drawer=tester.getRect(find.byType(Drawer));
-  expect(drawer.left,0);expect(drawer.width,lessThan(360));expect(drawer.width,greaterThan(250));
+  // Settings is a full page now, not a side drawer.
+  expect(find.byType(Drawer),findsNothing);expect(find.text('Settings'),findsOneWidget);
+  expect(find.text('General'),findsOneWidget);expect(find.text('Privacy & security'),findsOneWidget);
   expect(find.text('Opening animation'),findsNothing);expect(find.text('Reduce motion'),findsNothing);
   expect(find.text('App lock'),findsOneWidget);
   await chooseTheme(tester,'Dark');
@@ -103,9 +104,9 @@ void main(){
   expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
   await chooseTheme(tester,'System');
   tester.platformDispatcher.platformBrightnessTestValue=Brightness.dark;await tester.pumpAndSettle();
-  expect(Theme.of(tester.element(find.byType(FinanceScreen))).brightness,Brightness.dark);
+  expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.dark);
   tester.platformDispatcher.platformBrightnessTestValue=Brightness.light;await tester.pumpAndSettle();
-  expect(Theme.of(tester.element(find.byType(FinanceScreen))).brightness,Brightness.light);
+  expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.light);
   await tester.ensureVisible(find.text('Backups & data'));await tester.pumpAndSettle();
   await tester.tap(find.text('Backups & data'));await tester.pumpAndSettle();
   expect(find.text('Export backup'),findsOneWidget);expect(find.text('Restore'),findsOneWidget);
@@ -124,7 +125,7 @@ void main(){
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:await store.loadAppPreferences()));
   expect(find.byKey(const ValueKey('payday-opening-overlay')),findsOneWidget);
   await tester.pumpAndSettle();
-  expect(MediaQuery.disableAnimationsOf(tester.element(find.byType(FinanceScreen))),isFalse);
+  expect(MediaQuery.disableAnimationsOf(tester.element(find.byType(FinanceScreen,skipOffstage:false))),isFalse);
   await openSettings(tester);
   await chooseCurrency(tester,'EUR');
   expect(find.textContaining('100.00 MAD becomes 100.00 EUR'),findsOneWidget);

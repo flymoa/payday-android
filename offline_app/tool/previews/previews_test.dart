@@ -73,10 +73,7 @@ Future<void> loadFont(String family, String path) async {
 void main() {
   setUpAll(() async {
     await loadFont('DMSans', 'assets/fonts/DMSans.ttf');
-    // Arabic glyphs: the CI runner's Noto font, when present.
-    for (final path in ['/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf', '/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf']) {
-      if (File(path).existsSync()) { await loadFont('Noto Sans Arabic', path); break; }
-    }
+    await loadFont('PlexArabic', 'assets/fonts/IBMPlexSansArabic-Regular.ttf');
     await loadFont('Bricolage', 'assets/fonts/Bricolage.ttf');
   });
   for (final (mode, language) in [(ThemeMode.light, 'en'), (ThemeMode.dark, 'en'), (ThemeMode.light, 'ar')]) {

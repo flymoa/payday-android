@@ -30,16 +30,14 @@ extension _SettingsScreen on _FinanceState {
     ],
    ])),
   ]);
+ /// Settings grouped like a normal app: General first, then reminders,
+ /// privacy, money and data, and help.
  Widget appSettings(Map<String,List<RowData>> d){
   final prefs=widget.preferences;
   final canChange=widget.onPreferencesChanged!=null&&!preferencesSaving;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Settings',subtitle:'Make PAYDAY work your way'),
    if(preferencesSaving)LinearProgressIndicator(),
-   settingsGroup('Appearance',[
-    ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:LText('Theme'),
-     subtitle:LText(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
-     onTap:canChange?appearancePicker:null),
+   settingsGroup('General',[
     ListTile(key:ValueKey('language-setting'),leading:PaydayAppIcon(Icons.translate),title:LText('Language'),
      subtitle:Text(paydayLanguages[language]!),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:canChange?()=>openSettingsPage((_)=>LanguageSettingsPage(initial:language,onChanged:(value)async{
@@ -47,12 +45,18 @@ extension _SettingsScreen on _FinanceState {
       if(saved&&mounted){await refreshNotificationLanguage();}
       return saved;
      })):null),
+    ListTile(leading:PaydayAppIcon(Icons.light_mode_outlined),title:LText('Theme'),
+     subtitle:LText(prefs.appearanceLabel),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:canChange?appearancePicker:null),
+    ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:LText('Currency'),
+     subtitle:LText('${tr(context,paydayCurrencies[currency]!)} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:canChange?currencyPicker:null),
    ]),
    settingsGroup('Reminders',[
     ListTile(key:ValueKey('notifications-setting'),leading:PaydayAppIcon(Icons.notifications_none),title:LText('Notifications'),
      trailing:PaydayAppIcon(Icons.chevron_right),onTap:()=>openSettingsPage((_)=>NotificationSettingsPage(reminders:reminders,bills:billReminders,reserves:reserveReminders))),
    ]),
-   settingsGroup('Security',[
+   settingsGroup('Privacy & security',[
     ListTile(key:ValueKey('security-setting'),leading:PaydayAppIcon(Icons.lock_outline),
      title:LText('App lock'),subtitle:LText(prefs.appLock?'On':'Off'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>openSettingsPage((_)=>SecuritySettingsPage(
@@ -65,9 +69,6 @@ extension _SettingsScreen on _FinanceState {
      onChanged:prefs.appLock?null:(on)async{await execute(()=>store.setSetting(homeWidgetAmountKey,on?'1':'0'));}),
    ]),
    settingsGroup('Money & data',[
-    ListTile(key:ValueKey('currency-setting'),leading:PaydayAppIcon(Icons.payments_outlined),title:LText('Currency'),
-     subtitle:LText('${tr(context,paydayCurrencies[currency]!)} · $currency'),trailing:PaydayAppIcon(Icons.chevron_right),
-     onTap:canChange?currencyPicker:null),
     ListTile(key:ValueKey('money-settings'),leading:PaydayAppIcon(Icons.account_balance_wallet_outlined),title:LText('Money settings'),
      subtitle:LText('Cash buffer and opening savings'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>settingsForm(d)),

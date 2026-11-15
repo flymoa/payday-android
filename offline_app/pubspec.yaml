@@ -54,6 +54,13 @@ flutter:
     - family: DMSans
       fonts:
         - asset: assets/fonts/DMSans.ttf
+    - family: PlexArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+        - asset: assets/fonts/IBMPlexSansArabic-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700
 
 
 
