@@ -164,13 +164,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.outlineVariant)),
     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
-    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans'))),
+    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']))),
    outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
     side:BorderSide(color:scheme.outlineVariant),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)))),
    listTileTheme:ListTileThemeData(iconColor:scheme.primary),
    dividerTheme:DividerThemeData(color:scheme.outlineVariant,thickness:1),
    snackBarTheme:SnackBarThemeData(backgroundColor:dark?PaydayColors.darkSurfaceHigh:kInk,
-    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans'),actionTextColor:paydaySaffron),
+    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']),actionTextColor:paydaySaffron),
    navigationBarTheme:NavigationBarThemeData(backgroundColor:scheme.surface),
   );
  }
@@ -383,7 +383,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     Padding(padding:EdgeInsetsDirectional.only(end:8),child:TextButton(
      style:TextButton.styleFrom(backgroundColor:page==4?jade.withValues(alpha:.14):surface,foregroundColor:ink,
       shape:StadiumBorder(side:BorderSide(color:page==4?jade:line))),
-     onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
+     key:ValueKey('more-button'),onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
     PaydayAppIcon(Icons.error_outline,color:danger,size:36),SizedBox(height:PaydaySpace.md),

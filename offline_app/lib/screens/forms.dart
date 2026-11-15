@@ -60,7 +60,7 @@ extension _Forms on _FinanceState {
       mainAxisSize:MainAxisSize.min,children:[
        Padding(padding:EdgeInsets.only(bottom:12),
         child:Align(alignment:AlignmentDirectional.centerStart,
-         child:Row(children:[if(fullScreen)IconButton(tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
+         child:Row(children:[if(fullScreen)IconButton(key:ValueKey('close-transaction'),tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
        Flexible(child:SingleChildScrollView(
         keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
         padding:EdgeInsets.only(bottom:footer==null?24:12),
@@ -153,8 +153,8 @@ extension _Forms on _FinanceState {
      floatingLabelBehavior:FloatingLabelBehavior.always,hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:false,border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
    if(type=='Expense')Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(
-    budgetFor(d,monthKey(date),category)<=0?'No budget set for $category':
-     '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in $category')),
+    budgetFor(d,monthKey(date),category)<=0?'No budget set for ${categoryLabel(context,category)}':
+     '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in ${categoryLabel(context,category)}')),
    Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){

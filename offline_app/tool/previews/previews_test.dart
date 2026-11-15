@@ -73,10 +73,14 @@ Future<void> loadFont(String family, String path) async {
 void main() {
   setUpAll(() async {
     await loadFont('DMSans', 'assets/fonts/DMSans.ttf');
+    // Arabic glyphs: the CI runner's Noto font, when present.
+    for (final path in ['/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf', '/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf']) {
+      if (File(path).existsSync()) { await loadFont('Noto Sans Arabic', path); break; }
+    }
     await loadFont('Bricolage', 'assets/fonts/Bricolage.ttf');
   });
-  for (final mode in [ThemeMode.light, ThemeMode.dark]) {
-    testWidgets('render ${mode.name} previews', (t) async {
+  for (final (mode, language) in [(ThemeMode.light, 'en'), (ThemeMode.dark, 'en'), (ThemeMode.light, 'ar')]) {
+    testWidgets('render ${mode.name} $language previews', (t) async {
       t.view.physicalSize = const Size(780, 1688);
       t.view.devicePixelRatio = 2;
       addTearDown(t.view.reset);
@@ -86,10 +90,10 @@ void main() {
             initialData: Future.value(sample()),
             store: PreviewStore(),
             preferencesWriter: (_) async {},
-            initialPreferences: AppPreferences(appearance: mode)));
+            initialPreferences: AppPreferences(appearance: mode, language: language)));
         await t.pumpAndSettle();
         Future<void> shot(String name) =>
-            expectLater(find.byType(MaterialApp), matchesGoldenFile('shots/${mode.name}_$name.png'));
+            expectLater(find.byType(MaterialApp), matchesGoldenFile('shots/${language == 'en' ? '' : '${language}_'}${mode.name}_$name.png'));
         await shot('1_home');
         await t.drag(find.byType(ListView).first, const Offset(0, -560));
         await t.pumpAndSettle();
@@ -99,7 +103,7 @@ void main() {
           await t.pumpAndSettle();
           await shot(tab.$2);
         }
-        await t.tap(find.text('More'));
+        await t.tap(find.byKey(const ValueKey('more-button')));
         await t.pumpAndSettle();
         await shot('6_more');
         await t.tap(find.byKey(const ValueKey('bottom-0')));
@@ -107,7 +111,7 @@ void main() {
         await t.tap(find.byType(PaydayAddButton));
         await t.pumpAndSettle();
         await shot('7_new_transaction');
-        await t.tap(find.byTooltip('Close transaction'));
+        await t.tap(find.byKey(const ValueKey('close-transaction')));
         await t.pumpAndSettle();
         await t.tap(find.byKey(const ValueKey('home-settings-button')));
         await t.pumpAndSettle();
