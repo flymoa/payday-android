@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'app_preferences.dart';
 import 'finance.dart';
 import 'recurring.dart';
+import 'wallets.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
 import 'package:sqflite_sqlcipher/sqflite.dart' as cipher;
@@ -49,8 +50,8 @@ class OfflineStore {
    // Rollback path: keep using the untouched unencrypted file; retry next launch.
    if(await fileIsPlainSqlite(file))password=null;
   }
-  _database=await cipher.openDatabase(file,password:password,version:3,onCreate:(d,v) async {
-   await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "")');
+  _database=await cipher.openDatabase(file,password:password,version:4,onCreate:(d,v) async {
+   await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "", account TEXT NOT NULL DEFAULT "Cash")');
    await d.execute('CREATE INDEX ix_transactions_date ON transactions(date)');
    await d.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month, category))');
    await d.execute('CREATE TABLE categories(name TEXT PRIMARY KEY, group_name TEXT NOT NULL)');
@@ -74,6 +75,8 @@ class OfflineStore {
   },onUpgrade:(d,oldVersion,newVersion) async {
    if(oldVersion<2)await createReserveMovements(d);
    if(oldVersion<3)await createLookupIndexes(d);
+   // Wallets: existing records count as Cash; balances only use entries made after setup.
+   if(oldVersion<4)await d.execute("ALTER TABLE transactions ADD COLUMN account TEXT NOT NULL DEFAULT 'Cash'");
   });
   return _database!;
  }
@@ -117,12 +120,14 @@ class OfflineStore {
  }
  static Future<int> _allocatedTotal(DatabaseExecutor executor)async=>
   Sqflite.firstIntValue(await executor.rawQuery('SELECT COALESCE(SUM(amount),0) FROM allocations'))??0;
- Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId}) async{
+ Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId,String? account}) async{
   if(!['Income','Expense','Savings out','Savings in'].contains(type) || amount<=0)throw ArgumentError('Invalid entry');
+  if(account!=null&&!walletNames.contains(account))throw ArgumentError('Invalid entry');
   final parsed=DateTime.tryParse(date);
   if(parsed==null||date.length!=10||parsed.year<2000)throw ArgumentError('Choose a valid payment date, not a future date.');
   final future=DateTime(parsed.year,parsed.month,parsed.day).isAfter(DateTime.now());
-  final values={'date':date,'type':type,'category':category,'amount':amount,'description':description,'note':note,'bill_id':billId};
+  final values={'date':date,'type':type,'category':category,'amount':amount,'description':description,'note':note,'bill_id':billId,
+   if(account!=null)'account':account};
   final d=await db;
   await d.transaction((txn)async{
    final dates=<Object?>[date];
@@ -395,7 +400,8 @@ class OfflineStore {
    final lastByRule=<String,String>{};
    for(final e in due){
     await txn.insert('transactions',{'date':e.date,'type':e.rule.type,'category':e.rule.category,
-     'description':e.rule.description,'amount':e.rule.amount,'note':'Recurring','bill_id':''});
+     'description':e.rule.description,'amount':e.rule.amount,'note':'Recurring','bill_id':'',
+     if(e.rule.account!=null)'account':e.rule.account});
    }
    // Advance every rule to the last month that is due (including skipped closed months).
    final today=monthKey(now);
@@ -492,14 +498,14 @@ class OfflineStore {
   // Authentication policy belongs to this installation, never to a shared backup.
   tables['settings']=tables['settings']!.where((r)=>!deviceLocalSettingKeys.contains(r['key'])).toList();
   return const JsonEncoder.withIndent('  ').convert({
-   'format':'payday-local','schema_version':2,'exported_at':DateTime.now().toUtc().toIso8601String(),
+   'format':'payday-local','schema_version':3,'exported_at':DateTime.now().toUtc().toIso8601String(),
    'tables':tables
   });
  }
  Future<void> importJson(String contents) async{
   final raw=jsonDecode(contents);
   if(raw is! Map || raw['format']!='payday-local' ||
-    ![1,2].contains(raw['schema_version'])) {
+    ![1,2,3].contains(raw['schema_version'])) {
    throw const FormatException('Unsupported Payday backup');
   }
   final tables=raw['tables'];
@@ -550,6 +556,35 @@ class OfflineStore {
    if(_monthColumns.contains(key)&&(value is! String||!_month.hasMatch(value)))return false;
   }
   return true;
+ }
+ /// Start (or restart) wallet tracking from the balances the person has right now.
+ /// Restarting folds earlier transfers into the new balances, so they are cleared.
+ Future<void> saveWalletSetup({required int cash,required int bank})async{
+  if(cash<0||bank<0||cash>100000000000||bank>100000000000)throw ArgumentError('Enter a valid amount of zero or more.');
+  await (await db).transaction((txn)async{
+   final after=Sqflite.firstIntValue(await txn.rawQuery('SELECT COALESCE(MAX(id),0) FROM transactions'))??0;
+   await txn.insert('settings',{'key':walletSetupKey,'value':jsonEncode(WalletSetup(cash:cash,bank:bank,afterId:after,date:dayKey(DateTime.now())).toJson())},
+    conflictAlgorithm:ConflictAlgorithm.replace);
+   await txn.delete('settings',where:'key=?',whereArgs:[walletTransfersKey]);
+  });
+ }
+ Future<void> addWalletTransfer({required String from,required int amount,required String date})async{
+  final parsed=DateTime.tryParse(date);
+  if(parsed==null||DateTime(parsed.year,parsed.month,parsed.day).isAfter(DateTime.now()))throw ArgumentError('Choose a valid payment date, not a future date.');
+  final t=WalletTransfer(id:DateTime.now().microsecondsSinceEpoch.toString(),date:date,from:from,amount:amount);
+  if(!t.valid)throw ArgumentError('Enter a valid positive amount.');
+  await (await db).transaction((txn)async{
+   final rows=await txn.query('settings',where:'key=?',whereArgs:[walletTransfersKey]);
+   final list=decodeTransfers(rows.firstOrNull?['value']?.toString())..add(t);
+   await txn.insert('settings',{'key':walletTransfersKey,'value':encodeTransfers(list)},conflictAlgorithm:ConflictAlgorithm.replace);
+  });
+ }
+ Future<void> deleteWalletTransfer(String id)async{
+  await (await db).transaction((txn)async{
+   final rows=await txn.query('settings',where:'key=?',whereArgs:[walletTransfersKey]);
+   final list=decodeTransfers(rows.firstOrNull?['value']?.toString()).where((t)=>t.id!=id).toList();
+   await txn.insert('settings',{'key':walletTransfersKey,'value':encodeTransfers(list)},conflictAlgorithm:ConflictAlgorithm.replace);
+  });
  }
  Future<void> close() async { await _database?.close();_database=null; }
 }

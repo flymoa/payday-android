@@ -7,17 +7,19 @@ const recurringSettingKey='recurring_rules';
 
 class RecurringRule {
  const RecurringRule({required this.id,required this.type,required this.category,required this.description,
-  required this.amount,required this.day,required this.start,this.last});
+  required this.amount,required this.day,required this.start,this.last,this.account});
  final String id,type,category,description,start;
  final String? last; // last month already created, YYYY-MM
  final int amount,day;
+ final String? account; // wallet for new entries, when wallets are on
  Map<String,Object?> toJson()=>{'id':id,'type':type,'category':category,'description':description,
-  'amount':amount,'day':day,'start':start,'last':last};
+  'amount':amount,'day':day,'start':start,'last':last,if(account!=null)'account':account};
  factory RecurringRule.fromJson(Map<String,dynamic> m)=>RecurringRule(id:'${m['id']}',type:'${m['type']}',
   category:'${m['category']}',description:'${m['description']??''}',amount:(m['amount'] as num).toInt(),
-  day:(m['day'] as num).toInt(),start:'${m['start']}',last:m['last'] as String?);
+  day:(m['day'] as num).toInt(),start:'${m['start']}',last:m['last'] as String?,
+  account:m['account']=='Bank'||m['account']=='Cash'?m['account'] as String:null);
  RecurringRule withLast(String month)=>RecurringRule(id:id,type:type,category:category,description:description,
-  amount:amount,day:day,start:start,last:month);
+  amount:amount,day:day,start:start,last:month,account:account);
  bool get valid=>['Income','Expense','Savings out','Savings in'].contains(type)&&validMoney(amount)&&
   day>=1&&day<=28&&RegExp(r'^\d{4}-\d{2}$').hasMatch(start)&&category.isNotEmpty;
 }

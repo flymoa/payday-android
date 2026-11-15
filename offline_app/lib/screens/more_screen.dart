@@ -11,14 +11,19 @@ extension _MoreScreen on _FinanceState {
   return review.rankedCategories.map((c){
    final spent=review.spending[c]!,before=previous[c]??0,share=spent/total;
    final change=before<=0?'New this month':spent>=before?'+${money(spent-before)} vs last month':'−${money(before-spent)} vs last month';
-   return InkWell(key:ValueKey('category-history-$c'),borderRadius:BorderRadius.circular(PaydayRadius.sm),onTap:()=>categoryHistory(d,c),
-    child:Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
-     LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
-    SizedBox(height:5),
-    PaydayProgress(value:share),
-    SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:PaydayType.caption)),
-   ])));
+   final changeColor=before<=0?muted:spent>before?(isDark?warn:PaydayColors.statusNearText):jade;
+   return Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
+    Expanded(child:InkWell(key:ValueKey('category-records-$c'),borderRadius:BorderRadius.circular(PaydayRadius.sm),onTap:()=>openCategoryRecords(c),
+     child:Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
+      LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
+     SizedBox(height:5),
+     PaydayProgress(value:share),
+     SizedBox(height:3),LText(change,style:TextStyle(color:changeColor,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
+    ])))),
+    IconButton(key:ValueKey('category-history-$c'),tooltip:tr(context,'Last 12 months'),onPressed:()=>categoryHistory(d,c),
+     icon:PaydayAppIcon(Icons.bar_chart_rounded,size:20)),
+   ]);
   }).toList();
  }
  Widget monthlyReview(Map<String,List<RowData>> d){
@@ -84,6 +89,8 @@ extension _MoreScreen on _FinanceState {
       Icons.bar_chart_rounded,2,selected.year.toString()),
     moreLink('Recurring entries','Salary, rent and subscriptions added automatically each month',
       Icons.repeat,5,decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString()).length.toString()+' active'),
+    moreLink('Cash & Bank','See what you have in your pocket and in the bank.',
+      Icons.account_balance_wallet_outlined,6,walletSetupOf(d)==null?'Not set up':'${money(walletBalancesOf(d)['Cash']!)} · ${money(walletBalancesOf(d)['Bank']!)}'),
     SizedBox(height:6),
     Padding(padding:EdgeInsets.all(8),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
      PaydayAppIcon(Icons.lock_outline,size:18,color:muted),SizedBox(width:10),
@@ -100,6 +107,7 @@ extension _MoreScreen on _FinanceState {
    case 2:section=moreYear(d);break;
    case 4:section=monthlyReview(d);break;
    case 5:section=moreRecurring(d);break;
+   case 6:section=moreWallets(d);break;
    default:section=const SizedBox.shrink();
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -124,6 +132,86 @@ extension _MoreScreen on _FinanceState {
     PaydayAppIcon(Icons.chevron_right,color:muted)
    ])),
   )));
+ WalletSetup? walletSetupOf(Map<String,List<RowData>> d)=>WalletSetup.decode(Ledger(d).setting(walletSetupKey));
+ List<WalletTransfer> walletTransfersOf(Map<String,List<RowData>> d)=>decodeTransfers(Ledger(d).setting(walletTransfersKey));
+ Map<String,int> walletBalancesOf(Map<String,List<RowData>> d){
+  final setup=walletSetupOf(d);
+  return setup==null?{'Cash':0,'Bank':0}:walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
+ }
+ Widget walletBalanceCard(String wallet,int amount)=>Expanded(child:PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  Row(children:[PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:22),SizedBox(width:8),
+   Expanded(child:LText(wallet,style:TextStyle(color:muted,fontWeight:FontWeight.w700)))]),
+  SizedBox(height:10),
+  FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+   child:LText(money(amount),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:amount<0?danger:ink))),
+ ])));
+ /// Cash & Bank: optional; switched on by entering today's balances.
+ Widget moreWallets(Map<String,List<RowData>> d){
+  final setup=walletSetupOf(d);
+  if(setup==null){
+   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    header('Cash & Bank',subtitle:'See what you have in your pocket and in the bank.'),
+    PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     LText('Enter what you have right now. From then on, each new entry moves the right wallet.'),
+     SizedBox(height:14),
+     SizedBox(width:double.infinity,child:FilledButton.icon(key:ValueKey('wallet-start'),onPressed:()=>walletSetupForm(null),
+      icon:PaydayAppIcon(Icons.add),label:LText('Start tracking'))),
+    ])),
+   ]);
+  }
+  final balances=walletBalancesOf(d),transfers=walletTransfersOf(d)..sort((a,b)=>b.date.compareTo(a.date));
+  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   header('Cash & Bank',subtitle:'Tracking since ${uiDay(DateTime.tryParse(setup.date)??DateTime.now())}'),
+   IntrinsicHeight(child:Row(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+    walletBalanceCard('Cash',balances['Cash']!),SizedBox(width:10),walletBalanceCard('Bank',balances['Bank']!)])),
+   SizedBox(height:12),
+   SizedBox(width:double.infinity,child:FilledButton.icon(key:ValueKey('wallet-transfer'),onPressed:()=>walletTransferForm(),
+    icon:PaydayAppIcon(Icons.repeat),label:LText('Transfer'))),
+   Align(alignment:AlignmentDirectional.centerStart,child:TextButton(onPressed:()=>walletSetupForm(balances),child:LText('Correct balances'))),
+   header('Transfers'),
+   if(transfers.isEmpty)PaydayEmpty(icon:Icons.repeat,message:'No transfers yet.')
+   else PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,child:Column(children:[
+    for(var i=0;i<transfers.length;i++)...[
+     if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
+     ListTile(contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:2),leading:PaydayAppIcon(Icons.repeat),
+      title:LText(transfers[i].from=='Bank'?'Bank → Cash':'Cash → Bank',style:TextStyle(fontWeight:FontWeight.w700)),
+      subtitle:LText(displayDay(context,transfers[i].date)),
+      trailing:LText(money(transfers[i].amount),style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)),
+      onTap:()=>confirmDelete('Delete transfer?',()=>store.deleteWalletTransfer(transfers[i].id))),
+    ],
+   ]))),
+   Padding(padding:EdgeInsets.all(8),child:LText('Only entries added after you set the balances change them.',style:TextStyle(color:muted,fontSize:PaydayType.caption))),
+  ]);
+ }
+ Future<void> walletSetupForm(Map<String,int>? current)async{
+  final cash=TextEditingController(text:current==null?'':inputNumber(current['Cash']!.clamp(0,100000000000).toInt()));
+  final bank=TextEditingController(text:current==null?'':inputNumber(current['Bank']!.clamp(0,100000000000).toInt()));
+  await sheet(current==null?'Start tracking':'Correct balances',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   if(current!=null)Padding(padding:EdgeInsets.only(bottom:12),child:LText('Correcting balances starts again from the amounts you enter. Past transfers are cleared.',style:TextStyle(color:muted))),
+   field(cash,'Cash you have now ($currency)',number:true),field(bank,'Money in the bank now ($currency)',number:true),
+  ]),footer:(c,rebuild)=>FilledButton(key:ValueKey('wallet-save'),onPressed:()async{
+   final a=amount(cash,allowZero:true),b=amount(bank,allowZero:true);
+   if(a==null||b==null)return inputError('Enter a valid amount of zero or more.');
+   final ok=await execute(()=>store.saveWalletSetup(cash:a,bank:b));if(ok&&c.mounted)Navigator.pop(c);
+  },child:LText('Save balances')));
+ }
+ Future<void> walletTransferForm()async{
+  var from='Bank';var date=DateTime.now();final value=TextEditingController();
+  await sheet('Transfer',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Wrap(spacing:8,runSpacing:8,children:[
+    PaydayPill(key:ValueKey('transfer-bank-cash'),label:'Bank → Cash',selected:from=='Bank',onTap:()=>rebuild(()=>from='Bank')),
+    PaydayPill(key:ValueKey('transfer-cash-bank'),label:'Cash → Bank',selected:from=='Cash',onTap:()=>rebuild(()=>from='Cash')),
+   ]),
+   SizedBox(height:8),LText('Withdrawing cash? Choose Bank → Cash.',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+   SizedBox(height:14),field(value,'Amount ($currency)',number:true),
+   TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{
+    final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime.now());if(p!=null)rebuild(()=>date=p);},
+    label:LText('Transfer date: ${uiDay(date)}')),
+  ]),footer:(c,rebuild)=>FilledButton(key:ValueKey('transfer-save'),onPressed:()async{
+   final n=amount(value);if(n==null)return inputError('Enter a valid positive amount.');
+   final ok=await execute(()=>store.addWalletTransfer(from:from,amount:n,date:dayKey(date)));if(ok&&c.mounted)Navigator.pop(c);
+  },child:LText('Record transfer')));
+ }
  List<RecurringRule> rulesOf(Map<String,List<RowData>> d)=>decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString());
  Widget moreRecurring(Map<String,List<RowData>> d){
   final rules=rulesOf(d);
@@ -140,6 +228,8 @@ extension _MoreScreen on _FinanceState {
   var cats=categoryChoices(d,type);
   var category=existing?.category??(cats.isEmpty?'Other':cats.first);
   var day=existing?.day??1;
+  var account=existing?.account;
+  final wallets=walletSetupOf(d)!=null;
   final desc=TextEditingController(text:existing?.description??'');
   final amt=TextEditingController(text:existing==null?'':inputNumber(existing.amount));
   Future<void> saveAll(List<RecurringRule> rules,BuildContext c)async{
@@ -156,6 +246,13 @@ extension _MoreScreen on _FinanceState {
     onChanged:(v){if(v!=null)rebuild(()=>category=v);}),
    SizedBox(height:12),
    field(desc,'Description'),field(amt,'Amount ($currency)',number:true),
+   if(wallets)...[
+    DropdownButtonFormField<String>(key:ValueKey('recurring-wallet'),initialValue:account??(type=='Income'?'Bank':'Cash'),
+     decoration:InputDecoration(labelText:tr(context,'Wallet')),
+     items:walletNames.map((w)=>DropdownMenuItem(value:w,child:LText(w))).toList(),
+     onChanged:(v){if(v!=null)rebuild(()=>account=v);}),
+    SizedBox(height:12),
+   ],
    DropdownButtonFormField<int>(initialValue:day,decoration:InputDecoration(labelText:tr(context,'Day of month')),
     items:List.generate(28,(i)=>DropdownMenuItem(value:i+1,child:Text('${i+1}'))).toList(),
     onChanged:(v){if(v!=null)rebuild(()=>day=v);}),
@@ -166,7 +263,8 @@ extension _MoreScreen on _FinanceState {
     final n=amount(amt);if(n==null)return inputError('Enter a positive amount.');
     final rules=rulesOf(await store.snapshot());
     final rule=RecurringRule(id:existing?.id??DateTime.now().microsecondsSinceEpoch.toString(),type:type,category:category,
-     description:desc.text.trim(),amount:n,day:day,start:existing?.start??month0(),last:existing?.last);
+     description:desc.text.trim(),amount:n,day:day,start:existing?.start??month0(),last:existing?.last,
+     account:wallets?(account??(type=='Income'?'Bank':'Cash')):existing?.account);
     await saveAll([...rules.where((r)=>r.id!=rule.id),rule],c);
    },child:LText('Save recurring entry')),
    if(existing!=null)TextButton(onPressed:()async{
@@ -229,7 +327,7 @@ extension _MoreScreen on _FinanceState {
        IconButton(onPressed:()=>reserveForm(r),tooltip:tr(context,'Edit reserve goal'),
          icon:PaydayAppIcon(Icons.edit_outlined)),
       ]),
-      LText('Due ${displayDay(context,st(r,'due'))}',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+      LText('Due ${displayDay(context,st(r,'due'))} · ${hijriLabel(parseDay(st(r,'due')))}',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
       SizedBox(height:12),
       LText('Saved',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
       SizedBox(height:4),

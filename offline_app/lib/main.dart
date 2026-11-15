@@ -1,6 +1,8 @@
 import 'design_tokens.dart';
 import 'ui_kit.dart';
 import 'settings_home.dart';
+import 'wallets.dart';
+import 'hijri.dart';
 import 'localization.dart';
 import 'app_language.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

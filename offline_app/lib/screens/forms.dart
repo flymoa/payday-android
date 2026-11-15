@@ -111,6 +111,9 @@ extension _Forms on _FinanceState {
   var date=existing==null?(prefill!=null||copyFrom!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
   var allCategories=false;
+  // Wallet choice appears only once Cash & Bank tracking is on.
+  final walletSetup=WalletSetup.decode(Ledger(d).setting(walletSetupKey));
+  var wallet=existing!=null?(st(existing,'account')=='Bank'?'Bank':'Cash'):(Ledger(d).setting(walletLastKey)=='Bank'?'Bank':'Cash');
   // Faster entry: a brand-new entry starts on the amount, and the rarely used
   // fields stay folded away unless they already hold something.
   final fresh=existing==null&&prefill==null&&copyFrom==null;
@@ -190,6 +193,11 @@ extension _Forms on _FinanceState {
      if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
       if(!cats.contains(category))category=cats.first;});
     })),
+   if(walletSetup!=null)Padding(padding:EdgeInsets.only(bottom:14),child:Row(children:[
+    Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:16))),
+    for(final w in walletNames)Padding(padding:EdgeInsetsDirectional.only(start:8),child:PaydayPill(key:ValueKey('wallet-$w'),label:w,
+     selected:wallet==w,onTap:()=>rebuild(()=>wallet=w))),
+   ])),
    SizedBox(height:18),
    // One tap for the usual dates; the calendar is there for anything else.
    SizedBox(width:double.infinity,child:Wrap(spacing:8,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
@@ -214,10 +222,11 @@ extension _Forms on _FinanceState {
     final success=await execute(()=>store.saveTransaction(
       id:existing==null?null:val(existing,'id'),date:dayKey(date),
       type:type,category:category,amount:cents,
-      description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()),
+      description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim(),account:walletSetup==null?null:wallet),
       saved:existing!=null?'Changes saved.':type=='Savings out'?'Saved. ${money(cents)} moved to savings.':
        type=='Savings in'?'Saved. ${money(cents)} taken from savings.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
+    if(success&&walletSetup!=null)unawaited(store.setSetting(walletLastKey,wallet).catchError((_){}));
     if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
    },
@@ -518,6 +527,11 @@ extension _Forms on _FinanceState {
       style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    ]));
  }
+ /// Approximate Hijri date for planning, e.g. "≈ 29 Shaʿban 1448".
+ String hijriLabel(DateTime date){
+  final h=HijriDate.fromGregorian(date);
+  return '≈ ${h.day} ${tr(context,hijriMonthNames[h.month-1])} ${h.year}';
+ }
  Future<void> reserveForm(RowData? existing)async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
   final target=TextEditingController(text:existing==null?'':inputNumber(val(existing,'target')));
@@ -526,6 +540,15 @@ extension _Forms on _FinanceState {
   var start=existing==null?DateTime.now():monthFromKey(st(existing,'start_month'));
   await sheet(existing==null?'Create a reserve':'Edit reserve target',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
+   if(existing==null)...[
+    LText('Quick start',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:16)),SizedBox(height:8),
+    Wrap(spacing:8,runSpacing:8,children:[for(final p in SeasonPreset.values)PaydayPill(key:ValueKey('season-${p.name}'),label:seasonPresetNames[p]!,
+     selected:name.text==tr(context,seasonPresetNames[p]!),onTap:()=>rebuild((){
+      name.text=tr(context,seasonPresetNames[p]!);due=seasonDueDate(p,DateTime.now());
+      start=DateTime(DateTime.now().year,DateTime.now().month);
+     }))]),
+    SizedBox(height:16),
+   ],
    field(name,'Reserve name (e.g. Vacation)'),
    field(target,'Total target ($currency)',number:true),
    if(existing==null)field(funded,'Already put aside before using Payday ($currency)',number:true),
@@ -540,6 +563,7 @@ extension _Forms on _FinanceState {
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:due,
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>due=p);},
     child:LText('Due: ${uiDay(due)}')),
+   Padding(padding:EdgeInsetsDirectional.only(start:12,bottom:6),child:LText(hijriLabel(due),style:TextStyle(color:muted,fontSize:PaydayType.caption))),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:start,
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>start=p);},
     child:LText('Start month: ${monthLabel(start)}')),

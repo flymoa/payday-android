@@ -90,6 +90,15 @@ int reserveNextMonthTopUp({
 /// silently treated as healthy, and exactly 100% remains at the limit.
 enum CategoryBudgetStatus { withinBudget, nearLimit, fullySpent, overBudget, unbudgeted }
 
+/// True when, in the current month, a category has used noticeably more of its
+/// budget than the share of the month that has passed (before it is near the limit).
+bool spendingAheadOfPace({required int spent,required int budget,required DateTime month,required DateTime now}){
+ if(budget<=0||spent<=0||month.year!=now.year||month.month!=now.month)return false;
+ if(spent*100>=budget*85)return false;
+ final days=DateTime(now.year,now.month+1,0).day;
+ return spent/budget>now.day/days+.15;
+}
+
 CategoryBudgetStatus categoryBudgetStatus(int spent,int budget){
  if(budget<=0)return CategoryBudgetStatus.unbudgeted;
  if(spent>budget)return CategoryBudgetStatus.overBudget;

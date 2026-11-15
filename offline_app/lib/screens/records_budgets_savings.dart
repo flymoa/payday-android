@@ -5,7 +5,7 @@ part of '../main.dart';
 
 extension _RecordsBudgetsSavings on _FinanceState {
  /// One record row. Money coming in is green with a plus; money going out is ink with a minus.
- Widget recordTile(RowData t){
+ Widget recordTile(RowData t,{bool showWallet=false,int afterId=0}){
   final type=st(t,'type'),category=st(t,'category');
   final incoming=type=='Income'||type=='Savings in';
   return Material(color:Colors.transparent,child:InkWell(onTap:()=>transactionForm(t),
@@ -16,7 +16,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      Text(st(t,'description').isEmpty?categoryLabel(context,category):st(t,'description'),
       maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:3),
-     LText('${categoryLabel(context,category)} · ${tr(context,type)}',maxLines:2,overflow:TextOverflow.ellipsis,
+     LText('${categoryLabel(context,category)} · ${tr(context,type)}${showWallet&&val(t,'id')>afterId?' · ${tr(context,st(t,'account')=='Bank'?'Bank':'Cash')}':''}',maxLines:2,overflow:TextOverflow.ellipsis,
       style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
@@ -26,7 +26,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    ])))));
  }
  /// Records grouped by day, newest first, each day in its own panel.
- List<Widget> recordDays(List<RowData> rows){
+ List<Widget> recordDays(List<RowData> rows,{WalletSetup? wallets}){
   final now=DateTime.now();
   final today=dayKey(now),yesterday=dayKey(DateTime(now.year,now.month,now.day-1));
   final days=<String,List<RowData>>{};
@@ -42,7 +42,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
      for(var i=0;i<entry.value.length;i++)...[
       if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
-      recordTile(entry.value[i]),
+      recordTile(entry.value[i],showWallet:wallets!=null,afterId:wallets?.afterId??0),
      ],
     ])),
    ],
@@ -71,7 +71,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      padding:EdgeInsetsDirectional.only(end:8),child:PaydayPill(label:type,
       selected:recordType==type,onTap:()=>setState(()=>recordType=type))))])),
    SizedBox(height:4),
-   ...recordDays(ts),
+   ...recordDays(ts,wallets:WalletSetup.decode(Ledger(d).setting(walletSetupKey))),
    if(ts.isEmpty)Padding(padding:EdgeInsets.only(top:10),child:PaydayEmpty(icon:Icons.receipt_long_outlined,message:all.isEmpty?
     'Nothing yet this month. Tap + to add your first expense.':
     'No matching entries. Change the search or type filter.')),
@@ -99,8 +99,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
  /// their own wrapping line, so nothing is cut off however long the amounts are.
  Widget budgetCategoryCard(String name,String group,int spent,int budget,VoidCallback onTap){
   final over=budget>0&&spent>budget;
-  final status=budget<=0?(spent>0?'No budget set':''):over?'Over by ${money(spent-budget)}':spent==budget?'Fully spent':'Left ${money(budget-spent)}';
-  final tone=over?danger:jade;
+  final status=budget<=0?(spent>0?'No budget set':''):over?'Over by ${money(spent-budget)}':spent==budget?'Fully spent':
+   spendingAheadOfPace(spent:spent,budget:budget,month:selected,now:DateTime.now())?'Spending fast · Left ${money(budget-spent)}':'Left ${money(budget-spent)}';
+  final ahead=!over&&spendingAheadOfPace(spent:spent,budget:budget,month:selected,now:DateTime.now());
+  final tone=over?danger:ahead?(isDark?warn:PaydayColors.statusNearText):jade;
   return PaydayPanel(margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.zero,
    child:Material(color:Colors.transparent,child:InkWell(onTap:onTap,child:Padding(padding:EdgeInsets.fromLTRB(14,13,14,13),
    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -118,7 +120,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     ])),
     if(budget>0||spent>0)...[
      SizedBox(height:11),
-     PaydayProgress(value:budget<=0?1.0:spent/budget,color:over?danger:budget<=0?warn:jade,
+     PaydayProgress(value:budget<=0?1.0:spent/budget,color:over?danger:budget<=0||ahead?warn:jade,
       trackColor:over?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null),
      SizedBox(height:8),
      SizedBox(width:double.infinity,child:Wrap(alignment:WrapAlignment.center,spacing:14,runSpacing:2,children:[
