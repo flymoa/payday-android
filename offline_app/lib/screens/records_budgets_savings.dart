@@ -17,7 +17,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
       maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:3),
      LText('${categoryLabel(context,category)} · ${tr(context,type)}',maxLines:2,overflow:TextOverflow.ellipsis,
-      style:TextStyle(fontSize:12,color:muted)),
+      style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
@@ -73,7 +73,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    SizedBox(height:4),
    ...recordDays(ts),
    if(ts.isEmpty)Padding(padding:EdgeInsets.only(top:10),child:PaydayEmpty(icon:Icons.receipt_long_outlined,message:all.isEmpty?
-    'No entries this month. Tap + to add your first transaction.':
+    'Nothing yet this month. Tap + to add your first expense.':
     'No matching entries. Change the search or type filter.')),
   ]);
  }
@@ -109,7 +109,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      PaydayCategoryIcon(name,size:38),SizedBox(width:12),
      Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       LText(name,category:true,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
-      LText(group,style:TextStyle(color:muted,fontSize:12)),
+      LText(group,style:TextStyle(color:muted,fontSize:PaydayType.caption)),
      ])),
      SizedBox(width:8),
      ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.45),

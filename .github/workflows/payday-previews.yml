@@ -21,8 +21,6 @@ jobs:
           channel: stable
           flutter-version: 3.47.9
           cache: true
-      - name: Install Arabic font for previews
-        run: sudo apt-get install -y -q fonts-noto-core >/dev/null
       - name: Install dependencies
         working-directory: offline_app
         run: flutter pub get

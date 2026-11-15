@@ -9,7 +9,7 @@ import 'package:payday_local/backup_settings_page.dart';
 
 void main(){
  for(final brightness in Brightness.values){
-  testWidgets('every settings destination is a full page and Back returns to the drawer in ${brightness.name}',(t)async{
+  testWidgets('every settings destination is a full page and Back returns to Settings in ${brightness.name}',(t)async{
    await t.binding.setSurfaceSize(const Size(320,800));addTearDown(()=>t.binding.setSurfaceSize(null));
    await t.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{},
     initialPreferences:AppPreferences(appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light)));

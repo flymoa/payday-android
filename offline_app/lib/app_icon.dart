@@ -64,13 +64,15 @@ class _AppPainter extends CustomPainter{
    c.drawPath(Path()..moveTo(2,12)..quadraticBezierTo(12,0,22,12)..quadraticBezierTo(12,24,2,12),p);
    circle(12,12,3,true);
    if(icon==Icons.visibility_off_outlined)l(3,3,21,21);
-  }else if([Icons.space_dashboard,Icons.space_dashboard_outlined,Icons.grid_view,Icons.grid_view_outlined].contains(icon)){
-   final more=icon==Icons.grid_view||icon==Icons.grid_view_outlined;
-   box(3,3,7,more?7:10);box(14,3,7,more?7:6,true);
-   box(3,more?14:17,7,more?7:4);box(14,more?14:13,7,more?7:8);
+  }else if(icon==Icons.space_dashboard||icon==Icons.space_dashboard_outlined){
+   // Home: a house with a saffron door.
+   path([Offset(4,11),Offset(12,4),Offset(20,11),Offset(20,20),Offset(4,20),Offset(4,11)]);
+   path([Offset(10,20),Offset(10,15),Offset(14,15),Offset(14,20)],true);
+  }else if(icon==Icons.grid_view||icon==Icons.grid_view_outlined){
+   box(3,3,7,7);box(14,3,7,7,true);box(3,14,7,7);box(14,14,7,7);
   }else if([Icons.tune,Icons.tune_outlined,Icons.settings_outlined].contains(icon)){
-   l(4,6,20,6);l(4,12,20,12);l(4,18,20,18);
-   circle(8,6,2,true);circle(16,12,2);circle(10,18,2,true);
+   l(4,7,20,7);l(4,17,20,17);
+   c.drawCircle(const Offset(9,7),2.3,Paint()..color=accent.color);c.drawCircle(const Offset(15,17),2.3,Paint()..color=accent.color);
   }else if([Icons.receipt_long,Icons.receipt_long_outlined,Icons.fact_check_outlined].contains(icon)){
    path([Offset(5,21),Offset(5,3),Offset(19,3),Offset(19,21),Offset(16,19),Offset(12,21),Offset(8,19),Offset(5,21)]);
    if(icon==Icons.fact_check_outlined){path([Offset(8,9),Offset(10,11),Offset(15,6)],true);l(8,15,16,15);}
@@ -109,7 +111,8 @@ class _AppPainter extends CustomPainter{
    if(icon==Icons.bar_chart_rounded){l(8,17,8,12);l(13,17,13,8,true);l(18,17,18,4);}
    else{path([Offset(6,16),Offset(11,11),Offset(14,14),Offset(21,5)],true);path([Offset(16,5),Offset(21,5),Offset(21,10)],true);}
   }else if(icon==Icons.pie_chart_outline){
-   c.drawArc(Rect.fromLTWH(3,3,18,18),0,4.71,false,p);path([Offset(12,3),Offset(12,12),Offset(21,12)]);path([Offset(16,2),Offset(16,8),Offset(22,8)],true);
+   c.drawPath(Path()..moveTo(12,3)..arcToPoint(const Offset(21,12),radius:const Radius.circular(9),largeArc:true,clockwise:false)..lineTo(12,12)..close(),p);
+   c.drawPath(Path()..moveTo(15,3.5)..arcToPoint(const Offset(20.5,9),radius:const Radius.circular(9))..lineTo(15,9)..close(),accent);
   }else if(icon==Icons.account_balance_wallet_outlined){
    box(3,5,18,15);box(14,10,7,6,true);dot(17,13);l(5,5,17,2);
   }else if(icon==Icons.lock_outline||icon==Icons.lock_open_outlined){

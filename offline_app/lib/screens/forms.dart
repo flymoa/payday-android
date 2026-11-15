@@ -120,7 +120,7 @@ extension _Forms on _FinanceState {
   await sheet(existing==null?(prefill==null?(copyFrom==null?'New transaction':'Duplicate transaction'):'Record bill payment'):'Edit transaction',(c,rebuild)=>Column(children:[
    if(prefill!=null)Padding(padding:EdgeInsets.only(bottom:12),child:LText(
       'Prefilled from your bill. You can change every field; the payment date defaults to today, not the bill due date.',
-      style:TextStyle(color:jade,fontSize:12,fontWeight:FontWeight.w600))),
+      style:TextStyle(color:jade,fontSize:PaydayType.caption,fontWeight:FontWeight.w600))),
    Container(padding:EdgeInsets.all(4),decoration:BoxDecoration(
     color:Theme.of(c).colorScheme.surfaceContainerLow,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
     child:Row(children:['Expense','Income','Savings'].map((entry){
@@ -138,23 +138,28 @@ extension _Forms on _FinanceState {
     Row(children:[
      Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings out'?jade.withValues(alpha:.12):Colors.transparent,
       side:BorderSide(color:type=='Savings out'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
-      onPressed:submitting?null:()=>rebuild(()=>type='Savings out'),child:LText('Add to savings',style:TextStyle(fontSize:12)))),
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings out'),child:LText('Add to savings',style:TextStyle(fontSize:PaydayType.caption)))),
      SizedBox(width:8),
      Expanded(child:OutlinedButton(style:OutlinedButton.styleFrom(backgroundColor:type=='Savings in'?jade.withValues(alpha:.12):Colors.transparent,
       side:BorderSide(color:type=='Savings in'?jade:line),padding:EdgeInsets.symmetric(horizontal:5,vertical:12)),
-      onPressed:submitting?null:()=>rebuild(()=>type='Savings in'),child:LText('Take from savings',style:TextStyle(fontSize:12)))),
+      onPressed:submitting?null:()=>rebuild(()=>type='Savings in'),child:LText('Take from savings',style:TextStyle(fontSize:PaydayType.caption)))),
     ]),SizedBox(height:6),LText(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
-     style:TextStyle(fontSize:12,color:muted),textAlign:TextAlign.center),
+     style:TextStyle(fontSize:PaydayType.caption,color:muted),textAlign:TextAlign.center),
    ],
    SizedBox(height:18),
-   TextField(controller:amt,autofocus:fresh,textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
+   TextField(controller:amt,autofocus:fresh,onChanged:(_)=>rebuild((){}),textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
     style:TextStyle(fontFamily:'Bricolage',fontSize:48,fontWeight:FontWeight.w800,color:jade),
     decoration:InputDecoration(labelText:tr(context,'Amount ($currency)'),floatingLabelAlignment:FloatingLabelAlignment.center,
      floatingLabelBehavior:FloatingLabelBehavior.always,hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:false,border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
-   if(type=='Expense')Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(
-    budgetFor(d,monthKey(date),category)<=0?'No budget set for ${categoryLabel(context,category)}':
-     '${money(budgetFor(d,monthKey(date),category)-monthTransactionsFor(d,monthKey(date)).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount')))} left in ${categoryLabel(context,category)}')),
+   if(type=='Expense')Builder(builder:(_){
+    final key=monthKey(date),limit=budgetFor(d,key,category),name=categoryLabel(context,category);
+    final spent=monthTransactionsFor(d,key).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount'));
+    final typed=amount(amt)??0,left=limit-spent-typed;
+    final label=limit<=0?'No budget set for $name':typed<=0?'${money(limit-spent)} left in $name':
+     left<0?'$name would be ${money(-left)} over':'${money(left)} left in $name after this';
+    return Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(label,color:left<0&&limit>0?danger:null));
+   }),
    Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){
@@ -206,7 +211,8 @@ extension _Forms on _FinanceState {
     final success=await execute(()=>store.saveTransaction(
       id:existing==null?null:val(existing,'id'),date:dayKey(date),
       type:type,category:category,amount:cents,
-      description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()));
+      description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()),
+      saved:existing!=null?'Changes saved.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
     if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
@@ -222,7 +228,7 @@ extension _Forms on _FinanceState {
    final crossing=budgetCrossing(before:after-cents+replacedAmount,after:after,budget:budget);
    if(crossing==null||!mounted)return;
    final name=categoryLabel(context,category);
-   inputError(crossing==BudgetCrossing.overBudget?'$name is over its budget by ${money(after-budget)}.':
+   inputError(crossing==BudgetCrossing.overBudget?'$name is ${money(after-budget)} over this month.':
     '$name has used ${(after*100/budget).round()}% of its budget.');
   }catch(_){}
  }
@@ -448,7 +454,7 @@ extension _Forms on _FinanceState {
       style:TextStyle(color:jade,fontWeight:FontWeight.bold)),
     LText(adding?'Still needed: ${money(needed)}':
       'Money returned to spendable cash when you take it out.',
-      style:TextStyle(color:muted,fontSize:12)),
+      style:TextStyle(color:muted,fontSize:PaydayType.caption)),
     SizedBox(height:16),
     field(amountController,'Amount ($currency)',number:true),
     field(noteController,'Note (optional)'),
@@ -465,7 +471,7 @@ extension _Forms on _FinanceState {
     Padding(padding:EdgeInsets.only(top:8),
      child:LText('This is a transfer between spendable cash and your reserve, '
        'not an ordinary expense. Record the actual purchase separately when it occurs.',
-       style:TextStyle(color:muted,fontSize:12))),
+       style:TextStyle(color:muted,fontSize:PaydayType.caption))),
    ]),footer:(c,rebuild)=>FilledButton.icon(
     icon:PaydayAppIcon(adding?Icons.savings_outlined:Icons.undo),
     label:LText(adding?'Record money set aside':'Record withdrawal'),
@@ -505,7 +511,7 @@ extension _Forms on _FinanceState {
     SizedBox(height:10),
     LText('To correct a previous transfer, record an opposite transfer. '
       'This keeps a dated history of money moving in and out.',
-      style:TextStyle(color:muted,fontSize:12)),
+      style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    ]));
  }
  Future<void> reserveForm(RowData? existing)async{
@@ -522,11 +528,11 @@ extension _Forms on _FinanceState {
    if(existing!=null)Padding(padding:EdgeInsets.only(bottom:10),
      child:LText('Original opening funds: ${money(val(existing,'funded'))}. '
       'Use Add money / Take out to record changes.',
-      style:TextStyle(color:muted,fontSize:12))),
+      style:TextStyle(color:muted,fontSize:PaydayType.caption))),
    if(existing==null)Padding(padding:EdgeInsets.only(bottom:10),child:LText(
      'Opening funds are money already saved before this app. '
      'They are not deducted again from cash. New deposits must use Add money.',
-     style:TextStyle(color:muted,fontSize:12))),
+     style:TextStyle(color:muted,fontSize:PaydayType.caption))),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:due,
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>due=p);},
     child:LText('Due: ${uiDay(due)}')),

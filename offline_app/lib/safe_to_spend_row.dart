@@ -13,7 +13,7 @@ class SafeToSpendRow extends StatelessWidget {
   onTap:onTap,borderRadius:BorderRadius.circular(PaydayRadius.md),
   child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Row(children:[
    Expanded(flex:5,child:Row(children:[
-    Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('Safe to spend',style:TextStyle(color:color,fontSize:12)))),
+    Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('Safe to spend',style:TextStyle(color:color,fontSize:PaydayType.caption)))),
     const SizedBox(width:6),Tooltip(message:tr(context,'View safe-to-spend details'),child:PaydayAppIcon(Icons.info_outline,color:color,size:15)),
    ])),
    const SizedBox(width:12),

@@ -17,7 +17,7 @@ extension _MoreScreen on _FinanceState {
      LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
     SizedBox(height:5),
     PaydayProgress(value:share),
-    SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:12)),
+    SizedBox(height:3),LText(change,style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    ])));
   }).toList();
  }
@@ -89,7 +89,7 @@ extension _MoreScreen on _FinanceState {
      PaydayAppIcon(Icons.lock_outline,size:18,color:muted),SizedBox(width:10),
      Expanded(child:LText(
       'All your financial records stay on this device, with no Google account or internet required.',
-      style:TextStyle(color:muted,fontSize:12))),
+      style:TextStyle(color:muted,fontSize:PaydayType.caption))),
     ])),
    ]);
   }
@@ -160,7 +160,7 @@ extension _MoreScreen on _FinanceState {
     items:List.generate(28,(i)=>DropdownMenuItem(value:i+1,child:Text('${i+1}'))).toList(),
     onChanged:(v){if(v!=null)rebuild(()=>day=v);}),
    SizedBox(height:8),
-   if(existing==null)LText('Starts this month. If the day has already passed, this month\'s entry is added now.',style:TextStyle(color:muted,fontSize:12)),
+   if(existing==null)LText('Starts this month. If the day has already passed, this month\'s entry is added now.',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    SizedBox(height:12),
    FilledButton(onPressed:()async{
     final n=amount(amt);if(n==null)return inputError('Enter a positive amount.');
@@ -229,20 +229,20 @@ extension _MoreScreen on _FinanceState {
        IconButton(onPressed:()=>reserveForm(r),tooltip:tr(context,'Edit reserve goal'),
          icon:PaydayAppIcon(Icons.edit_outlined)),
       ]),
-      LText('Due ${displayDay(context,st(r,'due'))}',style:TextStyle(color:muted,fontSize:12)),
+      LText('Due ${displayDay(context,st(r,'due'))}',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
       SizedBox(height:12),
-      LText('Saved',style:TextStyle(color:muted,fontSize:12)),
+      LText('Saved',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
       SizedBox(height:4),
       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
        child:LText(money(held),style:TextStyle(color:jade,fontWeight:FontWeight.w900,fontSize:28))),
       SizedBox(height:4),
-      LText('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:12)),
+      LText('of ${money(goal)} target',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
       SizedBox(height:14),
       PaydayProgress(value:goal==0?0.0:held/goal),
       SizedBox(height:8),
       Wrap(alignment:WrapAlignment.spaceBetween,spacing:16,runSpacing:4,children:[
-       LText('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:12)),
-       LText('${money(needed)} remaining',style:TextStyle(color:ink,fontWeight:FontWeight.w600,fontSize:12)),
+       LText('${goal==0?0:(held*100/goal).clamp(0,100).floor()}% funded',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+       LText('${money(needed)} remaining',style:TextStyle(color:ink,fontWeight:FontWeight.w600,fontSize:PaydayType.caption)),
       ]),
       SizedBox(height:14),
       Container(width:double.infinity,padding:EdgeInsets.all(12),
@@ -251,11 +251,11 @@ extension _MoreScreen on _FinanceState {
        child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
         LText(guidance,style:TextStyle(fontWeight:FontWeight.w700,color:overdue&&needed>0?danger:jade,fontSize:13)),
         if(active&&!overdue&&needed>0&&next>0)...[
-         SizedBox(height:4),LText('Next month: ${money(next)} suggested',style:TextStyle(fontSize:12,color:muted)),
+         SizedBox(height:4),LText('Next month: ${money(next)} suggested',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
         ],
        ])),
       if(contributed!=0)Padding(padding:EdgeInsets.only(top:8),
-       child:LText('Net added this month: ${money(contributed)}',style:TextStyle(fontSize:12,color:muted))),
+       child:LText('Net added this month: ${money(contributed)}',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
       SizedBox(height:16),
       SizedBox(width:double.infinity,child:FilledButton.icon(
        onPressed:needed<=0?null:()=>reserveMovementForm(r,'add'),
@@ -291,8 +291,8 @@ extension _MoreScreen on _FinanceState {
     textAlign:TextAlign.center,style:TextStyle(fontSize:PaydayType.caption,color:muted)))]),
    SizedBox(height:8),
    Row(mainAxisAlignment:MainAxisAlignment.center,children:[
-    Container(width:10,height:10,color:jade),SizedBox(width:4),LText('Income',style:TextStyle(fontSize:12)),SizedBox(width:16),
-    Container(width:10,height:10,color:spendColor),SizedBox(width:4),LText('Spent',style:TextStyle(fontSize:12)),
+    Container(width:10,height:10,color:jade),SizedBox(width:4),LText('Income',style:TextStyle(fontSize:PaydayType.caption)),SizedBox(width:16),
+    Container(width:10,height:10,color:spendColor),SizedBox(width:4),LText('Spent',style:TextStyle(fontSize:PaydayType.caption)),
    ]),
   ])));
  }
