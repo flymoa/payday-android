@@ -6,7 +6,7 @@ import 'app_icon.dart';
 import 'brand.dart';
 import 'build_info.dart';
 
-const appLockExplanation='Use your phone’s fingerprint, face unlock, or screen lock to open or return to PAYDAY. '
+const appLockExplanation='Use your phone’s fingerprint, face unlock, or screen lock to open or return to Payday. '
  'Screenshots and recent-app previews are blocked while App lock is on. '
  'App lock does not encrypt your records. New backup exports have separate password protection.';
 
@@ -85,11 +85,11 @@ class AboutHelpPage extends StatelessWidget{
    topic(context,'Budgets & savings',Icons.pie_chart_outline,
     'Category budgets and the savings goal share your planned income. You cannot assign more than that plan. Assigning existing savings to a goal does not create new savings.'),
    topic(context,'Backups & restore',Icons.ios_share,
-    'Export a password-protected backup from Settings → Backups & data. Keep the file and password safe: PAYDAY cannot recover the password. Older JSON backups can still be restored. Restore replaces records and keeps this phone’s App lock setting.'),
+    'Export a password-protected backup from Settings → Backups & data. Keep the file and password safe: Payday cannot recover the password. Older JSON backups can still be restored. Restore replaces records and keeps this phone’s App lock setting.'),
    topic(context,'Privacy & security',Icons.lock_outline,
-    'Your records stay on this phone. PAYDAY works without an account or internet connection. App lock controls access. Records on this phone are not encrypted by PAYDAY. New backup exports are encrypted with a separate password you choose.'),
-   topic(context,'Updating PAYDAY',Icons.history,
-    'Install the newer PAYDAY APK over your existing app. Uninstalling removes local records. Export a backup before changing phones or uninstalling.'),
+    'Your records stay on this phone. Payday works without an account or internet connection. App lock controls access. Records on this phone are not encrypted by Payday. New backup exports are encrypted with a separate password you choose.'),
+   topic(context,'Updating Payday',Icons.history,
+    'Install the newer Payday APK over your existing app. Uninstalling removes local records. Export a backup before changing phones or uninstalling.'),
    const SizedBox(height:12),
    OutlinedButton.icon(onPressed:()=>copyDetails(context),icon:const PaydayAppIcon(Icons.copy_outlined),label:const LText('Copy app details')),
   ]));

@@ -75,9 +75,9 @@ extension _MoreScreen on _FinanceState {
    return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     header('More tools',subtitle:'Select a section to see its details.'),
     moreLink('Bills & payments','Due dates, outstanding balances and partial payments',
-      Icons.receipt_long_outlined,0,count.toString()+' this month'),
+      Icons.receipt_long_outlined,0,'$count due this month'),
     moreLink('Occasional expenses','Vacations, insurance, gifts and future expense reserves',
-      Icons.beach_access_outlined,1,list(d,'reserves').length.toString()+' reserves'),
+      Icons.beach_access_outlined,1,list(d,'reserves').isEmpty?'No reserves yet':'${list(d,'reserves').length} reserves'),
     moreLink('Monthly review','Review spending, commitments and month-close checks',
       Icons.fact_check_outlined,4,monthLabel(selected)),
     moreLink('Year overview','Income, spending and savings across the year',

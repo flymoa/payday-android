@@ -30,6 +30,7 @@ void main(){
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();await tester.tap(find.text('More').last);await tester.pumpAndSettle();
+   await tester.ensureVisible(find.text('Monthly review'));await tester.pumpAndSettle();
    await tester.tap(find.text('Monthly review'));await tester.pumpAndSettle();
    expect(find.text('790.00 MAD'),findsOneWidget);
    expect(find.text('Over budget'),findsOneWidget);

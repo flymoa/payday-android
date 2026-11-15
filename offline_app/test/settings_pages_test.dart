@@ -40,10 +40,10 @@ void main(){
      MaterialPageRoute<void>(builder:(_)=>const AboutHelpPage())),child:const Text('Settings'))))));
    await tester.tap(find.text('Settings'));await tester.pumpAndSettle();
    expect(find.text('Version $paydayVersion · Build $paydayBuildNumber'),findsOneWidget);
-   expect(find.textContaining('PAYDAY works without an account'),findsNothing);
+   expect(find.textContaining('Payday works without an account'),findsNothing);
    await tester.ensureVisible(find.text('Privacy & security'));await tester.pumpAndSettle();
    await tester.tap(find.text('Privacy & security'));await tester.pumpAndSettle();
-   expect(find.textContaining('PAYDAY works without an account'),findsOneWidget);
+   expect(find.textContaining('Payday works without an account'),findsOneWidget);
    await tester.ensureVisible(find.text('Got it'));await tester.tap(find.text('Got it'));await tester.pumpAndSettle();
    await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
    expect(find.text('Settings'),findsOneWidget);expect(tester.takeException(),isNull);

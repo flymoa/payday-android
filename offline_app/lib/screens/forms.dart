@@ -172,7 +172,10 @@ extension _Forms on _FinanceState {
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
        side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
       onPressed:()=>rebuild(()=>category=name),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-       PaydayCategoryIcon(name,size:32),SizedBox(height:5),LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600)),
+       PaydayCategoryIcon(name,size:32),SizedBox(height:5),
+       categoryLabel(context,name).trim().contains(' ')
+        ?LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600))
+        :FittedBox(fit:BoxFit.scaleDown,child:LText(name,category:true,maxLines:1,softWrap:false,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600))),
       ])))),
      if(!allCategories&&ordered.length>7)SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
@@ -212,7 +215,8 @@ extension _Forms on _FinanceState {
       id:existing==null?null:val(existing,'id'),date:dayKey(date),
       type:type,category:category,amount:cents,
       description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim()),
-      saved:existing!=null?'Changes saved.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
+      saved:existing!=null?'Changes saved.':type=='Savings out'?'Saved. ${money(cents)} moved to savings.':
+       type=='Savings in'?'Saved. ${money(cents)} taken from savings.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
     if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);

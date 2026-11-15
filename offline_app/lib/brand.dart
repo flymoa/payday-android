@@ -29,7 +29,7 @@ class _MarkPainter extends CustomPainter{
 class PaydayBrand extends StatelessWidget{
  const PaydayBrand({super.key,this.compact=false});
  final bool compact;
- @override Widget build(BuildContext context)=>Semantics(label:tr(context,'PAYDAY. ${tr(context,paydaySlogan)}'),
+ @override Widget build(BuildContext context)=>Semantics(label:tr(context,'Payday. ${tr(context,paydaySlogan)}'),
   child:ExcludeSemantics(child:Row(mainAxisSize:MainAxisSize.min,children:[
    PaydayMark(size:compact?35:42),const SizedBox(width:10),
    LText('Payday',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:compact?25:30,

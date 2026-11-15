@@ -87,6 +87,8 @@ void main() {
     {
       await t.tap(more.first);
       await settle(t, seconds: 1);
+      await t.ensureVisible(find.text('Monthly review'));
+      await settle(t, seconds: 1);
       await t.tap(find.text('Monthly review'));
       await settle(t, seconds: 1);
       await waitFor(t, find.text('Check before closing'));

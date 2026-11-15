@@ -37,9 +37,9 @@ class _BackupPasswordDialogState extends State<BackupPasswordDialog>{
   scrollable:true,
   title:Row(children:[Expanded(child:LText(widget.creating?'Protect your backup':'Unlock backup')),
    IconButton(tooltip:tr(context,'About backup passwords'),icon:const PaydayAppIcon(Icons.info_outline,size:20),onPressed:busy?null:()=>showSettingsInfo(context,'Backup password',
-    'New backups are encrypted with the password you choose. PAYDAY does not save it and cannot reset it. Older unprotected JSON backups can still be restored.'))]),
+    'New backups are encrypted with the password you choose. Payday does not save it and cannot reset it. Older unprotected JSON backups can still be restored.'))]),
   content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.stretch,children:[
-   if(widget.creating)const Padding(padding:EdgeInsets.only(bottom:16),child:LText('Keep this password. PAYDAY cannot recover it.')),
+   if(widget.creating)const Padding(padding:EdgeInsets.only(bottom:16),child:LText('Keep this password. Payday cannot recover it.')),
    TextField(key:const ValueKey('backup-password'),controller:password,enabled:!busy,obscureText:!visible,
     autocorrect:false,enableSuggestions:false,keyboardType:TextInputType.visiblePassword,
     decoration:InputDecoration(labelText:tr(context,'Password'),helperText:(widget.creating?'At least 12 characters':null)==null?null:tr(context,(widget.creating?'At least 12 characters':null)!),
