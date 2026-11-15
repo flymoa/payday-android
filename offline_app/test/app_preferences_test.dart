@@ -104,9 +104,9 @@ void main(){
   expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
   await chooseTheme(tester,'System');
   tester.platformDispatcher.platformBrightnessTestValue=Brightness.dark;await tester.pumpAndSettle();
-  expect(Theme.of(tester.element(find.byType(FinanceScreen))).brightness,Brightness.dark);
+  expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.dark);
   tester.platformDispatcher.platformBrightnessTestValue=Brightness.light;await tester.pumpAndSettle();
-  expect(Theme.of(tester.element(find.byType(FinanceScreen))).brightness,Brightness.light);
+  expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.light);
   await tester.ensureVisible(find.text('Backups & data'));await tester.pumpAndSettle();
   await tester.tap(find.text('Backups & data'));await tester.pumpAndSettle();
   expect(find.text('Export backup'),findsOneWidget);expect(find.text('Restore'),findsOneWidget);
@@ -125,7 +125,7 @@ void main(){
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:await store.loadAppPreferences()));
   expect(find.byKey(const ValueKey('payday-opening-overlay')),findsOneWidget);
   await tester.pumpAndSettle();
-  expect(MediaQuery.disableAnimationsOf(tester.element(find.byType(FinanceScreen))),isFalse);
+  expect(MediaQuery.disableAnimationsOf(tester.element(find.byType(FinanceScreen,skipOffstage:false))),isFalse);
   await openSettings(tester);
   await chooseCurrency(tester,'EUR');
   expect(find.textContaining('100.00 MAD becomes 100.00 EUR'),findsOneWidget);
