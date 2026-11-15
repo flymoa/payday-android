@@ -60,7 +60,7 @@ extension _Forms on _FinanceState {
       mainAxisSize:MainAxisSize.min,children:[
        Padding(padding:EdgeInsets.only(bottom:12),
         child:Align(alignment:AlignmentDirectional.centerStart,
-         child:Row(children:[if(fullScreen)IconButton(tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
+         child:Row(children:[if(fullScreen)IconButton(key:ValueKey('close-transaction'),tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
        Flexible(child:SingleChildScrollView(
         keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
         padding:EdgeInsets.only(bottom:footer==null?24:12),

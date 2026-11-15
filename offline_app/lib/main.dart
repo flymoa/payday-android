@@ -383,7 +383,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     Padding(padding:EdgeInsetsDirectional.only(end:8),child:TextButton(
      style:TextButton.styleFrom(backgroundColor:page==4?jade.withValues(alpha:.14):surface,foregroundColor:ink,
       shape:StadiumBorder(side:BorderSide(color:page==4?jade:line))),
-     onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
+     key:ValueKey('more-button'),onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
     PaydayAppIcon(Icons.error_outline,color:danger,size:36),SizedBox(height:PaydaySpace.md),
