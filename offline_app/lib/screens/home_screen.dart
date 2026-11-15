@@ -87,7 +87,10 @@ extension _HomeScreen on _FinanceState {
    Container(padding:EdgeInsets.symmetric(horizontal:12,vertical:5),
     decoration:BoxDecoration(color:page==index?jade.withValues(alpha:.14):Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
     child:PaydayAppIcon(icon,size:22)),
-   SizedBox(height:4),LText(label,style:TextStyle(fontSize:PaydayType.caption,fontWeight:page==index?FontWeight.w800:FontWeight.w600)),
+   SizedBox(height:4),
+   // One line always: long translations (e.g. French "Historique") shrink slightly instead of wrapping.
+   FittedBox(fit:BoxFit.scaleDown,child:LText(label,key:ValueKey('bottom-label-$index'),maxLines:1,softWrap:false,
+    style:TextStyle(fontSize:PaydayType.caption,fontWeight:page==index?FontWeight.w800:FontWeight.w600))),
   ])));
 
  Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
