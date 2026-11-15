@@ -164,13 +164,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.outlineVariant)),
     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
-    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans'))),
+    minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']))),
    outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
     side:BorderSide(color:scheme.outlineVariant),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)))),
    listTileTheme:ListTileThemeData(iconColor:scheme.primary),
    dividerTheme:DividerThemeData(color:scheme.outlineVariant,thickness:1),
    snackBarTheme:SnackBarThemeData(backgroundColor:dark?PaydayColors.darkSurfaceHigh:kInk,
-    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans'),actionTextColor:paydaySaffron),
+    contentTextStyle:TextStyle(color:dark?PaydayColors.darkText:paydaySand,fontFamily:'DMSans',fontFamilyFallback:const ['Noto Sans Arabic','sans-serif']),actionTextColor:paydaySaffron),
    navigationBarTheme:NavigationBarThemeData(backgroundColor:scheme.surface),
   );
  }
