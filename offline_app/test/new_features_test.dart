@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:payday_local/backup_cipher.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/hijri.dart';
 import 'package:payday_local/main.dart';
@@ -96,6 +97,17 @@ void main() {
         throwsA(isA<ArgumentError>()));
     await store.saveWalletSetup(cash: 1000, bank: 2000);
     expect(await balances(), {'Cash': 1000, 'Bank': 2000});
+  });
+
+  test('a new schema-3 backup passes the backup check that restore uses', () async {
+    final db = await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
+    addTearDown(db.close);
+    for (final name in localTables) {
+      await db.execute(name == 'settings' ? 'CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)' : 'CREATE TABLE $name(id INTEGER)');
+    }
+    final raw = await WalletStore(db).exportJson();
+    expect(raw.contains('"schema_version":3'), isTrue);
+    expect(() => BackupCipher.validatePlain(raw), returnsNormally);
   });
 
   testWidgets('Cash & Bank stays hidden until set up, then shows on Home and in the add form', (t) async {

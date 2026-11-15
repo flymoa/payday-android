@@ -30,7 +30,7 @@ class BackupCipher {
  static void validatePlain(String raw){
   if(utf8.encode(raw).length>maxPlainBytes)throw const FormatException('This backup is too large.');
   final d=document(raw);
-  if(d['format']!='payday-local'||![1,2].contains(d['schema_version'])||d['tables'] is! Map){
+  if(d['format']!='payday-local'||![1,2,3].contains(d['schema_version'])||d['tables'] is! Map){
    throw const FormatException('This is not a supported Payday backup.');
   }
  }
