@@ -187,7 +187,7 @@ extension _Forms on _FinanceState {
    SizedBox(width:double.infinity,child:Wrap(spacing:8,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
     PaydayPill(key:ValueKey('transaction-date-today'),label:'Today',selected:sameDay(date,dayOffset(0)),onTap:()=>rebuild(()=>date=dayOffset(0))),
     PaydayPill(key:ValueKey('transaction-date-yesterday'),label:'Yesterday',selected:sameDay(date,dayOffset(-1)),onTap:()=>rebuild(()=>date=dayOffset(-1))),
-    TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')),
+    TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{final today=dayOffset(0);final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:date.isAfter(today)?date:today);if(p!=null)rebuild(()=>date=p);},label:LText('Payment date: ${uiDay(date)}')),
    ])),
    SizedBox(height:12),field(desc,'Description'),
    Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(key:ValueKey('transaction-more-details'),

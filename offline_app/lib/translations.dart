@@ -528,6 +528,7 @@ const paydayTranslations=<String,List<String>>{
  "Transfer would exceed the reserve target.":["Ce transfert dépasserait l’objectif de la réserve.","سيؤدي التحويل إلى تجاوز هدف الاحتياطي."],
  "Transfer would make the historical reserve balance negative.":["Ce transfert rendrait négatif le solde historique de la réserve.","سيجعل التحويل الرصيد التاريخي للاحتياطي سالبًا."],
  "Transport":["Transport","التنقّل"],
+ "Another bill already uses this Bill ID. Choose a different one.":["Une autre facture utilise déjà cette référence. Choisissez-en une autre.","هذا المرجع مستعمل في فاتورة أخرى. اختر مرجعًا آخر."],
  "Try again":["Réessayer","حاول مجددًا"],
  "Your records could not be opened. Nothing was changed.":["Impossible d’ouvrir vos données. Rien n’a été modifié.","تعذّر فتح سجلاتك. لم يتم تغيير أي شيء."],
  "Turn off PAYDAY app lock":["Désactiver le verrouillage de PAYDAY","إيقاف قفل PAYDAY"],
