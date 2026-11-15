@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -106,7 +107,7 @@ void main() {
       await db.execute(name == 'settings' ? 'CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)' : 'CREATE TABLE $name(id INTEGER)');
     }
     final raw = await WalletStore(db).exportJson();
-    expect(raw.contains('"schema_version":3'), isTrue);
+    expect((jsonDecode(raw) as Map)['schema_version'], 3);
     expect(() => BackupCipher.validatePlain(raw), returnsNormally);
   });
 
