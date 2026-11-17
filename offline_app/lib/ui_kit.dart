@@ -57,8 +57,9 @@ class PaydayProgress extends StatelessWidget {
 
 /// Filter or quick-choice pill. Selected pills are filled so the choice is obvious.
 class PaydayPill extends StatelessWidget {
-  const PaydayPill({super.key, required this.label, required this.selected, required this.onTap});
+  const PaydayPill({super.key, required this.label, required this.selected, required this.onTap, this.icon});
   final String label;
+  final IconData? icon;
   final bool selected;
   final VoidCallback onTap;
   @override
@@ -71,9 +72,11 @@ class PaydayPill extends StatelessWidget {
       child: InkWell(onTap: onTap, child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 40),
         child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Center(widthFactor: 1, heightFactor: 1, child: LText(label,
-            style: TextStyle(color: selected ? scheme.onPrimary : scheme.onSurface,
-              fontWeight: FontWeight.w700, fontSize: PaydayType.small))))))));
+          child: Center(widthFactor: 1, heightFactor: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[PaydayAppIcon(icon!, size: 17, color: selected ? scheme.onPrimary : scheme.onSurface), const SizedBox(width: 6)],
+            LText(label, style: TextStyle(color: selected ? scheme.onPrimary : scheme.onSurface,
+              fontWeight: FontWeight.w700, fontSize: PaydayType.small)),
+          ])))))));
   }
 }
 

@@ -180,17 +180,19 @@ extension _Forms on _FinanceState {
     final tileHeight=max(86.0,46+MediaQuery.textScalerOf(c).scale(PaydayType.caption)*3.2);
     return Wrap(key:ValueKey('transaction-category-grid'),spacing:8,runSpacing:8,children:[
      ...choices.map((name)=>SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
-      style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?jade.withValues(alpha:.10):surface,
+      style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),backgroundColor:name==category?(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint):surface,foregroundColor:ink,
        side:BorderSide(color:name==category?jade:line,width:name==category?2:1),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
       onPressed:()=>rebuild(()=>category=name),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-       PaydayCategoryIcon(name,size:32),SizedBox(height:5),
+       PaydayCategoryIcon(name,size:26,bare:true),SizedBox(height:6),
        categoryLabel(context,name).trim().contains(' ')
-        ?LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600))
-        :FittedBox(fit:BoxFit.scaleDown,child:LText(name,category:true,maxLines:1,softWrap:false,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600))),
+        ?LText(name,category:true,textAlign:TextAlign.center,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:ink))
+        :FittedBox(fit:BoxFit.scaleDown,child:LText(name,category:true,maxLines:1,softWrap:false,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:ink))),
       ])))),
      if(!allCategories&&ordered.length>7)SizedBox(width:(limits.maxWidth-24)/4,height:tileHeight,child:OutlinedButton(
       style:OutlinedButton.styleFrom(padding:EdgeInsets.all(3),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
-      onPressed:()=>rebuild(()=>allCategories=true),child:LText('More',style:TextStyle(fontSize:PaydayType.caption)))),
+      onPressed:()=>rebuild(()=>allCategories=true),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+       PaydayAppIcon(Icons.grid_view,size:24),SizedBox(height:6),
+       LText('More',style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:ink))]))),
     ]);
    }),
    if(type=='Income')Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(
@@ -201,22 +203,23 @@ extension _Forms on _FinanceState {
      if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
       if(!cats.contains(category))category=cats.first;});
     })),
-   if(walletSetup!=null)Padding(padding:EdgeInsets.only(bottom:14),child:Row(children:[
+   if(walletSetup!=null)Padding(padding:EdgeInsets.only(top:16),child:Row(children:[
     Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
     for(final w in walletNames)Padding(padding:EdgeInsetsDirectional.only(start:8),child:PaydayPill(key:ValueKey('wallet-$w'),label:w,
-     selected:wallet==w,onTap:()=>rebuild(()=>wallet=w))),
+     icon:w=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,selected:wallet==w,onTap:()=>rebuild(()=>wallet=w))),
    ])),
-   SizedBox(height:18),
+   SizedBox(height:16),
    // One tap for the usual dates; the calendar is there for anything else.
-   SizedBox(width:double.infinity,child:Wrap(spacing:8,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
+   Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Wrap(spacing:8,runSpacing:8,crossAxisAlignment:WrapCrossAlignment.center,children:[
     PaydayPill(key:ValueKey('transaction-date-today'),label:'Today',selected:sameDay(date,dayOffset(0)),onTap:()=>rebuild(()=>date=dayOffset(0))),
     PaydayPill(key:ValueKey('transaction-date-yesterday'),label:'Yesterday',selected:sameDay(date,dayOffset(-1)),onTap:()=>rebuild(()=>date=dayOffset(-1))),
     OutlinedButton.icon(key:ValueKey('transaction-date-pick'),style:OutlinedButton.styleFrom(backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),shape:StadiumBorder(),minimumSize:Size(0,40)),
      icon:PaydayAppIcon(Icons.calendar_today_outlined,size:16),onPressed:()async{final today=dayOffset(0);final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:date.isAfter(today)?date:today);if(p!=null)rebuild(()=>date=p);},
      label:Text(localizedShortDay(date,language),style:TextStyle(fontWeight:FontWeight.w700))),
+    ])),
     TextButton(key:ValueKey('transaction-more-details'),onPressed:()=>rebuild(()=>details=!details),
      child:LText(details?'Hide note':'+ Note',style:TextStyle(fontWeight:FontWeight.w700))),
-   ])),
+   ]),
    if(details)...[SizedBox(height:12),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)')],
    if(existing!=null)TextButton.icon(key:ValueKey('duplicate-transaction'),onPressed:()async{Navigator.pop(c);await transactionForm(null,copyFrom:existing);},
     icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Duplicate as new (today)')),

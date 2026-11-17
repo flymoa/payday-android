@@ -111,9 +111,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
   Widget figure(String label,String value,{Color? color})=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   LText(label,maxLines:2,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color??ink))),
+    child:LText(label,maxLines:1,softWrap:false,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),SizedBox(height:4),
+   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+    child:LText(value,maxLines:1,style:TextStyle(fontFamily:'Bricolage',fontSize:18,fontWeight:FontWeight.w800,color:color??ink))),
   ]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // How much of the planned income already has a job.

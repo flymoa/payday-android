@@ -107,7 +107,7 @@ jobs:
           "$aapt" dump badging "$apk" > "$RUNNER_TEMP/payday-badging.txt"
           grep -q "package: name='ma.payday.payday_local'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected Android package identity"; exit 1; }
           grep -q "application-label:'Payday'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected launcher name"; exit 1; }
-          grep -q "versionCode='43' versionName='2.5.0'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected release version"; exit 1; }
+          grep -q "versionCode='44' versionName='2.6.0'" "$RUNNER_TEMP/payday-badging.txt" || { echo "::error::Unexpected release version"; exit 1; }
           "$aapt" dump permissions "$apk" > "$RUNNER_TEMP/payday-permissions.txt"
           if grep -q 'android.permission.INTERNET' "$RUNNER_TEMP/payday-permissions.txt"; then
             echo 'ERROR: offline APK requests INTERNET permission'

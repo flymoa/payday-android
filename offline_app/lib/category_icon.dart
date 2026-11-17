@@ -1,19 +1,25 @@
 import 'design_tokens.dart';
+import 'canvas_icons.dart';
 import 'package:flutter/material.dart';
 
 /// PAYDAY's category glyphs share a 24-unit grid and rounded strokes.
 /// Drawn as vectors so they stay sharp without image assets or dependencies.
 class PaydayCategoryIcon extends StatelessWidget {
- const PaydayCategoryIcon(this.category,{super.key,this.size=40});
+ const PaydayCategoryIcon(this.category,{super.key,this.size=40,this.bare=false});
  final String category;
  final double size;
+ /// Just the glyph, without its tile (category picker).
+ final bool bare;
  @override Widget build(BuildContext context){
   final dark=Theme.of(context).brightness==Brightness.dark;
+  final glyph=CustomPaint(painter:CanvasGlyphPainter(canvasGlyphForCategory(categoryGlyph(category)),
+   dark?PaydayColors.darkIcon:PaydayColors.emerald));
+  if(bare)return ExcludeSemantics(child:SizedBox.square(dimension:size,child:glyph));
+  // Rounded tile with a stroke glyph, as on the design canvas.
   return ExcludeSemantics(child:Container(width:size,height:size,
-   padding:EdgeInsets.all(size*.20),
-   decoration:BoxDecoration(shape:BoxShape.circle,
-    color:dark?PaydayColors.darkIconDisc:PaydayColors.mintTint),
-   child:CustomPaint(painter:PaydayGlyphPainter(categoryGlyph(category),dark))));
+   padding:EdgeInsets.all(size*.24),
+   decoration:BoxDecoration(borderRadius:BorderRadius.circular(size*.35),color:canvasTileColor(dark)),
+   child:glyph));
  }
 }
 
