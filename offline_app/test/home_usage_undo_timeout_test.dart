@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/offline_store.dart';
-import 'package:payday_local/month_usage_bar.dart';
 
 MonthlyBalance balance({int income=0,int expenses=0,int savings=0,int reserves=0})=>
  MonthlyBalance(income:income,expenses:expenses,savingsNet:savings,reserveNet:reserves,
@@ -50,7 +49,7 @@ void main(){
    await tester.pumpWidget(MaterialApp(home:FinanceScreen(key:UniqueKey(),
     initialData:Future.value({'transactions':example.$1}))));
    await tester.pumpAndSettle();
-   expect(tester.widget<MonthUsageBar>(find.byType(MonthUsageBar)).value,example.$2);
+   expect(tester.widget<FractionallySizedBox>(find.byKey(const ValueKey('home-usage'))).widthFactor,example.$2);
    expect(tester.takeException(),isNull);
   }
  });

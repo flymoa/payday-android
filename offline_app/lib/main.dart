@@ -26,7 +26,6 @@ import 'dart:async';
 import 'dart:math' show max;
 import 'app_lock.dart';
 import 'app_preferences.dart';
-import 'month_usage_bar.dart';
 import 'add_button.dart';
 import 'transaction_categories.dart';
 import 'app_icon.dart';

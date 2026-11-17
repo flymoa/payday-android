@@ -50,11 +50,6 @@ extension _HomeScreen on _FinanceState {
     style:TextStyle(fontSize:PaydayType.caption,fontWeight:page==index?FontWeight.w800:FontWeight.w600))),
   ])));
 
- Widget balanceTap(String label,VoidCallback onTap,Widget child)=>Semantics(
-  button:true,label:tr(context,label),child:InkWell(onTap:onTap,
-   borderRadius:BorderRadius.circular(PaydayRadius.md),child:Padding(
-    padding:EdgeInsets.symmetric(vertical:4),child:child)));
-
  Future<void> balanceDetails(MonthlyBalance balance,bool showSafe)async{
   Widget calculation(String label,int amount,{bool total=false})=>Padding(
    padding:EdgeInsets.symmetric(vertical:10),child:Row(
@@ -177,7 +172,7 @@ extension _HomeScreen on _FinanceState {
        // How much of the month's money is already used.
        ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.pill),child:SizedBox(height:8,child:Stack(children:[
         Container(color:heroInk.withValues(alpha:.18)),
-        FractionallySizedBox(widthFactor:balance.usedFraction.clamp(0,1).toDouble(),child:Container(color:paydaySaffron)),
+        FractionallySizedBox(key:ValueKey('home-usage'),widthFactor:balance.usedFraction.clamp(0,1).toDouble(),child:Container(color:paydaySaffron)),
        ]))),
        SizedBox(height:14),Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
         heroFigure('Income',whole(balance.income)),SizedBox(width:10),
