@@ -215,7 +215,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    header('Allocations for ${monthLabel(selected)}'),
    ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?tr(context,'Goal deleted'):st(g,'name'),month,money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
    if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),
-   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>setState((){page=4;moreSection=4;}),icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(selected)}'))
+   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>openTool(4),icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(selected)}'))
   ]);
  }
 }

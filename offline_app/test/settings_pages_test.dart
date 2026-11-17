@@ -49,7 +49,7 @@ void main(){
    expect(find.text('Settings'),findsOneWidget);expect(tester.takeException(),isNull);
   });
  }
- testWidgets('settings routes return to the Settings page without adding entry points in More',(tester)async{
+ testWidgets('settings routes return to the Settings page and leave the tabs untouched',(tester)async{
   await tester.pumpWidget(PaydayLocal(initialData:Future.value(<String,List<RowData>>{}),preferencesWriter:(_)async{}));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
@@ -64,7 +64,7 @@ void main(){
   await tester.binding.handlePopRoute();await tester.pumpAndSettle();
   expect(find.text('Settings'),findsOneWidget);
   await tester.tap(find.byTooltip('Close settings'));await tester.pumpAndSettle();
-  await tester.tap(find.text('More'));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('bottom-2')));await tester.pumpAndSettle();
   expect(find.text('Settings'),findsNothing);expect(find.text('About & Help'),findsNothing);
   expect(tester.takeException(),isNull);
  });

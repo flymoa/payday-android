@@ -84,7 +84,7 @@ extension _HomeScreen on _FinanceState {
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:6,horizontal:2),foregroundColor:page==index?jade:muted,
    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
-  onPressed:()=>setState((){page=index;moreSection=null;}),child:Column(mainAxisSize:MainAxisSize.min,children:[
+  onPressed:()=>setState(()=>page=index),child:Column(mainAxisSize:MainAxisSize.min,children:[
    Container(padding:EdgeInsets.symmetric(horizontal:12,vertical:5),
     decoration:BoxDecoration(color:page==index?jade.withValues(alpha:.14):Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
     child:PaydayAppIcon(icon,size:22)),
@@ -234,7 +234,7 @@ extension _HomeScreen on _FinanceState {
    ])),
    // Cash & Bank at a glance, once tracking is on.
    if(walletSetupOf(d) case final setup?)Padding(padding:EdgeInsets.only(top:12),child:PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,
-    child:InkWell(key:ValueKey('home-wallets'),onTap:()=>setState((){page=4;moreSection=6;}),child:Padding(padding:EdgeInsets.symmetric(horizontal:16,vertical:14),
+    child:InkWell(key:ValueKey('home-wallets'),onTap:()=>openTool(6),child:Padding(padding:EdgeInsets.symmetric(horizontal:16,vertical:14),
      child:Builder(builder:(_){
       final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
       Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[

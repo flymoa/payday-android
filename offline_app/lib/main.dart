@@ -258,7 +258,30 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
- int? moreSection; // null means More menu; index selects the opened section.
+ /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
+ final subTab=<int,int>{1:0,2:0,3:0};
+ static const subTabLabels=<int,List<String>>{1:['List','Review','Year'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Cash & Bank']};
+ /// Opens a tool in the tab it now lives in (0 bills, 1 reserves, 2 year, 4 review, 5 recurring, 6 Cash & Bank).
+ void openTool(int tool){
+  const at={0:[2,1],1:[3,1],2:[1,2],4:[1,1],5:[2,2],6:[3,2]};
+  final t=at[tool]!;
+  setState((){page=t[0];subTab[t[0]]=t[1];});
+ }
+ Widget subTabs(){
+  final labels=subTabLabels[page]!,current=subTab[page]??0;
+  return Padding(padding:EdgeInsets.only(bottom:PaydaySpace.md),child:Container(
+   padding:EdgeInsets.all(PaydaySpace.xs),
+   decoration:BoxDecoration(color:isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,borderRadius:BorderRadius.circular(PaydayRadius.pill)),
+   child:Row(children:[for(var i=0;i<labels.length;i++)Expanded(child:Semantics(selected:i==current,button:true,
+    child:Material(color:i==current?surface:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.pill),
+     child:InkWell(key:ValueKey('subtab-$page-$i'),borderRadius:BorderRadius.circular(PaydayRadius.pill),
+      onTap:()=>setState(()=>subTab[page]=i),
+      child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Center(child:Padding(
+       padding:EdgeInsets.symmetric(horizontal:PaydaySpace.sm),
+       child:FittedBox(fit:BoxFit.scaleDown,child:LText(labels[i],maxLines:1,softWrap:false,
+        style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.small,color:i==current?ink:muted)))))))))),
+   ])));
+ }
  final purchase=TextEditingController(text:'200');
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
@@ -280,7 +303,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   if(widget.initialData!=null)return;
   final action=await takeHomeWidgetAction();
   if(action=='add_expense'&&mounted){
-   setState((){page=0;moreSection=null;});
+   setState(()=>page=0);
    await transactionForm(null);
   }
  }
@@ -369,11 +392,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return buildScreen(context);
  }
  Widget buildScreen(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
-  canPop:page!=4||moreSection==null,
+  // Back from a small tab returns to the first one before leaving the page.
+  canPop:(subTab[page]??0)==0,
   onPopInvokedWithResult:(didPop,result){
-   if(!didPop&&mounted&&page==4&&moreSection!=null){
-    setState(()=>moreSection=null);
-   }
+   if(!didPop&&mounted&&(subTab[page]??0)!=0)setState(()=>subTab[page]=0);
   },child:Scaffold(
   key:scaffoldKey,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
@@ -384,12 +406,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
       child:LText(paydaySlogan,maxLines:1,softWrap:false,
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
     ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
-   actions:[if(page==0)IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
-     style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)),SizedBox(width:6),
-    Padding(padding:EdgeInsetsDirectional.only(end:8),child:TextButton(
-     style:TextButton.styleFrom(backgroundColor:page==4?jade.withValues(alpha:.14):surface,foregroundColor:ink,
-      shape:StadiumBorder(side:BorderSide(color:page==4?jade:line))),
-     key:ValueKey('more-button'),onPressed:()=>setState((){page=4;moreSection=null;}),child:LText('More',style:TextStyle(fontWeight:FontWeight.w700))))]),
+   // Settings is the only action; the tools that were under More now live in the small tabs.
+   actions:[Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
+     style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
     PaydayAppIcon(Icons.error_outline,color:danger,size:36),SizedBox(height:PaydaySpace.md),
@@ -399,15 +418,18 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    // Blank while records load (encrypted open), so no spinner flashes before Home.
    if(!snap.hasData)return const SizedBox.shrink();
    final d=snap.data!;
+   final tab=subTab[page]??0;
    Widget screen;
    switch(page){
-    case 0:screen=home(d);break;
-    case 1:screen=records(d);break;
-    case 2:screen=budgets(d);break;
-    case 3:screen=savings(d);break;
-    default:screen=more(d);
+    case 1:screen=[records,monthlyReview,moreYear][tab](d);break;
+    case 2:screen=[budgets,moreBills,moreRecurring][tab](d);break;
+    case 3:screen=[savings,moreReserves,moreWallets][tab](d);break;
+    default:screen=home(d);
    }
-   return SafeArea(child:ListView(key:ValueKey('page-$page-section-$moreSection'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[if(page!=0 && (page!=4 || moreSection==0 || moreSection==2)) navMonth(),screen]));
+   // The month switcher shows where the content depends on the month.
+   final showMonth=page==1?tab!=1:page==2?tab!=2:page==3&&tab==0;
+   return SafeArea(child:ListView(key:ValueKey('page-$page-tab-$tab'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[
+    if(page!=0)subTabs(),if(showMonth)navMonth(),screen]));
   }),
   // Floating navigation bar: the selected tab is marked by a tinted pill.
   bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(

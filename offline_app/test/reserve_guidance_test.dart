@@ -30,8 +30,8 @@ void main(){
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Home');
    expect(find.text('Fully spent'),findsOneWidget);expect(find.text('Near limit'),findsNothing);
-   await tester.tap(find.text('More').last);await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'More');
-   await tester.tap(find.text('Occasional expenses'));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Reserves');
+   await tester.tap(find.byKey(const ValueKey('bottom-3')));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Savings');
+   await tester.tap(find.byKey(const ValueKey('subtab-3-1')));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Reserves');
    expect(find.text('How reserves work'),findsOneWidget);
    expect(find.text('Still to set aside this month: 800.00 MAD'),findsOneWidget);
    await tester.ensureVisible(find.text('Still to set aside this month: 800.00 MAD'));await tester.pumpAndSettle();

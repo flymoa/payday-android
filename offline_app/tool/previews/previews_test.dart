@@ -100,9 +100,11 @@ void main() {
           await t.pumpAndSettle();
           await shot(tab.$2);
         }
-        await t.tap(find.byKey(const ValueKey('more-button')));
+        await t.tap(find.byKey(const ValueKey('bottom-2')));
         await t.pumpAndSettle();
-        await shot('6_more');
+        await t.tap(find.byKey(const ValueKey('subtab-2-1')));
+        await t.pumpAndSettle();
+        await shot('6_bills_tab');
         await t.tap(find.byKey(const ValueKey('bottom-0')));
         await t.pumpAndSettle();
         await t.tap(find.byType(PaydayAddButton));

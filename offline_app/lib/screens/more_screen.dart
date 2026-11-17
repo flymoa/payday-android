@@ -55,7 +55,7 @@ extension _MoreScreen on _FinanceState {
    TextButton.icon(onPressed:()=>balanceDetails(balance,true),icon:PaydayAppIcon(Icons.info_outline),label:LText('Explain these balances')),
    header('Check before closing'),
    tile('Unpaid bills',balance.unpaidBills>0?'Due this month and still outstanding':'No outstanding bills due this month',money(balance.unpaidBills),
-    icon:Icons.receipt_long_outlined,onTap:()=>setState(()=>moreSection=0)),
+    icon:Icons.receipt_long_outlined,onTap:()=>openTool(0)),
    tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
    tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
    ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:danger)),
@@ -74,64 +74,6 @@ extension _MoreScreen on _FinanceState {
   ]);
  }
 
- Widget more(Map<String,List<RowData>> d) {
-  if(moreSection==null) {
-   final count=list(d,'bills').where((b)=>st(b,'due').startsWith(month)).length;
-   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    header('More tools',subtitle:'Select a section to see its details.'),
-    moreLink('Bills & payments','Due dates, outstanding balances and partial payments',
-      Icons.receipt_long_outlined,0,'$count due this month'),
-    moreLink('Occasional expenses','Vacations, insurance, gifts and future expense reserves',
-      Icons.beach_access_outlined,1,list(d,'reserves').isEmpty?'No reserves yet':'${list(d,'reserves').length} reserves'),
-    moreLink('Monthly review','Review spending, commitments and month-close checks',
-      Icons.fact_check_outlined,4,monthLabel(selected)),
-    moreLink('Year overview','Income, spending and savings across the year',
-      Icons.bar_chart_rounded,2,selected.year.toString()),
-    moreLink('Recurring entries','Salary, rent and subscriptions added automatically each month',
-      Icons.repeat,5,decodeRules(list(d,'settings').where((r)=>st(r,'key')==recurringSettingKey).firstOrNull?['value']?.toString()).length.toString()+' active'),
-    moreLink('Cash & Bank','See what you have in your pocket and in the bank.',
-      Icons.account_balance_wallet_outlined,6,walletSetupOf(d)==null?'Not set up':'${money(walletBalancesOf(d)['Cash']!)} · ${money(walletBalancesOf(d)['Bank']!)}'),
-    SizedBox(height:6),
-    Padding(padding:EdgeInsets.all(8),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     PaydayAppIcon(Icons.lock_outline,size:18,color:muted),SizedBox(width:10),
-     Expanded(child:LText(
-      'All your financial records stay on this device, with no Google account or internet required.',
-      style:TextStyle(color:muted,fontSize:PaydayType.caption))),
-    ])),
-   ]);
-  }
-  Widget section;
-  switch(moreSection) {
-   case 0:section=moreBills(d);break;
-   case 1:section=moreReserves(d);break;
-   case 2:section=moreYear(d);break;
-   case 4:section=monthlyReview(d);break;
-   case 5:section=moreRecurring(d);break;
-   case 6:section=moreWallets(d);break;
-   default:section=const SizedBox.shrink();
-  }
-  return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   TextButton.icon(onPressed:()=>setState(()=>moreSection=null),
-    icon:PaydayAppIcon(Icons.arrow_back),label:LText('Back to More')),
-   section,
-  ]);
- }
- Widget moreLink(String name,String description,IconData symbol,int section,String summary)=>
-  PaydayPanel(margin:EdgeInsets.only(bottom:10),padding:EdgeInsets.zero,child:Material(color:Colors.transparent,child:InkWell(
-   onTap:()=>setState(()=>moreSection=section),
-   child:Padding(padding:EdgeInsetsDirectional.fromSTEB(14,14,10,14),child:Row(children:[
-    Container(width:48,height:48,
-     decoration:BoxDecoration(color:jade.withValues(alpha:.12),borderRadius:BorderRadius.circular(14)),
-     child:Center(child:PaydayAppIcon(symbol,color:jade))),
-    SizedBox(width:14),
-    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText(name,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink,fontSize:16)),
-     SizedBox(height:3),LText(description,style:TextStyle(color:muted,fontSize:PaydayType.small)),
-     SizedBox(height:8),PaydayTag(summary),
-    ])),
-    PaydayAppIcon(Icons.chevron_right,color:muted)
-   ])),
-  )));
  WalletSetup? walletSetupOf(Map<String,List<RowData>> d)=>WalletSetup.decode(Ledger(d).setting(walletSetupKey));
  List<WalletTransfer> walletTransfersOf(Map<String,List<RowData>> d)=>decodeTransfers(Ledger(d).setting(walletTransfersKey));
  Map<String,int> walletBalancesOf(Map<String,List<RowData>> d){
