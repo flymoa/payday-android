@@ -8,7 +8,6 @@ import 'app_language.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'bill_reminders.dart';
 import 'reserve_reminders.dart';
-import 'safe_to_spend_row.dart';
 import 'backup_notifications.dart';
 import 'notification_settings_page.dart';
 import 'backup_cipher.dart';
@@ -49,6 +48,7 @@ part 'screens/records_budgets_savings.dart';
 part 'screens/settings_screen.dart';
 part 'screens/forms.dart';
 part 'screens/backup_actions.dart';
+part 'screens/welcome_screen.dart';
 
 void main(){
  WidgetsFlutterBinding.ensureInitialized();
@@ -64,7 +64,7 @@ class _PaydayStartupState extends State<PaydayStartup>{
  late final store=widget.store??OfflineStore();
  late Future<AppPreferences> preferences=store.loadAppPreferences();
  @override Widget build(BuildContext context)=>FutureBuilder<AppPreferences>(future:preferences,builder:(context,snapshot){
-  if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!);
+  if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!,welcomeOnFirstRun:true);
   return MaterialApp(debugShowCheckedModeBanner:false,home:Scaffold(backgroundColor:paydaySand,
    body:SafeArea(child:Center(child:Padding(padding:const EdgeInsets.all(24),child:snapshot.hasError?
     Column(mainAxisSize:MainAxisSize.min,children:[
@@ -80,7 +80,9 @@ int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
 DateTime parseDay(String text)=>DateTime.tryParse(text)??DateTime.now();
 class PaydayLocal extends StatefulWidget {
  const PaydayLocal({super.key,this.initialData,this.store,
-  this.initialPreferences=const AppPreferences(),this.preferencesWriter,this.appLockController});
+  this.initialPreferences=const AppPreferences(),this.preferencesWriter,this.appLockController,this.welcomeOnFirstRun=false});
+ /// Only the installed app (main) shows the welcome pages on an empty phone.
+ final bool welcomeOnFirstRun;
  final OfflineStore? store;
  final AppPreferences initialPreferences;
  final AppLockController? appLockController;
@@ -185,13 +187,14 @@ class _PaydayLocalState extends State<PaydayLocal> {
   builder:(context,child){
    return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
   },
-  home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,
+  home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,welcomeOnFirstRun:widget.welcomeOnFirstRun,
    onPreferencesChanged:savePreferences,onToggleTheme:(dark){
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
 class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,this.reserveReminders,this.restoreSnapshot,
- this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
+ this.preferences=const AppPreferences(),this.onPreferencesChanged,this.welcomeOnFirstRun=false});final ValueChanged<bool>? onToggleTheme;
+ final bool welcomeOnFirstRun;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
@@ -258,6 +261,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
+ bool welcome=false; // first open on an empty phone
  /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
  final subTab=<int,int>{1:0,2:0,3:0};
  static const subTabLabels=<int,List<String>>{1:['List','Review','Year'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Cash & Bank']};
@@ -285,6 +289,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  final purchase=TextEditingController(text:'200');
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
+  if(widget.welcomeOnFirstRun&&widget.initialData==null)unawaited(data.then((d){if(mounted&&firstRun(d))setState(()=>welcome=true);}).catchError((Object _){}));
   unawaited(runRecurring());
   unawaited(updateHomeWidget());
   unawaited(syncBillReminders());
@@ -391,7 +396,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   if(settingsOpen)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)settingsRefresh.value++;});
   return buildScreen(context);
  }
- Widget buildScreen(BuildContext context)=>LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
+ Widget buildScreen(BuildContext context)=>welcome?welcomeFlow():LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
   // Back from a small tab returns to the first one before leaving the page.
   canPop:(subTab[page]??0)==0,
   onPopInvokedWithResult:(didPop,result){
@@ -399,13 +404,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   },child:Scaffold(
   key:scaffoldKey,
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
-   title:page==0?Row(children:[const PaydayMark(size:42),SizedBox(width:10),
-    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText(uiDay(DateTime.now()),style:TextStyle(fontSize:PaydayType.caption,color:muted)),
-     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-      child:LText(paydaySlogan,maxLines:1,softWrap:false,
-       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,fontSize:14))),
-    ]))]):FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true)),centerTitle:false,
+   // Home carries the brand; each tab shows its own name, as on the design canvas.
+   title:page==0?FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true))
+    :LText(const ['','Records','Budgets','Savings'][page],key:ValueKey('page-title-$page'),
+     style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:26,color:ink)),centerTitle:false,
    // Settings is the only action; the tools that were under More now live in the small tabs.
    actions:[Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
      style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)))]),

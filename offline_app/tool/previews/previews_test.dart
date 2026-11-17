@@ -60,7 +60,14 @@ Map<String, List<RowData>> sample() {
     'bills': [
       {'id': 1, 'code': 'NET', 'name': 'Internet', 'due': '$m-20', 'amount': 30000, 'category': 'Utilities', 'note': ''},
     ],
-    'settings': [],
+    'reserves': [
+      {'id': 1, 'name': 'Eid al-Adha', 'target': 450000, 'funded': 260000, 'due': dayKey(DateTime(now.year + 1, 5, 15)), 'start_month': m},
+    ],
+    'reserve_movements': [],
+    'month_closes': [],
+    'settings': [
+      {'key': 'wallet_setup', 'value': '{"cash":124000,"bank":986000,"after_id":99,"date":"$m-01"}'},
+    ],
   };
 }
 
@@ -105,6 +112,13 @@ void main() {
         await t.tap(find.byKey(const ValueKey('subtab-2-1')));
         await t.pumpAndSettle();
         await shot('6_bills_tab');
+        for (final tab in [(2, 2, '6b_recurring'), (3, 1, '6c_reserves'), (3, 2, '6d_cash_bank'), (1, 1, '6e_review'), (1, 2, '6f_year')]) {
+          await t.tap(find.byKey(ValueKey('bottom-${tab.$1}')));
+          await t.pumpAndSettle();
+          await t.tap(find.byKey(ValueKey('subtab-${tab.$1}-${tab.$2}')));
+          await t.pumpAndSettle();
+          await shot(tab.$3);
+        }
         await t.tap(find.byKey(const ValueKey('bottom-0')));
         await t.pumpAndSettle();
         await t.tap(find.byType(PaydayAddButton));

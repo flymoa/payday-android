@@ -36,10 +36,10 @@ void main(){
    await tester.ensureVisible(find.text('More details'));await tester.pumpAndSettle();
    await tester.tap(find.text('More details'));await tester.pumpAndSettle();
    await enter('Note (optional)','Original note');await enter('Bill ID (optional)','B001');
-   await tester.tap(find.text('Save locally'));await tester.pumpAndSettle();
+   await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
    expect(store.saved!['amount'],31240);expect(store.saved!['type'],'Expense');expect(store.saved!['category'],'Groceries');
    expect(store.saved!['description'],'Weekly shop');expect(store.saved!['note'],'Original note');expect(store.saved!['bill_id'],'B001');
-   expect(find.text('Save locally'),findsNothing);expect(tester.takeException(),isNull);
+   expect(find.byKey(const ValueKey('save-transaction')),findsNothing);expect(tester.takeException(),isNull);
   });
  }
  testWidgets('amount is ready to type and Yesterday dates the entry in one tap',(tester)async{
@@ -57,7 +57,7 @@ void main(){
   final yesterday=find.byKey(const ValueKey('transaction-date-yesterday'));
   await tester.ensureVisible(yesterday);await tester.pumpAndSettle();
   await tester.tap(yesterday);await tester.pumpAndSettle();
-  await tester.tap(find.text('Save locally'));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
   final now=DateTime.now();
   expect(store.saved!['date'],dayKey(DateTime(now.year,now.month,now.day-1)));
   expect(store.saved!['amount'],4500);expect(store.saved!['note'],'');expect(store.saved!['bill_id'],'');

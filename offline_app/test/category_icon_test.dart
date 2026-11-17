@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/category_icon.dart';
-import 'package:payday_local/app_icon.dart';
 import 'package:payday_local/main.dart';
 import 'package:payday_local/finance.dart';
 void main(){
@@ -17,9 +16,7 @@ void main(){
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();
-   expect(find.byType(PaydayCategoryIcon),findsNWidgets(categories.length+3));
-   final budgetIcon=find.descendant(of:find.byKey(const ValueKey('home-budget-icon')),matching:find.byType(PaydayAppIcon));
-   expect(tester.widget<PaydayAppIcon>(budgetIcon).icon,Icons.pie_chart_outline);
+   expect(find.byType(PaydayCategoryIcon),findsNWidgets(categories.length));
    for(final c in categories){
     await tester.ensureVisible(find.text(c));await tester.pumpAndSettle();
     expect(tester.takeException(),isNull,reason:c);

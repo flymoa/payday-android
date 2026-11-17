@@ -65,6 +65,7 @@ void main(){
    final store=CopyStore(db);
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(store:store,initialData:store.snapshot())));
    await tester.pumpAndSettle();await tester.tap(find.text('Budgets').last);await tester.pumpAndSettle();
+   await tester.ensureVisible(find.text('Copy last month’s budget'));await tester.pumpAndSettle();
    await tester.tap(find.text('Copy last month’s budget'));await tester.pumpAndSettle();
    expect(find.text('Assigned after copy: 20.00 MAD'),findsOneWidget);
    expect((await db.query('budgets')).length,2);

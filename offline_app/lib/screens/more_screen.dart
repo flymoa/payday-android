@@ -217,13 +217,25 @@ extension _MoreScreen on _FinanceState {
  }
  String month0()=>monthKey(DateTime.now());
  Widget moreBills(Map<String,List<RowData>> d){
-  final bills=list(d,'bills')..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
+  final bills=list(d,'bills').where((b)=>st(b,'due').startsWith(month)).toList()..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
+  int owedFor(RowData b)=>billOutstanding(val(b,'amount'),billPaid(d,b));
+  final total=bills.fold<int>(0,(n,b)=>n+val(b,'amount')),owed=bills.fold<int>(0,(n,b)=>n+owedFor(b));
+  Widget billTile(RowData b){final remain=owedFor(b);
+   return tile(st(b,'name'),'${displayDay(context,st(b,'due'))} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),rawTitle:true,icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
+  }
+  Widget group(String label)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,14,4,6),
+   child:LText(label,style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.caption,letterSpacing:.4)));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    header('Bills',action:FilledButton.tonalIcon(onPressed:()=>billForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
-   ...bills.where((b)=>st(b,'due').startsWith(month)).map((b){final remain=billOutstanding(val(b,'amount'),billPaid(d,b));
-    return tile(st(b,'name'),'${displayDay(context,st(b,'due'))} · ID ${st(b,'code')} · Paid ${money(billPaid(d,b))}',remain==0?'Paid':money(remain),rawTitle:true,icon:remain==0?Icons.check_circle_outline:Icons.event_outlined,tone:remain==0?jade:amber,onTap:()=>billForm(b));
-   }),
-   if(!bills.any((b)=>st(b,'due').startsWith(month)))Padding(padding:EdgeInsets.all(8),child:LText('No bills due this month.'))
+   if(bills.isNotEmpty)PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[Expanded(child:LText('Still to pay',style:TextStyle(color:muted,fontWeight:FontWeight.w700))),
+     LText(money(owed),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:ink))]),
+    SizedBox(height:10),PaydayProgress(value:total<=0?0.0:(total-owed)/total),
+    SizedBox(height:8),LText('${money(total-owed)} of ${money(total)} paid',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+   ])),
+   if(bills.any((b)=>owedFor(b)>0))...[group('Coming up'),...bills.where((b)=>owedFor(b)>0).map(billTile)],
+   if(bills.any((b)=>owedFor(b)==0))...[group('Paid'),...bills.where((b)=>owedFor(b)==0).map(billTile)],
+   if(bills.isEmpty)Padding(padding:EdgeInsets.all(8),child:LText('No bills due this month.'))
   ]);
  }
  Widget moreReserves(Map<String,List<RowData>> d){
