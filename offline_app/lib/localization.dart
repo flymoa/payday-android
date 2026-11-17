@@ -61,6 +61,11 @@ String localizedDay(DateTime date,String language){
  if(language=='en')return '${date.year.toString().padLeft(4,'0')}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}';
  return '${date.day} ${localizedMonth(date,language)}';
 }
+/// Day and month only, e.g. "20 Nov" (English) or "20 novembre", as used in lists.
+String localizedShortDay(DateTime date,String language){
+ final name=_monthsEn[date.month-1];
+ return language=='en'?'${date.day} ${name.substring(0,3)}':'${date.day} ${translateMessage(name,language)}';
+}
 String displayDay(BuildContext context,String iso){
  final date=DateTime.tryParse(iso);return date==null?iso:localizedDay(date,languageOf(context));
 }

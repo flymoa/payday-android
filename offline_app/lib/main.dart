@@ -261,6 +261,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  late Future<Map<String,List<RowData>>> data=widget.initialData??store.snapshot();
  DateTime selected=DateTime(DateTime.now().year,DateTime.now().month);
  int page=0;
+ WalletSetup? currentWallets; // read with each data load, for the wallet name on rows
  bool welcome=false; // first open on an empty phone
  /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
  final subTab=<int,int>{1:0,2:0,3:0};
@@ -379,6 +380,55 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  int monthlyReserves(Map<String,List<RowData>> d)=>Ledger(d).monthlyReserves(month);
  int unpaidBills(Map<String,List<RowData>> d)=>Ledger(d).unpaidBills(month);
  String monthLabel(DateTime d)=>localizedMonth(d,language,short:true);
+ // Building blocks shared by the screens, matching the design canvas.
+ /// " · Cash" or " · Bank" for entries made after Cash & Bank tracking started.
+ String walletOf(RowData row)=>currentWallets!=null&&val(row,'id')>currentWallets!.afterId?' · ${tr(context,st(row,'account')=='Bank'?'Bank':'Cash')}':'';
+ String shortDay(String iso){final d=DateTime.tryParse(iso);return d==null?iso:localizedShortDay(d,language);}
+ /// Amount without the currency, for lists where the currency is obvious.
+ String plain(int cents)=>localizedNumber(cents,language,grouped:true);
+ Widget iconTile(IconData icon,{Color? color,Color? background,double size=40})=>Container(width:size,height:size,
+  decoration:BoxDecoration(color:background??(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint),borderRadius:BorderRadius.circular(14)),
+  child:Center(child:PaydayAppIcon(icon,size:size*.5,color:color)));
+ /// Rows grouped in one panel with thin dividers.
+ Widget groupedRows(List<Widget> rows)=>PaydayPanel(padding:EdgeInsets.symmetric(vertical:4),child:Material(color:Colors.transparent,
+  child:Column(children:[for(var i=0;i<rows.length;i++)...[if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),rows[i]]])));
+ Widget rowTitle(String text,{bool raw=false,bool category=false}){
+  final style=TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink);
+  return raw?Text(text,maxLines:1,overflow:TextOverflow.ellipsis,style:style):LText(text,category:category,maxLines:1,overflow:TextOverflow.ellipsis,style:style);
+ }
+ /// Icon, title with a line under it, an amount with an optional status, and an optional bar.
+ Widget listRow({Key? key,required Widget leading,required Widget title,String? subtitle,Color? subtitleColor,String? amount,Color? amountColor,
+  String? status,Color? statusColor,double? progress,Color? progressColor,Color? trackColor,VoidCallback? onTap,Widget? trailing})=>
+  InkWell(key:key,onTap:onTap,child:Padding(padding:EdgeInsets.symmetric(horizontal:14,vertical:11),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   LayoutBuilder(builder:(context,box)=>Row(children:[leading,SizedBox(width:12),
+    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[title,
+     if(subtitle!=null)Padding(padding:EdgeInsets.only(top:2),child:LText(subtitle,maxLines:2,
+      style:TextStyle(fontSize:PaydayType.caption,color:subtitleColor??muted,fontWeight:subtitleColor==null?FontWeight.w400:FontWeight.w600)))])),
+    if(amount!=null||status!=null)...[SizedBox(width:8),ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.45),
+     child:Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
+      if(amount!=null)FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+       child:LText(amount,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:15,color:amountColor??ink))),
+      if(status!=null)LText(status,textAlign:TextAlign.end,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:statusColor??muted)),
+     ]))],
+    if(trailing!=null)trailing,
+   ])),
+   if(progress!=null)...[SizedBox(height:9),PaydayProgress(value:progress.clamp(0,1).toDouble(),color:progressColor,trackColor:trackColor)],
+  ])));
+ /// Full-width secondary action at the end of a list ("Add a bill").
+ Widget listAction(String label,IconData icon,VoidCallback onPressed,{Key? key})=>Padding(padding:EdgeInsets.only(top:12),
+  child:SizedBox(width:double.infinity,child:OutlinedButton.icon(key:key,onPressed:onPressed,
+   style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(52),backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
+   icon:PaydayAppIcon(icon,size:20),label:LText(label,style:TextStyle(fontWeight:FontWeight.w700)))));
+ /// One summary line in a panel ("Still to pay … 728.00 MAD"), with optional content below.
+ Widget summaryLine(String label,String value,{Widget? below,Widget? trailing,Key? key})=>PaydayPanel(key:key,margin:EdgeInsets.only(bottom:12),
+  child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Row(children:[Expanded(child:LText(label,style:TextStyle(color:muted,fontWeight:FontWeight.w700))),SizedBox(width:8),
+    Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+     child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:ink)))),
+    if(trailing!=null)trailing]),
+   if(below!=null)...[SizedBox(height:10),below],
+  ]));
  Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,12,4,10),
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:24,fontWeight:FontWeight.w800,color:ink)),
@@ -420,6 +470,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    // Blank while records load (encrypted open), so no spinner flashes before Home.
    if(!snap.hasData)return const SizedBox.shrink();
    final d=snap.data!;
+   currentWallets=WalletSetup.decode(Ledger(d).setting(walletSetupKey));
    final tab=subTab[page]??0;
    Widget screen;
    switch(page){
@@ -429,9 +480,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     default:screen=home(d);
    }
    // The month switcher shows where the content depends on the month.
-   final showMonth=page==1?tab!=1:page==2?tab!=2:page==3&&tab==0;
+   final showMonth=page==1||page==2&&tab!=2;
    return SafeArea(child:ListView(key:ValueKey('page-$page-tab-$tab'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[
-    if(page!=0)subTabs(),if(showMonth)navMonth(),screen]));
+    if(page!=0)subTabs(),if(showMonth)...[navMonth(),SizedBox(height:12)],screen]));
   }),
   // Floating navigation bar: the selected tab is marked by a tinted pill.
   bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(

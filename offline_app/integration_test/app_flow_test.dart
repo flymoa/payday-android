@@ -74,6 +74,9 @@ void main() {
     await t.tap(find.byType(PaydayAddButton));
     await settle(t, seconds: 2);
     await t.enterText(find.widgetWithText(TextField, 'Amount (MAD)'), '12.50');
+    await t.ensureVisible(find.byKey(const ValueKey('transaction-more-details')));
+    await t.tap(find.byKey(const ValueKey('transaction-more-details')));
+    await settle(t, seconds: 1);
     await t.enterText(find.widgetWithText(TextField, 'Description'), 'Emulator coffee');
     await t.testTextInput.receiveAction(TextInputAction.done);
     await settle(t, seconds: 1);

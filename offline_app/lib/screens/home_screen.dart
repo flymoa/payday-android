@@ -6,8 +6,8 @@ part of '../main.dart';
 extension _HomeScreen on _FinanceState {
  String homeDigits(int cents)=>localizedNumber(cents,language,grouped:true);
  String get decimalSeparator=>language=='fr'?',':'.';
- /// One budget row inside the grouped Budgets panel on Home.
- /// Tap a row to see this month's records for the category.
+ /// One budget row: status under the name, "spent / budget" on the right and a bar below.
+ /// Tap a row to see this month's records for the category (Budgets passes its own action).
  Widget homeCategory(String category,int spent,int limit,{VoidCallback? onTap}){
   final status=categoryBudgetStatus(spent,limit);
   final isOver=status==CategoryBudgetStatus.overBudget;
@@ -15,57 +15,28 @@ extension _HomeScreen on _FinanceState {
   final isSpent=status==CategoryBudgetStatus.fullySpent;
   final isUnbudgeted=status==CategoryBudgetStatus.unbudgeted;
   final ahead=status==CategoryBudgetStatus.withinBudget&&spendingAheadOfPace(spent:spent,budget:limit,month:selected,now:DateTime.now());
-  final caution=isNear||isSpent||isUnbudgeted||ahead;
-  final statusColor=isOver?danger:caution?warn:homeGreen;
-  final noteColor=isOver?danger:caution?(isDark?warn:PaydayColors.statusNearText):homeText;
-  final progress=limit<=0?(spent>0?1.0:0.0):(spent/limit).clamp(0,1).toDouble();
-  final description=isOver?'Over budget':
-    isUnbudgeted?'No budget set':isSpent?'Fully spent':isNear?'Near limit':ahead?'Spending fast':'${(spent*100/limit).round()}% used';
-  return Material(color:Colors.transparent,
-   child:InkWell(key:ValueKey('home-category-$category'),
-    onTap:onTap??()=>openCategoryRecords(category),child:Padding(
-   padding:EdgeInsets.symmetric(horizontal:14,vertical:13),
-   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    // Name on the left, status pinned to the right edge of the row.
-    // The status only shrinks (never wraps) if the phone's text is very large.
-    LayoutBuilder(builder:(context,box)=>Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
-     PaydayCategoryIcon(category,size:36),SizedBox(width:10),
-     Expanded(child:LText(category,category:true,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:ink,
-      fontWeight:FontWeight.w700,fontSize:15))),
-     SizedBox(width:8),
-     if(isOver)Padding(padding:EdgeInsetsDirectional.only(end:4),
-      child:PaydayAppIcon(Icons.error_outline,color:danger,size:17)),
-     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.5),
-      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-       child:LText(description,maxLines:1,style:TextStyle(color:noteColor,
-        fontWeight:FontWeight.w700,fontSize:PaydayType.caption)))),
-    ])),
-    SizedBox(height:9),
-    Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
-     Expanded(flex:6,child:LText('${homeDigits(spent)} / ${homeDigits(limit)} $currency',
-      maxLines:2,style:TextStyle(color:homeText,fontSize:PaydayType.caption))),
-     SizedBox(width:5),
-     Expanded(flex:5,child:LText(isOver?'Over by ${homeDigits(spent-limit)} $currency':
-      isUnbudgeted?'Set a budget':'${homeDigits(limit-spent)} $currency left',
-      textAlign:TextAlign.end,softWrap:true,
-      style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,
-       color:isOver?danger:homeText))),
-    ]),
-    SizedBox(height:10),
-    PaydayProgress(value:progress,color:statusColor,
-     trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null),
-   ]),
-  )));
+  final caution=isNear||ahead;
+  final barColor=isOver?danger:isSpent?muted:caution?warn:homeGreen;
+  final noteColor=isOver?danger:caution?(isDark?warn:PaydayColors.statusNearText):null;
+  final left='${money(limit-spent)} left';
+  final description=isOver?'Over by ${money(spent-limit)}':isUnbudgeted?'No budget set':isSpent?'Fully spent':
+   isNear?'Near limit · $left':ahead?'Spending fast · $left':left;
+  return listRow(key:ValueKey('home-category-$category'),onTap:onTap??()=>openCategoryRecords(category),
+   leading:PaydayCategoryIcon(category,size:38),title:rowTitle(category,category:true),
+   subtitle:description,subtitleColor:noteColor,
+   amount:isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
+   progress:limit<=0?(spent>0?1.0:0.0):spent/limit,progressColor:barColor,
+   trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null);
  }
- /// Month switcher shown at the top of each page.
- Widget navMonth()=>Center(child:Material(color:surface,clipBehavior:Clip.antiAlias,
+ /// Month switcher shown at the top of pages that depend on the month.
+ Widget navMonth()=>Material(color:surface,clipBehavior:Clip.antiAlias,
   shape:StadiumBorder(side:BorderSide(color:line)),
-  child:Row(mainAxisSize:MainAxisSize.min,children:[
+  child:Row(children:[
    IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-   Flexible(child:Padding(padding:EdgeInsets.symmetric(horizontal:6),child:LText(monthLabel(selected),textAlign:TextAlign.center,
-    style:TextStyle(fontWeight:FontWeight.w800,fontSize:15,color:ink)))),
+   Expanded(child:LText(localizedMonth(selected,language),textAlign:TextAlign.center,maxLines:1,
+    style:TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink))),
    IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
-  ])));
+  ]));
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:6,horizontal:2),foregroundColor:page==index?jade:muted,
    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
@@ -174,13 +145,14 @@ extension _HomeScreen on _FinanceState {
   final ts=monthTransactions(d),balance=monthlyBalance(d);
   final recent=recentActivityRows(list(d,'transactions'),DateTime.now());
   final categories=spendingCategories(d).where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
-  Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,22,0,8),child:Row(children:[
-   Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
+  Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,16,0,4),child:Row(children:[
+   Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:19,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   const heroInk=paydaySand;
   final now=DateTime.now();
   final current=selected.year==now.year&&selected.month==now.month;
   final daysLeft=DateTime(now.year,now.month+1,0).day-now.day+1;
   final nextBill=current?nextDueBill(d,now):null;
+  String whole(int cents)=>homeDigits(cents).split(decimalSeparator).first;
   Widget heroFigure(String label,String value)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LText(label,maxLines:1,style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption,fontWeight:FontWeight.w600)),
    SizedBox(height:2),
@@ -190,42 +162,37 @@ extension _HomeScreen on _FinanceState {
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // Home shows this month; the switcher appears only after another month was picked elsewhere.
    if(!current)...[navMonth(),SizedBox(height:12)],
-   // Hero: what can still be spent, then the month at a glance, on emerald in both themes.
+   // Hero: what can still be spent, then the month at a glance, on emerald in both themes. Tap for the details.
    Material(key:ValueKey('home-hero'),color:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.hero),clipBehavior:Clip.antiAlias,
     child:Ink(decoration:BoxDecoration(gradient:LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,
       colors:[PaydayColors.heroTop,PaydayColors.heroBottom])),
      child:InkWell(onTap:()=>balanceDetails(balance,true),child:Padding(padding:EdgeInsets.all(20),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Row(children:[Expanded(child:LText('Safe to spend',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
+       Row(children:[Expanded(child:LText('Safe to spend',maxLines:1,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
         SizedBox(width:8),
-        Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
-         !current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
-         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
-       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.safe).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
-       SizedBox(height:14),MonthUsageBar(value:balance.usedFraction,
-        trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
+        LText(!current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
+         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))]),
+       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe).split(decimalSeparator).first,style:TextStyle(fontSize:40)),TextSpan(text:'$decimalSeparator${homeDigits(balance.safe).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
+       SizedBox(height:14),
+       // How much of the month's money is already used.
+       ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.pill),child:SizedBox(height:8,child:Stack(children:[
+        Container(color:heroInk.withValues(alpha:.18)),
+        FractionallySizedBox(widthFactor:balance.usedFraction.clamp(0,1).toDouble(),child:Container(color:paydaySaffron)),
+       ]))),
        SizedBox(height:14),Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-        heroFigure('Income',money(balance.income)),SizedBox(width:10),
-        heroFigure('Spent',money(balance.expenses)),SizedBox(width:10),
-        heroFigure('Bills ahead',money(balance.unpaidBills)),
+        heroFigure('Income',whole(balance.income)),SizedBox(width:10),
+        heroFigure('Spent',whole(balance.expenses)),SizedBox(width:10),
+        heroFigure('Bills ahead',whole(balance.unpaidBills)),
        ]),
       ]))))),
-   // Available money stays one tap away; the hero above explains Safe to spend.
-   Padding(padding:EdgeInsets.only(top:6),child:balanceTap('Explain available balance',()=>balanceDetails(balance,false),
-    Padding(padding:EdgeInsets.symmetric(horizontal:8),child:Row(children:[
-     Expanded(child:LText('Available this month',style:TextStyle(color:muted,fontWeight:FontWeight.w600,fontSize:PaydayType.small))),
-     SizedBox(width:8),
-     Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-      child:LText(money(balance.available),style:TextStyle(color:ink,fontFamily:'Bricolage',fontWeight:FontWeight.w800)))),
-     SizedBox(width:6),PaydayAppIcon(Icons.info_outline,size:16,color:muted),
-    ])))),
    // Cash & Bank at a glance, once tracking is on.
    if(walletSetupOf(d) case final setup?)Padding(padding:EdgeInsets.only(top:12),child:PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,
     child:InkWell(key:ValueKey('home-wallets'),onTap:()=>openTool(6),child:Padding(padding:EdgeInsets.symmetric(horizontal:16,vertical:14),
      child:Builder(builder:(_){
       final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
       Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
+       Row(children:[PaydayAppIcon(w=='Cash'?Icons.payments_outlined:Icons.account_balance_outlined,size:16,color:muted),SizedBox(width:6),
+        LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
        FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(b[w]!),
         style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:17,color:b[w]!<0?danger:ink)))]));
       return Row(children:[one('Cash'),SizedBox(width:12),one('Bank'),PaydayAppIcon(Icons.chevron_right,color:muted)]);
@@ -242,7 +209,7 @@ extension _HomeScreen on _FinanceState {
       budgetFor(d,month,st(categories[i],'name'))),
     ],
    ])),
-   section('Recent activity','See all',()=>setState(()=>page=1)),
+   section('Recent','See all',()=>setState(()=>page=1)),
    if(recent.isEmpty)PaydayEmpty(icon:Icons.receipt_long_outlined,message:'No activity today or yesterday.')
    else PaydayPanel(padding:EdgeInsets.symmetric(horizontal:14,vertical:4),child:Column(children:[
     for(var i=0;i<recent.length;i++)...[
@@ -264,8 +231,9 @@ extension _HomeScreen on _FinanceState {
   final owed=billOutstanding(val(bill,'amount'),Ledger(d).billPaid(bill));
   final due=DateTime.parse(st(bill,'due')),now=DateTime.now();
   final days=DateTime(due.year,due.month,due.day).difference(DateTime(now.year,now.month,now.day)).inDays;
-  final when=days<0?'{0} · overdue':days==0?'{0} · due today':days==1?'{0} · due tomorrow':'{0} · due in {1} days';
+  final when=days<0?'{0} · overdue':days==0?'{0} · today':days==1?'{0} · tomorrow':'{0} · in {1} days';
   final text=when.replaceAll('{0}',money(owed)).replaceAll('{1}','$days');
+  final title='{0} is due on {1}'.replaceAll('{0}',st(bill,'name')).replaceAll('{1}',shortDay(st(bill,'due')));
   return Padding(padding:EdgeInsets.only(top:12),child:Material(key:ValueKey('home-next-bill'),
    color:isDark?const Color(0xff2E2618):const Color(0xffFFF3DC),clipBehavior:Clip.antiAlias,
    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.card),
@@ -275,7 +243,7 @@ extension _HomeScreen on _FinanceState {
      child:Center(child:PaydayAppIcon(Icons.notifications_none,size:20,color:isDark?warn:PaydayColors.statusNearText))),
     SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Text(st(bill,'name'),maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
+     LText(title,maxLines:2,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:2),
      LText(text,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:isDark?warn:PaydayColors.statusNearText)),
     ])),
@@ -289,14 +257,14 @@ extension _HomeScreen on _FinanceState {
   return Material(color:Colors.transparent,child:InkWell(
    borderRadius:BorderRadius.circular(14),onTap:()=>transactionForm(row),
    child:Padding(padding:EdgeInsets.symmetric(vertical:11),child:LayoutBuilder(builder:(context,box)=>Row(children:[
-    PaydayCategoryIcon(category,size:42),SizedBox(width:12),
+    PaydayCategoryIcon(category,size:40),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
-     SizedBox(height:3),LText('${categoryLabel(context,category)} · ${tr(context,recentActivityDay(st(row,'date'),DateTime.now()))}',
+     SizedBox(height:3),LText('${categoryLabel(context,category)}${walletOf(row)} · ${tr(context,recentActivityDay(st(row,'date'),DateTime.now()))}',
       style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
-     child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText('${outgoing?'−':'+'}${money(val(row,'amount'))}',
+     child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText('${outgoing?'−':'+'}${plain(val(row,'amount'))}',
       style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:outgoing?ink:jade)))),
    ])))));
  }
