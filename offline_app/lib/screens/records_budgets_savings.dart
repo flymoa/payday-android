@@ -167,7 +167,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      onPressed:()=>transactionForm(null,initialType:'Savings out'),icon:PaydayAppIcon(Icons.add,size:20),label:LText('Add money'))),
     SizedBox(width:8),
     Expanded(child:OutlinedButton.icon(key:ValueKey('savings-take'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(50),backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line)),
-     onPressed:()=>transactionForm(null,initialType:'Savings in'),icon:PaydayAppIcon(Icons.swap_horiz,size:20),label:LText('Take out'))),
+     onPressed:()=>transactionForm(null,initialType:'Savings in'),icon:PaydayAppIcon(Icons.repeat,size:20),label:LText('Take out'))),
    ]),
    header('Goals',action:TextButton(key:ValueKey('goal-new'),onPressed:()=>goalForm(null),child:LText('New goal',style:TextStyle(fontWeight:FontWeight.w700)))),
    if(goals.isEmpty)PaydayEmpty(icon:Icons.savings_outlined,message:'No savings goals yet. Tap New to add one.')

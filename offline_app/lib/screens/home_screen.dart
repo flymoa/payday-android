@@ -167,7 +167,7 @@ extension _HomeScreen on _FinanceState {
         SizedBox(width:8),
         LText(!current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
          style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))]),
-       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe).split(decimalSeparator).first,style:TextStyle(fontSize:40)),TextSpan(text:'$decimalSeparator${homeDigits(balance.safe).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
+       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe),style:TextStyle(fontSize:40)),TextSpan(text:' $currency',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
        SizedBox(height:14),
        // How much of the month's money is already used.
        ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.pill),child:SizedBox(height:8,child:Stack(children:[
@@ -186,7 +186,7 @@ extension _HomeScreen on _FinanceState {
      child:Builder(builder:(_){
       final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
       Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Row(children:[PaydayAppIcon(w=='Cash'?Icons.payments_outlined:Icons.account_balance_outlined,size:16,color:muted),SizedBox(width:6),
+       Row(children:[PaydayAppIcon(w=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:16,color:muted),SizedBox(width:6),
         LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
        FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(b[w]!),
         style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:17,color:b[w]!<0?danger:ink)))]));

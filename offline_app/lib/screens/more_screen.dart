@@ -58,7 +58,7 @@ extension _MoreScreen on _FinanceState {
    SizedBox(height:12),
    // Closing the month.
    PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[iconTile(Icons.check,size:36),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[iconTile(Icons.fact_check_outlined,size:36),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText('Close ${localizedMonth(selected,language)}',style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      LText(ended?'Check entries and your balance, then confirm.':'Month-close checks are available after the month ends.',
       style:TextStyle(color:muted,fontSize:PaydayType.caption)),
@@ -96,7 +96,7 @@ extension _MoreScreen on _FinanceState {
   return setup==null?{'Cash':0,'Bank':0}:walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
  }
  Widget walletBalanceCard(String wallet,int amount)=>Expanded(child:PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-  Row(children:[PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_outlined,size:20),SizedBox(width:8),
+  Row(children:[PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:20),SizedBox(width:8),
    Expanded(child:LText(wallet,style:TextStyle(color:muted,fontWeight:FontWeight.w700)))]),
   SizedBox(height:8),
   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
@@ -122,10 +122,10 @@ extension _MoreScreen on _FinanceState {
     walletBalanceCard('Cash',balances['Cash']!),SizedBox(width:10),walletBalanceCard('Bank',balances['Bank']!)])),
    SizedBox(height:12),
    SizedBox(width:double.infinity,child:FilledButton.icon(key:ValueKey('wallet-transfer'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(50)),
-    onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.swap_horiz),label:LText('Transfer'))),
+    onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.repeat),label:LText('Transfer'))),
    SizedBox(height:12),
-   if(transfers.isEmpty)PaydayEmpty(icon:Icons.swap_horiz,message:'No transfers yet.')
-   else groupedRows([for(final t in transfers)listRow(leading:iconTile(Icons.swap_horiz),
+   if(transfers.isEmpty)PaydayEmpty(icon:Icons.repeat,message:'No transfers yet.')
+   else groupedRows([for(final t in transfers)listRow(leading:iconTile(Icons.repeat),
     title:rowTitle(t.from=='Bank'?'Bank → Cash':'Cash → Bank'),subtitle:shortDay(t.date),amount:plain(t.amount),
     onTap:()=>confirmDelete('Delete transfer?',()=>store.deleteWalletTransfer(t.id)))]),
    Align(alignment:AlignmentDirectional.centerStart,child:TextButton(onPressed:()=>walletSetupForm(balances),child:LText('Correct balances'))),
@@ -244,7 +244,7 @@ extension _MoreScreen on _FinanceState {
    final days=due==null?0:DateTime(due.year,due.month,due.day).difference(today).inDays;
    final when=remain==0?'':days<0?' · overdue':days==0?' · today':days==1?' · tomorrow':days<=7?' · in $days days':'';
    return listRow(key:ValueKey('bill-${st(b,'code')}'),onTap:()=>billForm(b),
-    leading:iconTile(remain==0?Icons.check:Icons.receipt_long_outlined),title:rowTitle(st(b,'name'),raw:true),
+    leading:iconTile(remain==0?Icons.check_circle_outline:Icons.receipt_long_outlined),title:rowTitle(st(b,'name'),raw:true),
     subtitle:remain==0?'Paid ${shortDay(st(b,'due'))}':'Due ${shortDay(st(b,'due'))}$when',
     amount:plain(amount),
     status:remain==0?'Paid':paid>0?'${plain(paid)} paid':'Not paid',

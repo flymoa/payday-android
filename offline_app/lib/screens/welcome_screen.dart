@@ -78,7 +78,7 @@ class _WelcomeFlowState extends State<_WelcomeFlow> {
                 onPressed: () => setState(() => step = 1), child: LText('Get started'))),
             const SizedBox(height: 10),
             SizedBox(width: double.infinity, child: OutlinedButton.icon(key: const ValueKey('welcome-restore'),
-                onPressed: busy ? null : widget.onRestore, icon: const PaydayAppIcon(Icons.download_outlined), label: LText('Restore a backup'))),
+                onPressed: busy ? null : widget.onRestore, icon: const PaydayAppIcon(Icons.file_open), label: LText('Restore a backup'))),
           ]))));
     }
     return PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) {
