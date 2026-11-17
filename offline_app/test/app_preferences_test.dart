@@ -91,8 +91,8 @@ void main(){
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(PaydayLocal(store:store));await tester.pumpAndSettle();
   expect(find.byIcon(Icons.menu),findsNothing);
-  final slogan=tester.widget<Text>(find.text(paydaySlogan));
-  expect(slogan.maxLines,1);expect(slogan.style!.fontWeight,FontWeight.w700);
+  // Home's top bar carries the brand, as on the design canvas.
+  expect(find.byType(PaydayBrand),findsOneWidget);
   await openSettings(tester);
   // Settings is a full page now, not a side drawer.
   expect(find.byType(Drawer),findsNothing);expect(find.text('Settings'),findsOneWidget);
