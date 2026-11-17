@@ -213,11 +213,11 @@ extension _Forms on _FinanceState {
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Wrap(spacing:8,runSpacing:8,crossAxisAlignment:WrapCrossAlignment.center,children:[
     PaydayPill(key:ValueKey('transaction-date-today'),label:'Today',selected:sameDay(date,dayOffset(0)),onTap:()=>rebuild(()=>date=dayOffset(0))),
     PaydayPill(key:ValueKey('transaction-date-yesterday'),label:'Yesterday',selected:sameDay(date,dayOffset(-1)),onTap:()=>rebuild(()=>date=dayOffset(-1))),
-    OutlinedButton.icon(key:ValueKey('transaction-date-pick'),style:OutlinedButton.styleFrom(backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),shape:StadiumBorder(),minimumSize:Size(0,40)),
+    OutlinedButton.icon(key:ValueKey('transaction-date-pick'),style:OutlinedButton.styleFrom(backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),shape:StadiumBorder(),minimumSize:Size(0,40),padding:EdgeInsets.symmetric(horizontal:12)),
      icon:PaydayAppIcon(Icons.calendar_today_outlined,size:16),onPressed:()async{final today=dayOffset(0);final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:date.isAfter(today)?date:today);if(p!=null)rebuild(()=>date=p);},
      label:Text(localizedShortDay(date,language),style:TextStyle(fontWeight:FontWeight.w700))),
     ])),
-    TextButton(key:ValueKey('transaction-more-details'),onPressed:()=>rebuild(()=>details=!details),
+    TextButton(key:ValueKey('transaction-more-details'),style:TextButton.styleFrom(padding:EdgeInsets.symmetric(horizontal:6),minimumSize:Size(44,40)),onPressed:()=>rebuild(()=>details=!details),
      child:LText(details?'Hide note':'+ Note',style:TextStyle(fontWeight:FontWeight.w700))),
    ]),
    if(details)...[SizedBox(height:12),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)')],
