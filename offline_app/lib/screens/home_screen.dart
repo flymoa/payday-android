@@ -177,16 +177,6 @@ extension _HomeScreen on _FinanceState {
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,22,0,8),child:Row(children:[
    Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:21,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   const heroInk=paydaySand;
-  Widget heroStat(IconData icon,String label,String value)=>Expanded(child:Container(
-   padding:EdgeInsets.symmetric(horizontal:12,vertical:10),
-   decoration:BoxDecoration(color:heroInk.withValues(alpha:.10),borderRadius:BorderRadius.circular(PaydayRadius.md)),
-   child:Row(children:[PaydayAppIcon(icon,color:paydaySaffron,size:18),SizedBox(width:8),
-    Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisAlignment:MainAxisAlignment.center,children:[
-     LText(label,style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption,fontWeight:FontWeight.w600)),
-     SizedBox(height:2),
-     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-      child:LText(value,style:TextStyle(color:heroInk,fontFamily:'Bricolage',fontSize:15,fontWeight:FontWeight.w800))),
-    ]))])));
   final now=DateTime.now();
   final current=selected.year==now.year&&selected.month==now.month;
   final daysLeft=DateTime(now.year,now.month+1,0).day-now.day+1;

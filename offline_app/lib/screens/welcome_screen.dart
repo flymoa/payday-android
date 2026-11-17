@@ -1,5 +1,6 @@
 // First open: a welcome page, then three quick choices (language, currency,
 // expected income). Shown once, only on a phone with no records yet.
+// ignore_for_file: invalid_use_of_protected_member
 part of '../main.dart';
 
 class _WelcomeFlow extends StatefulWidget {
