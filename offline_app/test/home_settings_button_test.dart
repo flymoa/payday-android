@@ -23,10 +23,11 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await t.tap(find.byTooltip('Close settings'));
     await t.pumpAndSettle();
-    // The button belongs to Home only.
+    // The gear is on every page now that the More button is gone.
     await t.tap(find.byKey(const ValueKey('bottom-2')));
     await t.pumpAndSettle();
-    expect(button, findsNothing);
+    expect(button, findsOneWidget);
+    expect(find.text('More'), findsNothing);
     expect(t.takeException(), isNull);
   });
 }

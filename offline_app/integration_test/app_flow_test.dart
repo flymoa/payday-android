@@ -82,14 +82,12 @@ void main() {
       await settle(t, seconds: 1);
       expect(t.takeException(), isNull, reason: 'tab $tab');
     }
-    final more = find.text('More');
-    await waitFor(t, more);
+    final records = find.byKey(const ValueKey('bottom-1'));
+    await waitFor(t, records);
     {
-      await t.tap(more.first);
+      await t.tap(records.first);
       await settle(t, seconds: 1);
-      await t.ensureVisible(find.text('Monthly review'));
-      await settle(t, seconds: 1);
-      await t.tap(find.text('Monthly review'));
+      await t.tap(find.byKey(const ValueKey('subtab-1-1')));
       await settle(t, seconds: 1);
       await waitFor(t, find.text('Check before closing'));
       expect(t.takeException(), isNull);

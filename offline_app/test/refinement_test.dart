@@ -47,7 +47,7 @@ void main(){
     home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();
    expect(tester.takeException(),isNull);
-   for(final label in ['Records','Budgets','Savings','More','Home']){
+   for(final label in ['Records','Budgets','Savings','Home']){
     await tester.tap(find.text(label).last);
     await tester.pumpAndSettle();
     expect(tester.takeException(),isNull,reason:label);

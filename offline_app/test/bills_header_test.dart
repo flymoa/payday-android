@@ -11,10 +11,10 @@ void main(){
   testWidgets('Bills and New align, with a clear form title in ${brightness.name}',(t)async{
    await t.binding.setSurfaceSize(const Size(320,800));addTearDown(()=>t.binding.setSurfaceSize(null));
    await t.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(store:BillsStore(),initialData:Future.value({}))));
-   await t.pumpAndSettle();await t.tap(find.text('More'));await t.pumpAndSettle();
-   await t.tap(find.text('Bills & payments'));await t.pumpAndSettle();
+   await t.pumpAndSettle();await t.tap(find.byKey(const ValueKey('bottom-2')));await t.pumpAndSettle();
+   await t.tap(find.byKey(const ValueKey('subtab-2-1')));await t.pumpAndSettle();
    expect(find.textContaining('Attach the Bill ID'),findsNothing);
-   expect((t.getCenter(find.text('Bills')).dy-t.getCenter(find.text('New')).dy).abs(),lessThan(1));
+   expect((t.getCenter(find.text('Bills').last).dy-t.getCenter(find.text('New')).dy).abs(),lessThan(1));
    await t.tap(find.text('New'));await t.pumpAndSettle();
    expect(find.text('Add a bill'),findsOneWidget);expect(find.text('Add bill'),findsNothing);
    expect(t.takeException(),isNull);

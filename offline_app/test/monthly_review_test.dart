@@ -29,9 +29,8 @@ void main(){
     'budgets':[{'month':m,'category':'Food','amount':10000}],
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
-   await tester.pumpAndSettle();await tester.tap(find.text('More').last);await tester.pumpAndSettle();
-   await tester.ensureVisible(find.text('Monthly review'));await tester.pumpAndSettle();
-   await tester.tap(find.text('Monthly review'));await tester.pumpAndSettle();
+   await tester.pumpAndSettle();await tester.tap(find.byKey(const ValueKey('bottom-1')));await tester.pumpAndSettle();
+   await tester.tap(find.byKey(const ValueKey('subtab-1-1')));await tester.pumpAndSettle();
    expect(find.text('790.00 MAD'),findsOneWidget);
    expect(find.text('Over budget'),findsOneWidget);
    expect(find.text('Spending without a category budget'),findsOneWidget);
