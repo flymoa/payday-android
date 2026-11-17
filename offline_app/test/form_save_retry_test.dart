@@ -28,7 +28,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Savings').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('New'));
+    await tester.tap(find.byKey(const ValueKey('goal-new')));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Goal name'), 'Emergency fund');
     await tester.enterText(find.widgetWithText(TextField, 'Target (MAD)'), '5000');

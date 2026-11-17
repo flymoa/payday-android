@@ -16,12 +16,12 @@ extension _RecordsBudgetsSavings on _FinanceState {
      Text(st(t,'description').isEmpty?categoryLabel(context,category):st(t,'description'),
       maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      SizedBox(height:3),
-     LText('${categoryLabel(context,category)} · ${tr(context,type)}${showWallet&&val(t,'id')>afterId?' · ${tr(context,st(t,'account')=='Bank'?'Bank':'Cash')}':''}',maxLines:2,overflow:TextOverflow.ellipsis,
+     LText('${categoryLabel(context,category)}${walletOf(t).isEmpty?' · ${tr(context,type)}':walletOf(t)}',maxLines:2,overflow:TextOverflow.ellipsis,
       style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-      child:LText('${incoming?'+':'−'}${money(val(t,'amount'))}',
+      child:LText('${incoming?'+':'−'}${plain(val(t,'amount'))}',
        style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w700,color:incoming?jade:ink)))),
    ])))));
  }
@@ -33,12 +33,9 @@ extension _RecordsBudgetsSavings on _FinanceState {
   for(final t in rows){days.putIfAbsent(st(t,'date'),()=><RowData>[]).add(t);}
   return [
    for(final entry in days.entries)...[
-    Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,8),child:Row(children:[
-     Expanded(child:LText(entry.key==today?'Today':entry.key==yesterday?'Yesterday':displayDay(context,entry.key),
-      style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.small))),
-     if(sumType(entry.value,'Expense')>0)...[SizedBox(width:8),Expanded(child:LText('Spent ${money(sumType(entry.value,'Expense'))}',
-      textAlign:TextAlign.end,style:TextStyle(color:muted,fontSize:PaydayType.caption)))],
-    ])),
+    Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
+     (entry.key==today?'${tr(context,'Today')} · ${shortDay(entry.key)}':entry.key==yesterday?'${tr(context,'Yesterday')} · ${shortDay(entry.key)}':shortDay(entry.key)).toUpperCase(),
+     style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.caption,letterSpacing:.4))),
     PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
      for(var i=0;i<entry.value.length;i++)...[
       if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
@@ -52,11 +49,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final all=recordAllMonths?(list(d,'transactions').toList()..sort((a,b){final x=st(b,'date').compareTo(st(a,'date'));return x!=0?x:val(b,'id').compareTo(val(a,'id'));})):monthTransactions(d);
   final ts=all.where((t)=>(matchesRecord(t,recordQuery,recordType)||(recordType=='All'||st(t,'type')==recordType)&&categoryLabel(context,st(t,'category')).toLowerCase().contains(recordQuery.trim().toLowerCase()))).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Transactions',subtitle:recordAllMonths?'${ts.length} of ${all.length} entries · All months':'${ts.length} of ${all.length} entries · ${monthLabel(selected)}'),
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
-    style:TextStyle(fontSize:13),
+    style:TextStyle(fontSize:15),
     decoration:InputDecoration(hintText:tr(context,'Search records'),isDense:true,fillColor:surface,
-     contentPadding:EdgeInsets.symmetric(horizontal:12,vertical:10),
+     contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:12),
      prefixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      suffixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      prefixIcon:Padding(padding:EdgeInsets.all(9),child:PaydayAppIcon(Icons.search,size:18,color:muted)),
@@ -97,6 +93,14 @@ extension _RecordsBudgetsSavings on _FinanceState {
  }
  /// Name and budget on top, a progress bar, then spent and remaining centred on
  /// their own wrapping line, so nothing is cut off however long the amounts are.
+ /// Allocate to a goal or change it.
+ Future<void> goalActions(Map<String,List<RowData>> d,RowData g)async{
+  await sheet(st(g,'name'),(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+   FilledButton.icon(key:ValueKey('goal-allocate'),onPressed:(){Navigator.pop(c);allocationForm(d,g);},icon:PaydayAppIcon(Icons.add),label:LText('Allocate')),
+   SizedBox(height:8),
+   OutlinedButton.icon(key:ValueKey('goal-edit'),onPressed:(){Navigator.pop(c);goalForm(g);},icon:PaydayAppIcon(Icons.edit_outlined),label:LText('Edit goal')),
+  ]));
+ }
  Widget planRow(String title,String subtitle,String value,VoidCallback onTap)=>ListTile(
   contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:4),leading:PaydayCategoryIcon(title),
   title:LText(title,style:TextStyle(fontWeight:FontWeight.w700)),
@@ -106,88 +110,75 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
-  Widget figure(String label,String value,{Color? color,bool end=false})=>Expanded(child:Column(
-   crossAxisAlignment:end?CrossAxisAlignment.end:CrossAxisAlignment.start,children:[
-    LText(label,maxLines:2,textAlign:end?TextAlign.end:TextAlign.start,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
-    FittedBox(fit:BoxFit.scaleDown,alignment:end?AlignmentDirectional.centerEnd:AlignmentDirectional.centerStart,
-     child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color??ink))),
-   ]));
+  Widget figure(String label,String value,{Color? color})=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   LText(label,maxLines:2,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
+   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+    child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color??ink))),
+  ]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // How much of the planned income already has a job.
-   PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   PaydayPanel(key:ValueKey('budget-summary'),margin:EdgeInsets.only(bottom:12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     figure('Planned income',money(inc)),SizedBox(width:8),
-     figure('Budgeted',money(assigned)),SizedBox(width:8),
-     figure(left<0?'Over-assigned':'Not assigned',money(left.abs()),color:left<0?danger:jade,end:true),
+     figure('Planned income',plain(inc)),SizedBox(width:8),
+     figure('Budgeted',plain(assigned)),SizedBox(width:8),
+     figure(left<0?'Over-assigned':'Not assigned',plain(left.abs()),color:left<0?danger:jade),
     ]),
-    SizedBox(height:12),
-    PaydayProgress(value:inc<=0?(assigned>0?1.0:0.0):assigned/inc,color:assigned>inc?danger:jade),
-    SizedBox(height:10),
-    LText(
+    if(inc==0&&assigned==0||assigned>inc)...[SizedBox(height:10),LText(
      inc==0&&assigned==0?'Set planned income to start assigning your budget.':
-     inc==assigned?'No more money to assign. Your income is fully assigned.':
-     assigned>inc?'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
-     'Available to assign: ${money(inc-assigned)}',
-     style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:inc-assigned>=0?muted:danger)),
+     'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.',
+     style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:assigned>inc?danger:muted))],
    ])),
-   header('Spending categories'),
    if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')
-   else PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
-    for(var i=0;i<categories.length;i++)...[
-     if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
-     Builder(builder:(_){
-      final name=st(categories[i],'name');
-      final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-      return homeCategory(name,spent,budgetFor(d,month,name),onTap:()=>budgetForm(d,name));
-     }),
-    ],
-   ])),
-   SizedBox(height:10),
-   Wrap(spacing:8,runSpacing:8,children:[
-    FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:LText('Add category')),
-    OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Copy last month’s budget')),
-   ]),
+   else groupedRows([for(final c in categories)Builder(builder:(_){
+    final name=st(c,'name');
+    final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
+    return homeCategory(name,spent,budgetFor(d,month,name),onTap:()=>budgetForm(d,name));
+   })]),
+   listAction('Add category',Icons.add,()=>categoryForm()),
+   Align(alignment:AlignmentDirectional.centerStart,child:TextButton.icon(onPressed:()=>copyBudgetForm(d),
+    icon:PaydayAppIcon(Icons.copy_outlined,size:18),label:LText('Copy last month’s budget'))),
    header('Income & savings plan'),
-   PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,child:Column(children:[
+   groupedRows([
     planRow('Income plan','Expected monthly income',money(inc),()=>budgetForm(d,'Income plan')),
-    Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
     planRow('Savings goal','Monthly savings target',money(goal),()=>budgetForm(d,'Savings goal')),
-   ]))),
+   ]),
   ]);
  }
  Widget savings(Map<String,List<RowData>> d){
   final pool=totalPool(d),used=allocated(d),goals=list(d,'goals'),allocations=list(d,'allocations');
+  final thisMonth=balanceFor(d,monthKey(DateTime.now())).savingsNet;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   // Everything saved so far, on emerald like Home, and how much of it has no goal yet.
-   Container(width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
+   // Everything saved so far, on emerald like Home.
+   Container(key:ValueKey('savings-hero'),width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
      gradient:LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[PaydayColors.heroTop,PaydayColors.heroBottom]),
      borderRadius:BorderRadius.circular(PaydayRadius.hero)),
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText('Total saved',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700)),
-     SizedBox(height:8),
+     SizedBox(height:6),
      FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-      child:LText(money(pool),style:TextStyle(fontFamily:'Bricolage',fontSize:34,fontWeight:FontWeight.w800,color:paydaySand))),
-     SizedBox(height:12),
-     PaydayProgress(value:pool<=0?0.0:used/pool,color:paydaySaffron,trackColor:paydaySand.withValues(alpha:.18)),
-     SizedBox(height:10),
-     Row(children:[Expanded(child:LText('Unassigned',style:TextStyle(color:PaydayColors.heroMuted))),SizedBox(width:8),
-      Expanded(child:LText(money(pool-used),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:paydaySand)))]),
+      child:LText(money(pool),style:TextStyle(fontFamily:'Bricolage',fontSize:36,fontWeight:FontWeight.w800,color:paydaySand))),
+     SizedBox(height:4),
+     LText('${thisMonth>=0?'+':'−'}${money(thisMonth.abs())} this month',style:TextStyle(color:PaydayColors.heroMuted)),
+     if(pool-used>0)LText('Unassigned: ${money(pool-used)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption)),
     ])),
-   Padding(padding:EdgeInsets.fromLTRB(4,8,4,0),child:LText('Allocations divide your savings; they never add new savings',
-    style:TextStyle(color:muted,fontSize:PaydayType.caption))),
-   header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
-   if(goals.isEmpty)PaydayEmpty(icon:Icons.savings_outlined,message:'No savings goals yet. Tap New to add one.'),
-   ...goals.map((g){final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));
-    final target=val(g,'target');return PaydayPanel(margin:EdgeInsets.only(bottom:10),padding:EdgeInsetsDirectional.fromSTEB(16,8,8,8),
-     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[Expanded(child:Text(st(g,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:16,color:ink))),IconButton(tooltip:tr(context,'Edit goal'),onPressed:()=>goalForm(g),icon:PaydayAppIcon(Icons.edit_outlined))]),
-    Padding(padding:EdgeInsetsDirectional.only(end:8),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText('${money(sum)} / ${money(target)}',style:TextStyle(color:muted)),
-     SizedBox(height:9),PaydayProgress(value:target<=0?0.0:sum/target),
-     SizedBox(height:7),LText('Still needed: ${money((target-sum).clamp(0,target).toInt())}',style:TextStyle(fontWeight:FontWeight.w600)),
-    ])),
-    Align(alignment:AlignmentDirectional.centerEnd,child:TextButton.icon(onPressed:()=>allocationForm(d,g),icon:PaydayAppIcon(Icons.add),label:LText('Allocate'))),
-   ]));}),
+   SizedBox(height:12),
+   Row(children:[
+    Expanded(child:FilledButton.icon(key:ValueKey('savings-add'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(50)),
+     onPressed:()=>transactionForm(null,initialType:'Savings out'),icon:PaydayAppIcon(Icons.add,size:20),label:LText('Add money'))),
+    SizedBox(width:8),
+    Expanded(child:OutlinedButton.icon(key:ValueKey('savings-take'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(50),backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line)),
+     onPressed:()=>transactionForm(null,initialType:'Savings in'),icon:PaydayAppIcon(Icons.repeat,size:20),label:LText('Take out'))),
+   ]),
+   header('Goals',action:TextButton(key:ValueKey('goal-new'),onPressed:()=>goalForm(null),child:LText('New goal',style:TextStyle(fontWeight:FontWeight.w700)))),
+   if(goals.isEmpty)PaydayEmpty(icon:Icons.savings_outlined,message:'No savings goals yet. Tap New to add one.')
+   else groupedRows([for(final g in goals)Builder(builder:(_){
+    final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));
+    final target=val(g,'target');
+    return listRow(key:ValueKey('goal-${val(g,'id')}'),onTap:()=>goalActions(d,g),leading:iconTile(Icons.savings_outlined),
+     title:rowTitle(st(g,'name'),raw:true),subtitle:'${money(sum)} / ${money(target)}',
+     amount:'${target<=0?0:(sum*100/target).clamp(0,100).round()}%',progress:target<=0?0.0:sum/target);
+   })]),
+   SizedBox(height:8),
    header('Allocations for ${monthLabel(selected)}'),
    ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?tr(context,'Goal deleted'):st(g,'name'),month,money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
    if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),

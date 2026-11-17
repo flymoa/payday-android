@@ -19,17 +19,12 @@ void main(){
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),
     home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();
-   await tester.tap(find.text('Available this month'));
+   // The Home card opens the full explanation: available money, then what is held back.
+   await tester.tap(find.text('Safe to spend'));
    await tester.pumpAndSettle();
    expect(find.text('Income received'),findsOneWidget);
    expect(find.text('+ 1,000.00 MAD'),findsOneWidget);
    expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('800.00 MAD')),findsOneWidget);
-   expect(tester.takeException(),isNull);
-   await tester.ensureVisible(find.text('Got it'));
-   await tester.tap(find.text('Got it'));
-   await tester.pumpAndSettle();
-   await tester.tap(find.text('Safe to spend'));
-   await tester.pumpAndSettle();
    expect(find.text('Cash buffer'),findsOneWidget);
    expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('600.00 MAD')),findsOneWidget);
    expect(find.textContaining('Category budgets are spending limits'),findsOneWidget);

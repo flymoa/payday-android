@@ -68,7 +68,7 @@ void main(){
      {'id':2,'date':date,'type':'Expense','category':'Groceries','amount':15000,'description':'Settings','bill_id':'','note':''},
     ]};
     await t.pumpWidget(PaydayLocal(initialPreferences:AppPreferences(language:code,appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light),store:LocaleMemoryStore(data),initialData:Future.value(data),preferencesWriter:(_)async{}));
-    await t.pumpAndSettle();expect(find.text(translateMessage('Available this month',code)),findsOneWidget);
+    await t.pumpAndSettle();expect(find.text(translateMessage('Safe to spend',code)),findsOneWidget);
     expect(find.text('Settings'),findsOneWidget,reason:'A user-entered transaction title must remain verbatim');
     final home=t.element(find.byType(FinanceScreen));expect(Directionality.of(home),code=='ar'?TextDirection.rtl:TextDirection.ltr);
     expect(find.byType(PaydayMark),findsOneWidget);expect(Theme.of(home).scaffoldBackgroundColor,brightness==Brightness.dark?PaydayColors.darkBackground:paydaySand);
