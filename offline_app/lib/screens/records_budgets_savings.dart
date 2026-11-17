@@ -147,58 +147,76 @@ extension _RecordsBudgetsSavings on _FinanceState {
  Widget budgets(Map<String,List<RowData>> d){
   final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
-  final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal');
+  final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
+  Widget figure(String label,String value,{Color? color,bool end=false})=>Expanded(child:Column(
+   crossAxisAlignment:end?CrossAxisAlignment.end:CrossAxisAlignment.start,children:[
+    LText(label,maxLines:1,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
+    FittedBox(fit:BoxFit.scaleDown,alignment:end?AlignmentDirectional.centerEnd:AlignmentDirectional.centerStart,
+     child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color??ink))),
+   ]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Monthly budget',subtitle:'A separate plan for ${monthLabel(selected)}'),
-   OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Copy last month’s budget')),
-   SizedBox(height:10),
    // How much of the planned income already has a job.
    PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     figure('Planned income',money(inc)),SizedBox(width:8),
+     figure('Budgeted',money(assigned)),SizedBox(width:8),
+     figure(left<0?'Over-assigned':'Not assigned',money(left.abs()),color:left<0?danger:jade,end:true),
+    ]),
+    SizedBox(height:12),
+    PaydayProgress(value:inc<=0?(assigned>0?1.0:0.0):assigned/inc,color:assigned>inc?danger:jade),
+    SizedBox(height:10),
     LText(
      inc==0&&assigned==0?'Set planned income to start assigning your budget.':
      inc==assigned?'No more money to assign. Your income is fully assigned.':
      assigned>inc?'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.':
      'Available to assign: ${money(inc-assigned)}',
-     style:TextStyle(fontWeight:FontWeight.w800,fontSize:15,color:inc-assigned>=0?jade:danger)),
-    SizedBox(height:12),
-    PaydayProgress(value:inc<=0?(assigned>0?1.0:0.0):assigned/inc,color:assigned>inc?danger:jade),
-    SizedBox(height:12),
-    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Expanded(child:summaryStat('Planned income',money(inc))),SizedBox(width:12),
-     Expanded(child:summaryStat('Assigned',money(assigned),end:true)),
-    ]),
+     style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:inc-assigned>=0?muted:danger)),
+   ])),
+   header('Spending categories'),
+   if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')
+   else PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
+    for(var i=0;i<categories.length;i++)...[
+     if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
+     Builder(builder:(_){
+      final name=st(categories[i],'name');
+      final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
+      return homeCategory(name,spent,budgetFor(d,month,name),onTap:()=>budgetForm(d,name));
+     }),
+    ],
    ])),
    SizedBox(height:10),
+   Wrap(spacing:8,runSpacing:8,children:[
+    FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:LText('Add category')),
+    OutlinedButton.icon(onPressed:()=>copyBudgetForm(d),icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Copy last month’s budget')),
+   ]),
+   header('Income & savings plan'),
    PaydayPanel(padding:EdgeInsets.zero,child:Material(color:Colors.transparent,child:Column(children:[
     planRow('Income plan','Expected monthly income',money(inc),()=>budgetForm(d,'Income plan')),
     Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
     planRow('Savings goal','Monthly savings target',money(goal),()=>budgetForm(d,'Savings goal')),
    ]))),
-   header('Spending categories'),
-   ...categories.map((c){final name=st(c,'name'),b=budgetFor(d,month,name);
-    final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
-    return budgetCategoryCard(name,st(c,'group_name'),spent,b,()=>budgetForm(d,name));
-   }),
-   SizedBox(height:4),FilledButton.tonalIcon(onPressed:()=>categoryForm(),icon:PaydayAppIcon(Icons.add),label:LText('Add category'))
   ]);
  }
  Widget savings(Map<String,List<RowData>> d){
   final pool=totalPool(d),used=allocated(d),goals=list(d,'goals'),allocations=list(d,'allocations');
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   header('Savings & goals',subtitle:'Allocations divide your savings; they never add new savings'),
-   // Everything saved so far, and how much of it has no goal yet.
-   PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[PaydayCategoryIcon('Savings',size:38),SizedBox(width:12),
-     Expanded(child:LText('Total saved',style:TextStyle(color:muted,fontWeight:FontWeight.w700)))]),
-    SizedBox(height:10),
-    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-     child:LText(money(pool),style:TextStyle(fontFamily:'Bricolage',fontSize:34,fontWeight:FontWeight.w800,color:jade))),
-    SizedBox(height:12),
-    PaydayProgress(value:pool<=0?0.0:used/pool),
-    SizedBox(height:10),
-    Row(children:[Expanded(child:LText('Unassigned',style:TextStyle(color:muted))),SizedBox(width:8),
-     Expanded(child:LText(money(pool-used),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)))]),
-   ])),
+   // Everything saved so far, on emerald like Home, and how much of it has no goal yet.
+   Container(width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
+     gradient:LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[PaydayColors.heroTop,PaydayColors.heroBottom]),
+     borderRadius:BorderRadius.circular(PaydayRadius.hero)),
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     LText('Total saved',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700)),
+     SizedBox(height:8),
+     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+      child:LText(money(pool),style:TextStyle(fontFamily:'Bricolage',fontSize:34,fontWeight:FontWeight.w800,color:paydaySand))),
+     SizedBox(height:12),
+     PaydayProgress(value:pool<=0?0.0:used/pool,color:paydaySaffron,trackColor:paydaySand.withValues(alpha:.18)),
+     SizedBox(height:10),
+     Row(children:[Expanded(child:LText('Unassigned',style:TextStyle(color:PaydayColors.heroMuted))),SizedBox(width:8),
+      Expanded(child:LText(money(pool-used),textAlign:TextAlign.end,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:paydaySand)))]),
+    ])),
+   Padding(padding:EdgeInsets.fromLTRB(4,8,4,0),child:LText('Allocations divide your savings; they never add new savings',
+    style:TextStyle(color:muted,fontSize:PaydayType.caption))),
    header('Your goals',action:FilledButton.tonalIcon(onPressed:()=>goalForm(null),icon:PaydayAppIcon(Icons.add),label:LText('New'))),
    if(goals.isEmpty)PaydayEmpty(icon:Icons.savings_outlined,message:'No savings goals yet. Tap New to add one.'),
    ...goals.map((g){final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));

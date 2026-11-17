@@ -60,7 +60,8 @@ extension _Forms on _FinanceState {
       mainAxisSize:MainAxisSize.min,children:[
        Padding(padding:EdgeInsets.only(bottom:12),
         child:Align(alignment:AlignmentDirectional.centerStart,
-         child:Row(children:[if(fullScreen)IconButton(key:ValueKey('close-transaction'),tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close)),Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800)))]))),
+         child:Row(children:[Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800))),
+         if(fullScreen)IconButton(key:ValueKey('close-transaction'),tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),icon:PaydayAppIcon(Icons.close))]))),
        Flexible(child:SingleChildScrollView(
         keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
         padding:EdgeInsets.only(bottom:footer==null?24:12),
@@ -214,7 +215,9 @@ extension _Forms on _FinanceState {
     icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Duplicate as new (today)')),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:danger)))
   ]),footer:(c,rebuild)=>FilledButton.icon(
-   icon:PaydayAppIcon(Icons.check_circle_outline),label:LText(submitting?'Saving…':'Save locally'),
+   key:ValueKey('save-transaction'),
+   icon:PaydayAppIcon(Icons.check_circle_outline),label:LText(submitting?'Saving…':existing!=null?'Save changes':
+    type=='Expense'?'Save expense':type=='Income'?'Save income':type=='Savings out'?'Move to savings':'Take from savings'),
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}

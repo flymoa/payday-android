@@ -22,6 +22,21 @@ Future<void> waitFor(WidgetTester t, Finder finder, {int seconds = 20}) async {
   expect(finder, findsWidgets, reason: 'Timed out waiting for $finder');
 }
 
+/// Waits for the app and, on a fresh install, goes through the welcome pages.
+Future<void> openApp(WidgetTester t) async {
+  final ready = find.byType(PaydayAddButton), welcome = find.byKey(const ValueKey('welcome-start'));
+  for (var i = 0; i < 300 && ready.evaluate().isEmpty && welcome.evaluate().isEmpty; i++) {
+    await t.pump(const Duration(milliseconds: 100));
+  }
+  if (welcome.evaluate().isNotEmpty) {
+    await t.tap(welcome);
+    await settle(t, seconds: 1);
+    await t.tap(find.byKey(const ValueKey('welcome-finish')));
+    await settle(t, seconds: 2);
+  }
+  await waitFor(t, ready);
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -53,7 +68,7 @@ void main() {
 
   testWidgets('add an expense on a fresh install and see it on Home', (t) async {
     app.main();
-    await waitFor(t, find.byType(PaydayAddButton));
+    await openApp(t);
     await settle(t);
 
     await t.tap(find.byType(PaydayAddButton));
@@ -62,7 +77,7 @@ void main() {
     await t.enterText(find.widgetWithText(TextField, 'Description'), 'Emulator coffee');
     await t.testTextInput.receiveAction(TextInputAction.done);
     await settle(t, seconds: 1);
-    await t.tap(find.text('Save locally'));
+    await t.tap(find.byKey(const ValueKey('save-transaction')));
     await settle(t, seconds: 3);
 
     await waitFor(t, find.text('Emulator coffee'));
@@ -73,7 +88,7 @@ void main() {
 
   testWidgets('every tab and the monthly review open on a device', (t) async {
     app.main();
-    await waitFor(t, find.byType(PaydayAddButton));
+    await openApp(t);
     await settle(t);
     for (final tab in [1, 2, 3, 4, 0]) {
       final item = find.byKey(ValueKey('bottom-$tab'));
@@ -96,7 +111,7 @@ void main() {
 
   testWidgets('switching to French translates the app on a device', (t) async {
     app.main();
-    await waitFor(t, find.byType(PaydayAddButton));
+    await openApp(t);
     await settle(t);
     await t.tap(find.byKey(const ValueKey('bottom-0')).first);
     await settle(t, seconds: 1);
