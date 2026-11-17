@@ -197,8 +197,10 @@ extension _HomeScreen on _FinanceState {
      child:InkWell(onTap:()=>balanceDetails(balance,true),child:Padding(padding:EdgeInsets.all(20),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[Expanded(child:LText('Safe to spend',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
-        LText(!current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',
-         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))]),
+        SizedBox(width:8),
+        Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
+         !current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
+         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
        SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe).split(decimalSeparator).first,style:TextStyle(fontSize:48)),TextSpan(text:'$decimalSeparator${homeDigits(balance.safe).split(decimalSeparator).last} $currency',style:TextStyle(fontSize:23,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk))),
        SizedBox(height:14),MonthUsageBar(value:balance.usedFraction,
         trackColor:heroInk.withValues(alpha:.18),fillColor:heroInk.withValues(alpha:.55),markerColor:paydaySaffron),
@@ -212,7 +214,9 @@ extension _HomeScreen on _FinanceState {
    Padding(padding:EdgeInsets.only(top:6),child:balanceTap('Explain available balance',()=>balanceDetails(balance,false),
     Padding(padding:EdgeInsets.symmetric(horizontal:8),child:Row(children:[
      Expanded(child:LText('Available this month',style:TextStyle(color:muted,fontWeight:FontWeight.w600,fontSize:PaydayType.small))),
-     LText(money(balance.available),style:TextStyle(color:ink,fontFamily:'Bricolage',fontWeight:FontWeight.w800)),
+     SizedBox(width:8),
+     Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+      child:LText(money(balance.available),style:TextStyle(color:ink,fontFamily:'Bricolage',fontWeight:FontWeight.w800)))),
      SizedBox(width:6),PaydayAppIcon(Icons.info_outline,size:16,color:muted),
     ])))),
    // Cash & Bank at a glance, once tracking is on.

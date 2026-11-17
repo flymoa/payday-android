@@ -64,7 +64,7 @@ class _PaydayStartupState extends State<PaydayStartup>{
  late final store=widget.store??OfflineStore();
  late Future<AppPreferences> preferences=store.loadAppPreferences();
  @override Widget build(BuildContext context)=>FutureBuilder<AppPreferences>(future:preferences,builder:(context,snapshot){
-  if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!);
+  if(snapshot.hasData)return PaydayLocal(store:store,initialPreferences:snapshot.data!,welcomeOnFirstRun:true);
   return MaterialApp(debugShowCheckedModeBanner:false,home:Scaffold(backgroundColor:paydaySand,
    body:SafeArea(child:Center(child:Padding(padding:const EdgeInsets.all(24),child:snapshot.hasError?
     Column(mainAxisSize:MainAxisSize.min,children:[
@@ -80,7 +80,9 @@ int val(RowData row,String key)=>(row[key] as num?)?.toInt()??0;
 DateTime parseDay(String text)=>DateTime.tryParse(text)??DateTime.now();
 class PaydayLocal extends StatefulWidget {
  const PaydayLocal({super.key,this.initialData,this.store,
-  this.initialPreferences=const AppPreferences(),this.preferencesWriter,this.appLockController});
+  this.initialPreferences=const AppPreferences(),this.preferencesWriter,this.appLockController,this.welcomeOnFirstRun=false});
+ /// Only the installed app (main) shows the welcome pages on an empty phone.
+ final bool welcomeOnFirstRun;
  final OfflineStore? store;
  final AppPreferences initialPreferences;
  final AppLockController? appLockController;
@@ -185,13 +187,14 @@ class _PaydayLocalState extends State<PaydayLocal> {
   builder:(context,child){
    return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
   },
-  home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,
+  home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,welcomeOnFirstRun:widget.welcomeOnFirstRun,
    onPreferencesChanged:savePreferences,onToggleTheme:(dark){
     savePreferences(preferences.copyWith(appearance:dark?ThemeMode.dark:ThemeMode.light));
    }));
 }
 class FinanceScreen extends StatefulWidget {const FinanceScreen({super.key,this.onToggleTheme,this.initialData,this.store,this.backupShare,this.backupCipher,this.backupNotifications,this.billReminders,this.reserveReminders,this.restoreSnapshot,
- this.preferences=const AppPreferences(),this.onPreferencesChanged});final ValueChanged<bool>? onToggleTheme;
+ this.preferences=const AppPreferences(),this.onPreferencesChanged,this.welcomeOnFirstRun=false});final ValueChanged<bool>? onToggleTheme;
+ final bool welcomeOnFirstRun;
  final AppPreferences preferences;
  final Future<bool> Function(AppPreferences)? onPreferencesChanged;
  final OfflineStore? store;
@@ -286,7 +289,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  final purchase=TextEditingController(text:'200');
  @override void initState(){
   super.initState();WidgetsBinding.instance.addObserver(this);
-  if(widget.initialData==null)unawaited(data.then((d){if(mounted&&firstRun(d))setState(()=>welcome=true);}).catchError((Object _){}));
+  if(widget.welcomeOnFirstRun&&widget.initialData==null)unawaited(data.then((d){if(mounted&&firstRun(d))setState(()=>welcome=true);}).catchError((Object _){}));
   unawaited(runRecurring());
   unawaited(updateHomeWidget());
   unawaited(syncBillReminders());

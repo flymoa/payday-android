@@ -108,7 +108,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
   Widget figure(String label,String value,{Color? color,bool end=false})=>Expanded(child:Column(
    crossAxisAlignment:end?CrossAxisAlignment.end:CrossAxisAlignment.start,children:[
-    LText(label,maxLines:1,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
+    LText(label,maxLines:2,textAlign:end?TextAlign.end:TextAlign.start,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
     FittedBox(fit:BoxFit.scaleDown,alignment:end?AlignmentDirectional.centerEnd:AlignmentDirectional.centerStart,
      child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color??ink))),
    ]));

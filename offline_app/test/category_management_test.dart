@@ -68,6 +68,7 @@ void main(){
   await tester.tap(find.text('Delete category'));await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(FilledButton,'Delete category'));await tester.pumpAndSettle();
   expect(await store.table('categories'),isEmpty);
+  await tester.ensureVisible(find.text('Income plan'));await tester.pumpAndSettle();
   await tester.tap(find.text('Income plan'));await tester.pumpAndSettle();
   await tester.tap(find.text('Manage income categories'));await tester.pumpAndSettle();
   expect(find.text('Income categories'),findsOneWidget);
