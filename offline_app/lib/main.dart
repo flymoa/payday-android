@@ -432,7 +432,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:24,fontWeight:FontWeight.w800,color:ink)),
    if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:LText(subtitle,style:TextStyle(color:muted)))
-  ])),if(action!=null)action]));
+  ])),if(action!=null)Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:action))]));
  Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading,bool rawTitle=false,bool categoryTitle=false})=>
   Card(child:ListTile(contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:5),
    leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:PaydayAppIcon(icon,color:tone??jade,size:20)),

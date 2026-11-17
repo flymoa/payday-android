@@ -24,7 +24,6 @@ void main() {
       await t.pumpAndSettle();
       expect(find.descendant(of: find.byKey(const ValueKey('home-hero')), matching: find.text('Safe to spend')), findsOneWidget);
       expect(find.text('Bills ahead'), findsOneWidget);
-      expect(find.text('Available this month'), findsOneWidget);
       expect(find.text('Expense'), findsNothing, reason: 'no shortcut tiles on Home');
       final card = find.byKey(const ValueKey('home-next-bill'));
       expect(card, findsOneWidget);

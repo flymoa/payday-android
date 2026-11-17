@@ -15,8 +15,9 @@ extension _MoreScreen on _FinanceState {
    return Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
     Expanded(child:InkWell(key:ValueKey('category-records-$c'),borderRadius:BorderRadius.circular(PaydayRadius.sm),onTap:()=>openCategoryRecords(c),
      child:Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),
-      LText('${money(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))]),
+     Row(children:[Expanded(child:LText(categoryLabel(context,c),style:TextStyle(fontWeight:FontWeight.w700))),SizedBox(width:8),
+      Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+       child:LText('${plain(spent)} · ${(share*100).round()}%',style:TextStyle(fontWeight:FontWeight.w700))))]),
      SizedBox(height:5),
      PaydayProgress(value:share),
      SizedBox(height:3),LText(change,style:TextStyle(color:changeColor,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),

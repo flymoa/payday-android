@@ -163,10 +163,11 @@ extension _HomeScreen on _FinanceState {
       colors:[PaydayColors.heroTop,PaydayColors.heroBottom])),
      child:InkWell(onTap:()=>balanceDetails(balance,true),child:Padding(padding:EdgeInsets.all(20),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Row(children:[Expanded(child:LText('Safe to spend',maxLines:1,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
+       Row(children:[Expanded(flex:3,child:LText('Safe to spend',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
         SizedBox(width:8),
-        LText(!current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
-         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))]),
+        Flexible(flex:2,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
+         !current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
+         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
        SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe),style:TextStyle(fontSize:40)),TextSpan(text:' $currency',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
        SizedBox(height:14),
        // How much of the month's money is already used.

@@ -52,7 +52,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
     style:TextStyle(fontSize:15),
     decoration:InputDecoration(hintText:tr(context,'Search records'),isDense:true,fillColor:surface,
-     contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:14),
+     contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:12),
      prefixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      suffixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
      prefixIcon:Padding(padding:EdgeInsets.all(9),child:PaydayAppIcon(Icons.search,size:18,color:muted)),
