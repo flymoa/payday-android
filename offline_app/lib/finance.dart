@@ -150,8 +150,10 @@ int assignedBudgetCents(Iterable<Map<String,Object?>> rows,String month) =>
  rows.where((r)=>r['month']==month&&r['category']!='Income plan')
   .fold<int>(0,(sum,r)=>sum+(r['amount'] as num).toInt());
 
+/// Same display format as the rest of the app ("1 284,50"); " MAD" is swapped
+/// for the user's currency label when the message is shown.
 String _budgetMoney(int cents) =>
- '${cents~/100}.${(cents%100).toString().padLeft(2,'0')} MAD';
+ '${'${cents~/100}'.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'),(_)=>'\u00a0')},${(cents%100).toString().padLeft(2,'0')} MAD';
 
 class BudgetAssignmentCheck {
  const BudgetAssignmentCheck({required this.income,required this.assigned,

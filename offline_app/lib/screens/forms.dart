@@ -162,9 +162,9 @@ extension _Forms on _FinanceState {
     decoration:InputDecoration(labelText:tr(context,'Amount (${currencyLabel(currency,language)})'),floatingLabelBehavior:FloatingLabelBehavior.always,
      labelStyle:TextStyle(fontWeight:FontWeight.w700,color:muted),hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:true,fillColor:surface,contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:18),
-     border:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
-     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
-     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)))),
+     border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
+     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
+     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)))),
    SizedBox(height:10),
    if(type=='Expense'&&category.isNotEmpty)Builder(builder:(_){
     final key=monthKey(date),limit=budgetFor(d,key,category),name=categoryLabel(context,category);
@@ -205,8 +205,10 @@ extension _Forms on _FinanceState {
     onPressed:submitting?null:()async{
      await incomeCategoriesForm();
      final fresh=await store.snapshot();
-     if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
+     if(c.mounted) {
+       rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
       if(!cats.contains(category))category=cats.first;});
+     }
     })),
    if(walletSetup!=null)Padding(padding:EdgeInsets.only(top:16),child:Row(children:[
     Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
@@ -231,8 +233,6 @@ extension _Forms on _FinanceState {
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:danger)))
   ]),footer:(c,rebuild)=>FilledButton(
    key:ValueKey('save-transaction'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(52)),
-   child:LText(submitting?'Saving…':existing!=null?'Save changes':
-    type=='Expense'?'Save expense':type=='Income'?'Save income':type=='Savings out'?'Move to savings':'Take from savings'),
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}
@@ -247,9 +247,13 @@ extension _Forms on _FinanceState {
        type=='Savings in'?'Saved. ${money(cents)} taken from savings.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
     if(success&&walletSetup!=null)unawaited(store.setSetting(walletLastKey,wallet).catchError((_){}));
-    if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
+    if(success&&type=='Expense') {
+      await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
+    }
    },
+   child:LText(submitting?'Saving…':existing!=null?'Save changes':
+    type=='Expense'?'Save expense':type=='Income'?'Save income':type=='Savings out'?'Move to savings':'Take from savings'),
   ),fullScreen:true);
  }
  /// After saving an expense, says once when its category reaches 85% or goes over.
@@ -536,7 +540,7 @@ extension _Forms on _FinanceState {
      leading:PaydayAppIcon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
        color:st(m,'kind')=='add'?jade:amber),
      title:LText(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
-     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
+     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · ${st(m,'note')}'}'),
      trailing:LText('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
        style:TextStyle(fontWeight:FontWeight.w800,
          color:st(m,'kind')=='add'?jade:amber)),

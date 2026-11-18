@@ -7,8 +7,10 @@ import 'category_icon.dart';
 /// A single vector vocabulary for PAYDAY navigation, tools and controls.
 /// Existing IconTheme colors preserve selected, disabled and warning states.
 class PaydayAppIcon extends StatelessWidget {
- const PaydayAppIcon(this.icon,{super.key,this.size,this.color,this.semanticLabel});
+ const PaydayAppIcon(this.icon,{super.key,this.size,this.color,this.semanticLabel,this.accent=false});
  final IconData icon;
+ /// Saffron detail stroke. Off by default: saffron is reserved for the add button.
+ final bool accent;
  final double? size;
  final Color? color;
  final String? semanticLabel;
@@ -18,12 +20,13 @@ class PaydayAppIcon extends StatelessWidget {
   final extent=size??theme.size??24;
   final foreground=(color??theme.color??(dark?PaydayColors.darkIcon:PaydayColors.emerald)).withValues(alpha:theme.opacity??1);
   final widget=SizedBox.square(dimension:extent,child:CustomPaint(
-   painter:_AppPainter(icon,foreground,dark,Directionality.of(context))));
+   painter:_AppPainter(icon,foreground,dark,Directionality.of(context),accent)));
   return semanticLabel==null?ExcludeSemantics(child:widget):Semantics(label:semanticLabel==null?null:tr(context,semanticLabel!),child:widget);
  }
 }
 class _AppPainter extends CustomPainter{
- const _AppPainter(this.icon,this.color,this.dark,this.direction);
+ const _AppPainter(this.icon,this.color,this.dark,this.direction,this.withAccent);
+ final bool withAccent;
  final IconData icon;
  final Color color;
  final bool dark;
@@ -41,11 +44,11 @@ class _AppPainter extends CustomPainter{
   if(icon==Icons.payments_outlined)glyph='income plan';
   if(icon==Icons.call_received)glyph='income';
   if(icon==Icons.call_made)glyph='expense';
-  if(glyph!=null){PaydayGlyphPainter(glyph,dark,foreground:color).paint(c,size);return;}
+  if(glyph!=null){PaydayGlyphPainter(glyph,dark,foreground:color,accent:withAccent).paint(c,size);return;}
   c.save();c.scale(size.width/24,size.height/24);
   if(icon.matchTextDirection&&direction==TextDirection.rtl){c.translate(24,0);c.scale(-1,1);}
   final p=Paint()..color=color..style=PaintingStyle.stroke..strokeWidth=1.7..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final accent=Paint()..color=PaydayColors.saffron.withValues(alpha:color.a)
+  final accent=Paint()..color=withAccent?PaydayColors.saffron.withValues(alpha:color.a):color
    ..style=PaintingStyle.stroke..strokeWidth=1.7..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   void l(double x,double y,double a,double b,[bool copper=false])=>c.drawLine(Offset(x,y),Offset(a,b),copper?accent:p);
   void circle(double x,double y,double r,[bool copper=false])=>c.drawCircle(Offset(x,y),r,copper?accent:p);
@@ -140,7 +143,7 @@ class _AppPainter extends CustomPainter{
   }
   c.restore();
  }
- @override bool shouldRepaint(covariant _AppPainter old)=>old.icon!=icon||old.color!=color||old.dark!=dark||old.direction!=direction;
+ @override bool shouldRepaint(covariant _AppPainter old)=>old.icon!=icon||old.color!=color||old.dark!=dark||old.direction!=direction||old.withAccent!=withAccent;
 }
 
 

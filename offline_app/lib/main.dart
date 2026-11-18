@@ -159,18 +159,23 @@ class _PaydayLocalState extends State<PaydayLocal> {
     foregroundColor:scheme.onSurface,centerTitle:true,surfaceTintColor:Colors.transparent),
    bottomSheetTheme:BottomSheetThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent,
     shape:RoundedRectangleBorder(borderRadius:BorderRadius.vertical(top:Radius.circular(PaydayRadius.dialog)))),
-   dialogTheme:DialogThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent),
-   cardTheme:CardThemeData(elevation:0,color:scheme.surface,surfaceTintColor:Colors.transparent,
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.card),side:BorderSide(color:scheme.outlineVariant))),
+   dialogTheme:DialogThemeData(backgroundColor:scheme.surface,surfaceTintColor:Colors.transparent,
+    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.dialog))),
+   cardTheme:CardThemeData(elevation:0,color:Colors.transparent,surfaceTintColor:Colors.transparent,margin:const EdgeInsets.symmetric(vertical:PaydaySpace.xs),
+    shape:Border.symmetric(horizontal:BorderSide(color:scheme.outlineVariant))),
    inputDecorationTheme:InputDecorationTheme(filled:true,
-    fillColor:scheme.surfaceContainerLow,
-    border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md)),
-    enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.outlineVariant)),
+    fillColor:dark?PaydayControl.fillDark:PaydayControl.fillLight,
+    border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide.none),
+    enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide.none),
     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
     minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['PlexArabic','sans-serif']))),
+   // Secondary buttons: tonal fill, ink text, no outline. Filled emerald stays the one primary.
    outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
-    side:BorderSide(color:scheme.outlineVariant),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)))),
+    minimumSize:const Size(PaydayControl.target,PaydayControl.target),
+    backgroundColor:dark?PaydayControl.fillDark:PaydayControl.fillLight,foregroundColor:scheme.onSurface,
+    side:BorderSide.none,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),
+    textStyle:const TextStyle(fontWeight:FontWeight.w700,fontFamily:'DMSans',fontFamilyFallback:['PlexArabic','sans-serif']))),
    listTileTheme:ListTileThemeData(iconColor:scheme.primary),
    dividerTheme:DividerThemeData(color:scheme.outlineVariant,thickness:1),
    snackBarTheme:SnackBarThemeData(backgroundColor:dark?PaydayColors.darkSurfaceHigh:kInk,
@@ -217,8 +222,9 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
  /// Status colours that stay readable on both sand and charcoal.
  Color get danger=>isDark?PaydayColors.darkStatusOver:PaydayColors.statusOver;
+ Color get saffronText=>isDark?PaydayColors.darkSaffronText:PaydayColors.saffronText;
  Color get warn=>isDark?PaydayColors.darkStatusNear:PaydayColors.statusNear;
- Color get amber=>isDark?PaydayColors.darkStatusNear:PaydayColors.amber;
+ Color get amber=>saffronText;
  bool writing=false;
  bool exportingBackup=false;
  bool restoringBackup=false;
@@ -231,7 +237,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  String money(int amount)=>localizedMoney(amount,currency,language);
  String inputNumber(int amount)=>localizedNumber(amount,language);
  String uiDay(DateTime day)=>localizedDay(day,language);
- String currencyMessage(String message)=>translateMessage(message.replaceAll(' MAD',' $currency'),language);
+ String currencyMessage(String message)=>translateMessage(message.replaceAll(' MAD',' ${currencyLabel(currency,language)}'),language);
  /// Rebuilds the open Settings page after this screen rebuilds (new preferences or data).
  final settingsRefresh=ValueNotifier<int>(0);
  bool settingsOpen=false;
@@ -386,11 +392,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  /// Amount without the currency, for lists where the currency is obvious.
  String plain(int cents)=>localizedNumber(cents,language,grouped:true);
  Widget iconTile(IconData icon,{Color? color,Color? background,double size=40})=>Container(width:size,height:size,
-  decoration:BoxDecoration(color:background??(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint),borderRadius:BorderRadius.circular(14)),
+  decoration:BoxDecoration(color:background??(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint),borderRadius:BorderRadius.circular(PaydayRadius.lg)),
   child:Center(child:PaydayAppIcon(icon,size:size*.5,color:color)));
- /// Rows grouped in one panel with thin dividers.
- Widget groupedRows(List<Widget> rows)=>PaydayPanel(padding:EdgeInsets.symmetric(vertical:4),child:Material(color:Colors.transparent,
-  child:Column(children:[for(var i=0;i<rows.length;i++)...[if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),rows[i]]])));
+ /// A content card: lifted surface, 1px border, radius 14, no shadow.
+ Widget contentCard(Widget child,{Key? key})=>Material(key:key,
+  color:isDark?PaydayCard.surfaceDark:PaydayCard.surfaceLight,clipBehavior:Clip.antiAlias,
+  shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.card),
+   side:BorderSide(color:isDark?PaydayCard.borderDark:PaydayCard.borderLight)),
+  child:child);
+ /// Rows of one list. [separate]: each row is its own card (budget categories, each a
+ /// separate object with its own bar). Otherwise the group shares one card with hairlines
+ /// between rows (dense lists: records of a day, recent activity, goals, bills).
+ Widget groupedRows(List<Widget> rows,{bool separate=false})=>separate
+  ?Column(children:[for(var i=0;i<rows.length;i++)Padding(padding:EdgeInsets.only(top:i==0?0:PaydayCard.gap),child:contentCard(rows[i]))])
+  :contentCard(Column(children:[for(var i=0;i<rows.length;i++)...[if(i>0)Divider(height:1,thickness:1,indent:PaydaySpace.md,endIndent:PaydaySpace.md,color:line),rows[i]]]));
  Widget rowTitle(String text,{bool raw=false,bool category=false}){
   final style=TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink);
   return raw?Text(text,maxLines:1,overflow:TextOverflow.ellipsis,style:style):LText(text,category:category,maxLines:1,overflow:TextOverflow.ellipsis,style:style);
@@ -398,7 +413,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  /// Icon, title with a line under it, an amount with an optional status, and an optional bar.
  Widget listRow({Key? key,required Widget leading,required Widget title,String? subtitle,Color? subtitleColor,String? amount,Color? amountColor,
   String? status,Color? statusColor,double? progress,Color? progressColor,Color? trackColor,VoidCallback? onTap,Widget? trailing})=>
-  InkWell(key:key,onTap:onTap,child:Padding(padding:EdgeInsets.symmetric(horizontal:14,vertical:11),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  InkWell(key:key,onTap:onTap,child:Padding(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LayoutBuilder(builder:(context,box)=>Row(children:[leading,SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[title,
      if(subtitle!=null)Padding(padding:EdgeInsets.only(top:2),child:LText(subtitle,maxLines:2,
@@ -406,39 +421,40 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     if(amount!=null||status!=null)...[SizedBox(width:8),ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.45),
      child:Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
       if(amount!=null)FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-       child:LText(amount,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:15,color:amountColor??ink))),
+       child:LText(amount,style:PaydayText.amount.copyWith(fontSize:PaydayType.body,color:amountColor??ink))),
       if(status!=null)LText(status,textAlign:TextAlign.end,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:statusColor??muted)),
      ]))],
-    if(trailing!=null)trailing,
+    ?trailing,
    ])),
    if(progress!=null)...[SizedBox(height:9),PaydayProgress(value:progress.clamp(0,1).toDouble(),color:progressColor,trackColor:trackColor)],
   ])));
  /// Full-width secondary action at the end of a list ("Add a bill").
  Widget listAction(String label,IconData icon,VoidCallback onPressed,{Key? key})=>Padding(padding:EdgeInsets.only(top:12),
   child:SizedBox(width:double.infinity,child:OutlinedButton.icon(key:key,onPressed:onPressed,
-   style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(52),backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),
-    shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
+   style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(52)),
    icon:PaydayAppIcon(icon,size:20),label:LText(label,style:TextStyle(fontWeight:FontWeight.w700)))));
  /// One summary line in a panel ("Still to pay … 728.00 MAD"), with optional content below.
- Widget summaryLine(String label,String value,{Widget? below,Widget? trailing,Key? key})=>PaydayPanel(key:key,margin:EdgeInsets.only(bottom:12),
+ Widget summaryLine(String label,String value,{Widget? below,Widget? trailing,Key? key})=>Padding(key:key,
+  padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,PaydaySpace.xs,PaydaySpace.lg),
   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Row(children:[Expanded(child:LText(label,style:TextStyle(color:muted,fontWeight:FontWeight.w700))),SizedBox(width:8),
-    Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-     child:LText(value,style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:ink)))),
-    if(trailing!=null)trailing]),
+    Flexible(child:Align(alignment:AlignmentDirectional.centerEnd,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
+     child:LText(value,style:PaydayText.figure.copyWith(color:ink))))),
+    ?trailing]),
    if(below!=null)...[SizedBox(height:10),below],
   ]));
  Widget header(String title,{String? subtitle,Widget? action})=>Padding(padding:EdgeInsetsDirectional.fromSTEB(4,12,4,10),
   child:Row(children:[Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:24,fontWeight:FontWeight.w800,color:ink)),
+   LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink)),
    if(subtitle!=null)Padding(padding:EdgeInsets.only(top:4),child:LText(subtitle,style:TextStyle(color:muted)))
-  ])),if(action!=null)Flexible(child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:action))]));
- Widget tile(String title,String subtitle,String trailing,{VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading,bool rawTitle=false,bool categoryTitle=false})=>
-  Card(child:ListTile(contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:5),
+  ])),if(action!=null)Flexible(child:Align(alignment:AlignmentDirectional.centerEnd,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:action)))]));
+ Widget tile(String title,String subtitle,String trailing,{bool divider=true,VoidCallback? onTap,IconData icon=Icons.circle_outlined,Color? tone,Widget? leading,bool rawTitle=false,bool categoryTitle=false})=>
+  Column(children:[ListTile(contentPadding:EdgeInsets.symmetric(horizontal:divider?PaydaySpace.xs:PaydaySpace.md+2,vertical:PaydaySpace.xs),
    leading:leading??CircleAvatar(backgroundColor:(tone??jade).withValues(alpha:.10),child:PaydayAppIcon(icon,color:tone??jade,size:20)),
    title:rawTitle?Text(title,style:TextStyle(fontWeight:FontWeight.w700)):LText(title,category:categoryTitle,style:TextStyle(fontWeight:FontWeight.w700)),
-   subtitle:LText(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
-   trailing:LText(trailing,style:TextStyle(fontWeight:FontWeight.w800,color:tone??ink)),onTap:onTap));
+   subtitle:LText(subtitle,maxLines:3,overflow:TextOverflow.ellipsis),
+   trailing:LText(trailing,style:PaydayText.amount.copyWith(fontSize:PaydayType.body,color:tone??ink)),onTap:onTap),
+   if(divider)Divider(height:1,thickness:1,color:line)]);
 
  // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
  @override Widget build(BuildContext context){
@@ -461,11 +477,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    actions:[Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
      style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-   if(snap.hasError)return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
+   if(snap.hasError) {
+     return Center(child:Padding(padding:EdgeInsets.all(PaydaySpace.xl),child:Column(mainAxisSize:MainAxisSize.min,children:[
     PaydayAppIcon(Icons.error_outline,color:danger,size:36),SizedBox(height:PaydaySpace.md),
     LText('Your records could not be opened. Nothing was changed.',textAlign:TextAlign.center),
     SizedBox(height:PaydaySpace.lg),FilledButton(onPressed:refresh,child:LText('Try again')),
    ])));
+   }
    // Blank while records load (encrypted open), so no spinner flashes before Home.
    if(!snap.hasData)return const SizedBox.shrink();
    final d=snap.data!;
@@ -486,14 +504,13 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   // Floating navigation bar: the selected tab is marked by a tinted pill.
   bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(
    padding:EdgeInsets.all(6),
-   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.hero),border:Border.all(color:line),
-    boxShadow:[BoxShadow(color:Colors.black.withValues(alpha:isDark ? .40 : .08),blurRadius:18,offset:Offset(0,6))]),
+   decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.hero),border:Border.all(color:line)),
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
     bottomItem('Budgets',Icons.pie_chart_outline,2),
     Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-12),child:Semantics(button:true,label:tr(context,'Add transaction'),child:
-     Container(width:56,height:56,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(PaydayRadius.xl),
-      boxShadow:[BoxShadow(color:paydaySaffron.withValues(alpha:isDark ? .22 : .28),blurRadius:16,offset:Offset(0,6))]),
+     // Solid ring in the page colour separates the button from the bar; no glow or shadow.
+     Container(width:56,height:56,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(PaydayRadius.xl)),
       padding:EdgeInsets.all(4),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
     bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
    ])))),

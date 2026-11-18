@@ -128,7 +128,7 @@ void main(){
   expect(MediaQuery.disableAnimationsOf(tester.element(find.byType(FinanceScreen,skipOffstage:false))),isFalse);
   await openSettings(tester);
   await chooseCurrency(tester,'EUR');
-  expect(find.textContaining('100.00 MAD becomes 100.00 EUR'),findsOneWidget);
+  expect(find.textContaining('100,00 DH becomes 100,00 EUR'),findsOneWidget);
   await tester.tap(find.text('Cancel'));await tester.pumpAndSettle();
   expect((await store.loadAppPreferences()).currency,'MAD');
   await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();

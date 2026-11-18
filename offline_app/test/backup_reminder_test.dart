@@ -46,8 +46,8 @@ void main(){
     final store=BackupStore(db);var calls=0;
     await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(
      store:store,initialData:store.snapshot(),backupCipher:FakeBackupCipher(),backupShare:(json)async{expect(json,'encrypted-only');calls++;return ShareResult('test',status);} )));
-    await tester.pumpAndSettle();await tester.ensureVisible(find.text('Export backup'));await tester.pumpAndSettle();
-    await tester.tap(find.text('Export backup'));await tester.pumpAndSettle();
+    await tester.pumpAndSettle();await tester.ensureVisible(find.text('Export'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Export'));await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('backup-password')),'A password saved safely');
     await tester.enterText(find.byKey(const ValueKey('backup-password-confirm')),'A password saved safely');
     await tester.tap(find.byKey(const ValueKey('backup-password-saved')));
@@ -55,8 +55,8 @@ void main(){
     for(var i=0;i<30;i++){await tester.pump(const Duration(milliseconds:50));}
     expect(calls,1);
     final exported=await db.query('settings',where:'key=?',whereArgs:['last_backup_export']);
-    if(status==ShareResultStatus.success){expect(exported,isNotEmpty);expect(find.text('Keep a backup'),findsNothing);}
-    else{expect(exported,isEmpty);expect(find.text('Keep a backup'),findsOneWidget);}
+    if(status==ShareResultStatus.success){expect(exported,isNotEmpty);expect(find.byKey(const ValueKey('home-backup')),findsNothing);}
+    else{expect(exported,isEmpty);expect(find.byKey(const ValueKey('home-backup')),findsOneWidget);}
     expect(tester.takeException(),isNull);
    });
   }
@@ -64,10 +64,10 @@ void main(){
  testWidgets('remind tomorrow persists snooze without marking an export',(tester)async{
   final store=BackupStore(db);
   await tester.pumpWidget(MaterialApp(home:FinanceScreen(store:store,initialData:store.snapshot())));
-  await tester.pumpAndSettle();await tester.ensureVisible(find.text('Remind tomorrow'));await tester.pumpAndSettle();
-  await tester.tap(find.text('Remind tomorrow'));
+  await tester.pumpAndSettle();await tester.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-backup-snooze')));
   for(var i=0;i<30;i++){await tester.pump(const Duration(milliseconds:50));}
-  expect(find.text('Keep a backup'),findsNothing);
+  expect(find.byKey(const ValueKey('home-backup')),findsNothing);
   expect(await db.query('settings',where:'key=?',whereArgs:['last_backup_export']),isEmpty);
   expect(await db.query('settings',where:'key=?',whereArgs:['backup_snooze_until']),isNotEmpty);
  });

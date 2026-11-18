@@ -28,7 +28,7 @@ void main(){
     expect(find.descendant(of:grid,matching:find.text('Groceries')),findsNothing);
     expect(find.descendant(of:grid,matching:find.text(type=='Income'?'Salary':'Savings')),findsOneWidget);
     if(type=='Savings in'){await tester.tap(find.text('Take from savings'));await tester.pumpAndSettle();}
-    final amount=find.widgetWithText(TextField,'Amount (MAD)');await tester.ensureVisible(amount);await tester.pumpAndSettle();await tester.enterText(amount,'100.25');
+    final amount=find.widgetWithText(TextField,'Amount (DH)');await tester.ensureVisible(amount);await tester.pumpAndSettle();await tester.enterText(amount,'100.25');
     await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
     expect(store.saved,{'type':type,'category':type=='Income'?'Salary':'Savings','amount':10025});
     expect(tester.takeException(),isNull);

@@ -3,7 +3,6 @@
 //   flutter test --update-goldens tool/previews/previews_test.dart
 // Images are written to tool/previews/shots/.
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -118,6 +117,14 @@ void main() {
           await t.tap(find.byKey(ValueKey('subtab-${tab.$1}-${tab.$2}')));
           await t.pumpAndSettle();
           await shot(tab.$3);
+          if (tab.$3 == '6e_review') {
+            // The "Check before closing" card sits below the fold.
+            await t.drag(find.byType(ListView).first, const Offset(0, -900));
+            await t.pumpAndSettle();
+            await shot('6e2_review_lower');
+            await t.drag(find.byType(ListView).first, const Offset(0, 900));
+            await t.pumpAndSettle();
+          }
         }
         await t.tap(find.byKey(const ValueKey('bottom-0')));
         await t.pumpAndSettle();
@@ -131,6 +138,37 @@ void main() {
         await shot('8_settings');
       } finally {
         debugDisableShadows = true;
+      }
+    });
+  }
+
+  // Overspent month: safe to spend goes negative, to check how negative amounts read (RTL too).
+  for (final (mode, language) in [(ThemeMode.light, 'en'), (ThemeMode.light, 'ar'), (ThemeMode.dark, 'ar')]) {
+    testWidgets('render negative ${mode.name} $language previews', (t) async {
+      t.view.physicalSize = const Size(780, 1688);
+      t.view.devicePixelRatio = 2;
+      addTearDown(t.view.reset);
+      final data = sample();
+      final m = monthKey(DateTime.now());
+      data['transactions']!.add({'id': 7, 'date': '$m-02', 'type': 'Expense', 'category': 'Leisure', 'description': 'Voyage Marrakech', 'amount': 1100000, 'note': '', 'bill_id': ''});
+      await t.pumpWidget(PaydayLocal(
+          initialData: Future.value(data),
+          store: PreviewStore(),
+          preferencesWriter: (_) async {},
+          initialPreferences: AppPreferences(appearance: mode, language: language)));
+      await t.pumpAndSettle();
+      Future<void> shot(String name) =>
+          expectLater(find.byType(MaterialApp), matchesGoldenFile('shots/${language == 'en' ? '' : '${language}_'}${mode.name}_$name.png'));
+      await shot('9_negative_home');
+      await t.tap(find.byKey(const ValueKey('home-hero')));
+      await t.pumpAndSettle();
+      await shot('9b_negative_details');
+      await t.tapAt(const Offset(20, 40));
+      await t.pumpAndSettle();
+      for (final tab in [(2, '9c_negative_budgets'), (1, '9d_negative_records')]) {
+        await t.tap(find.byKey(ValueKey('bottom-${tab.$1}')));
+        await t.pumpAndSettle();
+        await shot(tab.$2);
       }
     });
   }

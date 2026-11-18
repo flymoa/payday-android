@@ -23,10 +23,10 @@ void main(){
    await tester.tap(find.text('Safe to spend'));
    await tester.pumpAndSettle();
    expect(find.text('Income received'),findsOneWidget);
-   expect(find.text('+ 1,000.00 MAD'),findsOneWidget);
-   expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('800.00 MAD')),findsOneWidget);
+   expect(find.text('+ 1\u00a0000,00 DH'),findsOneWidget);
+   expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('800,00 DH')),findsOneWidget);
    expect(find.text('Cash buffer'),findsOneWidget);
-   expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('600.00 MAD')),findsOneWidget);
+   expect(find.descendant(of:find.byType(BottomSheet),matching:find.text('600,00 DH')),findsOneWidget);
    expect(find.textContaining('Category budgets are spending limits'),findsOneWidget);
    expect(tester.takeException(),isNull);
   });

@@ -19,16 +19,17 @@ class PaydayPanel extends StatelessWidget {
   final double radius;
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    // Deliberate boxes (close-the-month, year chart, prompts) match the content cards.
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       margin: margin,
       padding: padding,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: color ?? scheme.surface,
+        color: color ?? (dark ? PaydayCard.surfaceDark : PaydayCard.surfaceLight),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderColor ?? scheme.outlineVariant)),
+        border: Border.all(color: borderColor ?? (dark ? PaydayCard.borderDark : PaydayCard.borderLight))),
       child: child);
   }
 }
@@ -65,18 +66,20 @@ class PaydayPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Semantics(button: true, selected: selected, child: Material(
-      color: selected ? scheme.primary : scheme.surface,
-      shape: StadiumBorder(side: BorderSide(color: selected ? scheme.primary : scheme.outlineVariant)),
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Semantics(button: true, selected: selected, child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap,
+     child: Padding(padding: const EdgeInsets.symmetric(vertical: (PaydayControl.target - PaydayControl.chipHeight) / 2), child: Material(
+      color: selected ? scheme.primary : (dark ? PaydayControl.fillDark : PaydayControl.fillLight),
+      shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(onTap: onTap, child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 40),
+        constraints: const BoxConstraints(minHeight: PaydayControl.chipHeight),
         child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           child: Center(widthFactor: 1, heightFactor: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
             if (icon != null) ...[PaydayAppIcon(icon!, size: 17, color: selected ? scheme.onPrimary : scheme.onSurface), const SizedBox(width: 6)],
             Flexible(child: LText(label, style: TextStyle(color: selected ? scheme.onPrimary : scheme.onSurface,
               fontWeight: FontWeight.w700, fontSize: PaydayType.small))),
-          ])))))));
+          ])))))))));
   }
 }
 
@@ -88,15 +91,16 @@ class PaydayEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return PaydayPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-      child: Column(children: [
+    // Empty states sit on the page; a box around "nothing here" adds weight without content.
+    return SizedBox(width: double.infinity, child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: PaydaySpace.xl, vertical: PaydaySpace.xl),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
         Container(width: 48, height: 48,
           decoration: BoxDecoration(shape: BoxShape.circle, color: scheme.primary.withValues(alpha: .12)),
           child: Center(child: PaydayAppIcon(icon, size: 24, color: scheme.primary))),
         const SizedBox(height: 12),
         LText(message, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
-      ]));
+      ])));
   }
 }
 

@@ -11,7 +11,7 @@ extension _MoreScreen on _FinanceState {
   return review.rankedCategories.map((c){
    final spent=review.spending[c]!,before=previous[c]??0,share=spent/total;
    final change=before<=0?'New this month':spent>=before?'+${money(spent-before)} vs last month':'−${money(before-spent)} vs last month';
-   final changeColor=before<=0?muted:spent>before?(isDark?warn:PaydayColors.statusNearText):jade;
+   final changeColor=before<=0?muted:spent>before?saffronText:jade;
    return Row(crossAxisAlignment:CrossAxisAlignment.center,children:[
     Expanded(child:InkWell(key:ValueKey('category-records-$c'),borderRadius:BorderRadius.circular(PaydayRadius.sm),onTap:()=>openCategoryRecords(c),
      child:Padding(padding:EdgeInsets.symmetric(vertical:6),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -40,14 +40,14 @@ extension _MoreScreen on _FinanceState {
   Widget lineItem(String label,int value)=>Padding(padding:EdgeInsets.symmetric(vertical:8),
    child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:LText(label)),
     SizedBox(width:12),Flexible(child:LText(money(value),textAlign:TextAlign.end,
-     style:TextStyle(fontWeight:FontWeight.w700)))]));
+     style:PaydayText.amount.copyWith(fontSize:PaydayType.body)))]));
   Widget figure(String label,int value,Color color)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LText(label,maxLines:1,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),SizedBox(height:2),
    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(plain(value),style:TextStyle(fontFamily:'Bricolage',fontSize:17,fontWeight:FontWeight.w800,color:color))),
+    child:LText(plain(value),style:PaydayText.figure.copyWith(color:color))),
   ]));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   PaydayPanel(margin:EdgeInsets.only(bottom:4),child:Row(children:[
+   Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,PaydaySpace.xs,PaydaySpace.sm),child:Row(children:[
     figure('Income',balance.income,ink),SizedBox(width:8),figure('Spent',balance.expenses,ink),SizedBox(width:8),
     figure('Saved',balance.savingsNet,jade)])),
    Padding(padding:EdgeInsets.fromLTRB(6,4,6,0),child:LText(closed?'Month-close checks saved':ended?'Ready to review':'Month in progress',
@@ -69,18 +69,20 @@ extension _MoreScreen on _FinanceState {
      onPressed:ended?()=>monthCloseForm(d):null,icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText(closed?'Review close checks':'Continue to close checks'))),
    ])),
    header('Check before closing'),
-   tile('Unpaid bills',balance.unpaidBills>0?'Due this month or overdue, still outstanding':'No unpaid bills, this month or overdue',money(balance.unpaidBills),
+   groupedRows([
+   tile(divider:false,'Unpaid bills',balance.unpaidBills>0?'Due this month or overdue, still outstanding':'No unpaid bills, this month or overdue',money(balance.unpaidBills),
     icon:Icons.receipt_long_outlined,onTap:()=>openTool(0)),
-   tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
-   tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
-   ...over.map((c)=>tile(c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:danger)),
-   ...unbudgeted.map((c)=>tile(c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
-   if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
+   tile(divider:false,'Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
+   tile(divider:false,'Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
+   ...over.map((c)=>tile(divider:false,c,'Over budget',money((review.spending[c]??0)-budgetFor(d,month,c)),categoryTitle:true,icon:Icons.error_outline,tone:danger)),
+   ...unbudgeted.map((c)=>tile(divider:false,c,'Spending without a category budget',money(review.spending[c]??0),categoryTitle:true,icon:Icons.info_outline,tone:amber)),
    if(projectedMonthSpend(spentSoFar:balance.expenses,month:selected,now:DateTime.now()) case final projected?)
-    tile('Spending forecast','If you keep spending at this pace until the month ends',money(projected),icon:Icons.trending_up,
+    tile(divider:false,'Spending forecast','If you keep spending at this pace until the month ends',money(projected),icon:Icons.trending_up,
      tone:balance.income>0&&projected>balance.income?danger:null),
+   ]),
+   if(over.isEmpty&&unbudgeted.isEmpty)Padding(padding:EdgeInsets.all(12),child:LText('No category budget issues in recorded spending.')),
    header('Balances'),
-   PaydayPanel(child:Column(children:[
+   Padding(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.xs),child:Column(children:[
     lineItem('Income received',balance.income),lineItem('Spending',balance.expenses),
     lineItem('Net savings transfers',balance.savingsNet),lineItem('Net reserve transfers',balance.reserveNet),
     Divider(),lineItem('Available this month',balance.available),lineItem('Safe to spend',balance.safe),
@@ -96,13 +98,12 @@ extension _MoreScreen on _FinanceState {
   final setup=walletSetupOf(d);
   return setup==null?{'Cash':0,'Bank':0}:walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
  }
- Widget walletBalanceCard(String wallet,int amount)=>Expanded(child:PaydayPanel(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+ Widget walletBalanceCard(String wallet,int amount)=>Expanded(child:Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,0,PaydaySpace.sm),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
   Row(children:[PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:20),SizedBox(width:8),
    Expanded(child:LText(wallet,style:TextStyle(color:muted,fontWeight:FontWeight.w700)))]),
   SizedBox(height:8),
   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-   child:LText(plain(amount),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:amount<0?danger:ink))),
-  LText(currencyLabel(currency,language),style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+   child:LText(money(amount),style:PaydayText.figure.copyWith(color:amount<0?danger:ink))),
  ])));
  /// Cash & Bank: optional; switched on by entering today's balances.
  Widget moreWallets(Map<String,List<RowData>> d){
@@ -250,7 +251,7 @@ extension _MoreScreen on _FinanceState {
     subtitle:remain==0?'Paid ${shortDay(ledger.billPaidOn(b)??st(b,'due'))}':'Due ${shortDay(st(b,'due'))}$when',
     amount:plain(amount),
     status:remain==0?'Paid':paid>0?'${plain(paid)} paid':'Not paid',
-    statusColor:remain==0?jade:(isDark?warn:PaydayColors.statusNearText),
+    statusColor:remain==0?jade:saffronText,
     progress:remain>0&&paid>0?paid/amount:null,progressColor:warn);
   }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -369,9 +370,10 @@ extension _MoreScreen on _FinanceState {
   final top=[...inc,...exp].fold<int>(0,(a,b)=>a>b?a:b);
   if(top<=0)return const SizedBox.shrink();
   Widget bar(int v,Color c)=>Expanded(child:Align(alignment:Alignment.bottomCenter,child:FractionallySizedBox(
-   heightFactor:(v/top).clamp(0.0,1.0),child:Container(decoration:BoxDecoration(color:c,borderRadius:BorderRadius.vertical(top:Radius.circular(3)))))));
-  final spendColor=Theme.of(context).colorScheme.tertiary;
-  return Card(child:Padding(padding:EdgeInsets.fromLTRB(12,14,12,10),child:Column(children:[
+   heightFactor:(v/top).clamp(0.0,1.0),child:Container(decoration:BoxDecoration(color:c,borderRadius:BorderRadius.vertical(top:Radius.circular(PaydayRadius.sm)))))));
+  final spendColor=isDark?PaydayChart.spentDark:PaydayChart.spentLight;
+  // No inner frame: the surrounding panel is the only border.
+  return Padding(padding:EdgeInsets.fromLTRB(PaydaySpace.xs,PaydaySpace.xs,PaydaySpace.xs,0),child:Column(children:[
    Semantics(label:tr(context,'Income and spending by month'),child:SizedBox(height:140,child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
     for(var i=0;i<12;i++)Expanded(child:Padding(padding:EdgeInsets.symmetric(horizontal:2),child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[bar(inc[i],jade),SizedBox(width:1),bar(exp[i],spendColor)]))),
    ]))),
@@ -383,7 +385,7 @@ extension _MoreScreen on _FinanceState {
     Container(width:10,height:10,color:jade),SizedBox(width:4),LText('Income',style:TextStyle(fontSize:PaydayType.caption)),SizedBox(width:16),
     Container(width:10,height:10,color:spendColor),SizedBox(width:4),LText('Spent',style:TextStyle(fontSize:PaydayType.caption)),
    ]),
-  ])));
+  ]));
  }
  Widget moreYear(Map<String,List<RowData>> d){
   final tx=list(d,'transactions');
