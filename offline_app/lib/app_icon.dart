@@ -1,3 +1,4 @@
+import 'canvas_icons.dart';
 import 'design_tokens.dart';
 import 'package:flutter/material.dart';
 import 'localization.dart';
@@ -28,6 +29,12 @@ class _AppPainter extends CustomPainter{
  final bool dark;
  final TextDirection direction;
  @override void paint(Canvas c,Size size){
+  // The design canvas icon set first; the app's own drawings only for icons it doesn't cover.
+  final canvasName=canvasGlyphForIcon(icon);
+  if(canvasName!=null){
+   CanvasGlyphPainter(canvasName,color,mirror:direction==TextDirection.rtl&&(canvasName=='chev'||canvasName=='back')).paint(c,size);
+   return;
+  }
   String? glyph;
   if([Icons.savings,Icons.savings_outlined].contains(icon))glyph='savings';
   if(icon==Icons.beach_access_outlined)glyph='reserve';
