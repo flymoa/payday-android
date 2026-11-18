@@ -35,7 +35,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    for(final entry in days.entries)...[
     Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
      (entry.key==today?'${tr(context,'Today')} · ${shortDay(entry.key)}':entry.key==yesterday?'${tr(context,'Yesterday')} · ${shortDay(entry.key)}':shortDay(entry.key)).toUpperCase(),
-     style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.caption,letterSpacing:.4))),
+     style:TextStyle(color:muted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption,letterSpacing:language=='ar'?0:.4))),
     PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
      for(var i=0;i<entry.value.length;i++)...[
       if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),

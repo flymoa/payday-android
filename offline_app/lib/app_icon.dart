@@ -32,7 +32,7 @@ class _AppPainter extends CustomPainter{
   // The design canvas icon set first; the app's own drawings only for icons it doesn't cover.
   final canvasName=canvasGlyphForIcon(icon);
   if(canvasName!=null){
-   CanvasGlyphPainter(canvasName,color,mirror:direction==TextDirection.rtl&&(canvasName=='chev'||canvasName=='back')).paint(c,size);
+   CanvasGlyphPainter(canvasName,color,mirror:direction==TextDirection.rtl&&const {'chev','back','swap'}.contains(canvasName)).paint(c,size);
    return;
   }
   String? glyph;

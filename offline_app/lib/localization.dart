@@ -51,7 +51,10 @@ String localizedNumber(int cents,String language,{bool grouped=false}){
  return '${negative?'−':''}$whole${language=='fr'?',':'.'}${(absolute%100).toString().padLeft(2,'0')}';
 }
 /// Amounts on screen always group thousands (1,234.50 / 1 234,50). Inputs stay ungrouped.
-String localizedMoney(int cents,String currency,String language)=>'${language=='en'&&cents<0?'-'+localizedNumber(-cents,language,grouped:true):localizedNumber(cents,language,grouped:true)} $currency';
+/// In Arabic the currency is written as a word after the number ("1,240.00 درهم").
+const arabicCurrency={'MAD':'درهم','EUR':'يورو','USD':'دولار','GBP':'جنيه'};
+String currencyLabel(String currency,String language)=>language=='ar'?(arabicCurrency[currency]??currency):currency;
+String localizedMoney(int cents,String currency,String language)=>'${language=='en'&&cents<0?'-'+localizedNumber(-cents,language,grouped:true):localizedNumber(cents,language,grouped:true)} ${currencyLabel(currency,language)}';
 const _monthsEn=['January','February','March','April','May','June','July','August','September','October','November','December'];
 String localizedMonth(DateTime date,String language,{bool short=false}){
  if(language=='en'&&short)return '${_monthsEn[date.month-1].substring(0,3)} ${date.year}';
@@ -70,6 +73,18 @@ String displayDay(BuildContext context,String iso){
  final date=DateTime.tryParse(iso);return date==null?iso:localizedDay(date,languageOf(context));
 }
 
+/// Arabic type rules from the design: no letter spacing, at least 13px, taller lines,
+/// and weights IBM Plex Sans Arabic has (Bold at most).
+TextStyle arabicStyle(TextStyle? style){
+ final s=style??const TextStyle();
+ final size=s.fontSize;
+ final weight=s.fontWeight;
+ return s.copyWith(letterSpacing:0,
+  fontSize:size!=null&&size<13?13:null,
+  height:s.height??((size??14)>=20?1.35:1.5),
+  fontWeight:weight!=null&&weight.value>700?FontWeight.w700:null);
+}
+
 /// Keeps the existing Text properties and geometry; localization is display-only.
 class LText extends StatelessWidget{
  const LText(this.data,{super.key,this.style,this.textAlign,this.textDirection,this.maxLines,
@@ -85,9 +100,13 @@ class LText extends StatelessWidget{
  final bool category;
  @override Widget build(BuildContext context){
   final value=category?categoryLabel(context,data):tr(context,data);
+  final arabic=languageOf(context)=='ar';
   final numeric=RegExp(r'\d').hasMatch(value)&&RegExp(r'^(?:[\d\s.,+−%/()\u202f]|MAD|EUR|GBP|USD)+$').hasMatch(value);
-  final displayed=languageOf(context)=='ar'&&!numeric?value.replaceAllMapped(RegExp(r'[+−-]?[0-9][0-9.,\u202f]*\s+(?:MAD|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069'):value;
-  return Text(displayed,style:style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
+  // Numbers stay left to right inside Arabic; the currency word follows the number.
+  final displayed=arabic&&!numeric?value
+   .replaceAllMapped(RegExp(r'[+−-]?[0-9][0-9.,\u202f]*\s+(?:MAD|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069')
+   .replaceAllMapped(RegExp(r'([+−-]?[0-9][0-9.,\u202f/ ]*[0-9%])(?=\s*(?:درهم|يورو|دولار|جنيه))'),(m)=>'\u2066${m.group(1)}\u2069'):value;
+  return Text(displayed,style:arabic?arabicStyle(style):style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
    maxLines:maxLines,softWrap:softWrap,overflow:overflow,
    semanticsLabel:semanticsLabel==null?null:tr(context,semanticsLabel!));
  }

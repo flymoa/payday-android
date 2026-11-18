@@ -102,7 +102,7 @@ extension _MoreScreen on _FinanceState {
   SizedBox(height:8),
   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
    child:LText(plain(amount),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:amount<0?danger:ink))),
-  LText(currency,style:TextStyle(color:muted,fontSize:PaydayType.caption)),
+  LText(currencyLabel(currency,language),style:TextStyle(color:muted,fontSize:PaydayType.caption)),
  ])));
  /// Cash & Bank: optional; switched on by entering today's balances.
  Widget moreWallets(Map<String,List<RowData>> d){
