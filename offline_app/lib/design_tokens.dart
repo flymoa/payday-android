@@ -101,7 +101,7 @@ abstract final class PaydayCard {
 /// never saffron (saffron is reserved for the add button).
 abstract final class PaydayChart {
   static const spentLight = Color(0xff6B7F86); // 4.2:1 on the white card
-  static const spentDark = Color(0xffA9B0B3); // 6.6:1 on the dark card
+  static const spentDark = Color(0xff7D8689); // ~3.9:1 on the dark card; darker than mint Income so the series differ by lightness
 }
 
 abstract final class PaydaySpace {
