@@ -24,7 +24,8 @@ extension _HomeScreen on _FinanceState {
   return listRow(key:ValueKey('home-category-$category'),onTap:onTap??()=>openCategoryRecords(category),
    leading:PaydayCategoryIcon(category,size:38),title:rowTitle(category,category:true),
    subtitle:description,subtitleColor:noteColor,
-   amount:isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
+   amount:language=='ar'?'${homeDigits(spent).split(decimalSeparator).first} / ${homeDigits(limit).split(decimalSeparator).first}'
+    :isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
    progress:limit<=0?(spent>0?1.0:0.0):spent/limit,progressColor:barColor,
    trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null);
  }
@@ -190,7 +191,7 @@ extension _HomeScreen on _FinanceState {
       final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
       Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[PaydayAppIcon(w=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:16,color:muted),SizedBox(width:6),
-        LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
+        LText(language=='ar'?(w=='Cash'?'في الجيب':'في البنك'):w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
        FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(b[w]!),
         style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:17,color:b[w]!<0?danger:ink)))]));
       return Row(children:[one('Cash'),SizedBox(width:12),one('Bank'),PaydayAppIcon(Icons.chevron_right,color:muted)]);

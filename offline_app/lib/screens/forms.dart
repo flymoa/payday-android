@@ -156,7 +156,7 @@ extension _Forms on _FinanceState {
    SizedBox(height:18),
    TextField(controller:amt,autofocus:fresh,onChanged:(_)=>rebuild((){}),textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
     style:TextStyle(fontFamily:'Bricolage',fontSize:34,fontWeight:FontWeight.w800,color:ink),
-    decoration:InputDecoration(labelText:tr(context,'Amount ($currency)'),floatingLabelBehavior:FloatingLabelBehavior.always,
+    decoration:InputDecoration(labelText:tr(context,'Amount (${currencyLabel(currency,language)})'),floatingLabelBehavior:FloatingLabelBehavior.always,
      labelStyle:TextStyle(fontWeight:FontWeight.w700,color:muted),hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:true,fillColor:surface,contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:18),
      border:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
@@ -310,7 +310,7 @@ extension _Forms on _FinanceState {
     if(category!='Income plan')Padding(padding:EdgeInsets.only(bottom:12),
      child:LText('Maximum total for this category: ${money(initial.maximum)}',
       style:TextStyle(color:muted,fontWeight:FontWeight.w600))),
-    field(a,'Budget amount ($currency)',number:true),
+    field(a,'Budget amount (${currencyLabel(currency,language)})',number:true),
     if(category=='Income plan')TextButton.icon(onPressed:()=>incomeCategoriesForm(),
      icon:PaydayAppIcon(Icons.tune_outlined),label:LText('Manage income categories')),
     if(!['Income plan','Savings goal'].contains(category))TextButton.icon(
@@ -380,7 +380,7 @@ extension _Forms on _FinanceState {
  }
  Future<void> goalForm(RowData? existing) async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name')),target=TextEditingController(text:existing==null?'':inputNumber(val(existing,'target')));
-  await sheet(existing==null?'Add savings goal':'Edit savings goal',(c,rebuild)=>Column(children:[field(name,'Goal name'),field(target,'Target ($currency)',number:true),
+  await sheet(existing==null?'Add savings goal':'Edit savings goal',(c,rebuild)=>Column(children:[field(name,'Goal name'),field(target,'Target (${currencyLabel(currency,language)})',number:true),
    FilledButton(onPressed:()async{final n=amount(target);if(n==null)return inputError('Invalid target');final saveSucceeded=await execute(()=>store.saveGoal(id:existing==null?null:val(existing,'id'),name:name.text,target:n));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save goal')),
    if(existing!=null)Padding(padding:EdgeInsets.only(top:8),child:TextButton(onPressed:()async{
     final ok=await showDialog<bool>(context:c,builder:(dialog)=>AlertDialog(
@@ -396,7 +396,7 @@ extension _Forms on _FinanceState {
   final remaining=totalPool(d)-allocated(d),a=TextEditingController();
   await sheet('Allocate to ${st(goal,'name')}',(c,rebuild)=>Column(children:[
    LText('Unassigned savings: ${money(remaining)}\nAllocations are not new savings.'),
-   SizedBox(height:12),field(a,'Amount ($currency)',number:true),
+   SizedBox(height:12),field(a,'Amount (${currencyLabel(currency,language)})',number:true),
    FilledButton(onPressed:()async{
     final n=amount(a);if(n==null||n>remaining)return inputError('Allocation exceeds available savings.');
     // Month must have been reviewed and closed, as in the spreadsheet.
@@ -440,7 +440,7 @@ extension _Forms on _FinanceState {
   final billCategories=categoryChoices(d,'Expense',existing:existing==null?null:category);
   if(!billCategories.contains(category))category=billCategories.first;
   await sheet(existing==null?'Add a bill':'Edit bill',(c,rebuild)=>Column(children:[
-   field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount ($currency)',number:true),field(note,'Note'),
+   field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount (${currencyLabel(currency,language)})',number:true),field(note,'Note'),
    DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:LText(name,category:true))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:LText('Due: ${uiDay(date)}')),
    FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save bill')),
@@ -482,7 +482,7 @@ extension _Forms on _FinanceState {
       'Money returned to spendable cash when you take it out.',
       style:TextStyle(color:muted,fontSize:PaydayType.caption)),
     SizedBox(height:16),
-    field(amountController,'Amount ($currency)',number:true),
+    field(amountController,'Amount (${currencyLabel(currency,language)})',number:true),
     field(noteController,'Note (optional)'),
     Row(children:[PaydayAppIcon(Icons.calendar_today_outlined,size:18),
      TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),
@@ -563,8 +563,8 @@ extension _Forms on _FinanceState {
     SizedBox(height:16),
    ],
    field(name,'Reserve name (e.g. Vacation)'),
-   field(target,'Total target ($currency)',number:true),
-   if(existing==null)field(funded,'Already put aside before using Payday ($currency)',number:true),
+   field(target,'Total target (${currencyLabel(currency,language)})',number:true),
+   if(existing==null)field(funded,'Already put aside before using Payday (${currencyLabel(currency,language)})',number:true),
    if(existing!=null)Padding(padding:EdgeInsets.only(bottom:10),
      child:LText('Original opening funds: ${money(val(existing,'funded'))}. '
       'Use Add money / Take out to record changes.',
@@ -630,7 +630,7 @@ extension _Forms on _FinanceState {
       RadioListTile<String>(value:'none',title:LText('Do nothing')),
      ])),
    ],
-   field(opening,'Opening spendable cash ($currency)',number:true),field(extra,'Extra saved ($currency)',number:true),
+   field(opening,'Opening spendable cash (${currencyLabel(currency,language)})',number:true),field(extra,'Extra saved (${currencyLabel(currency,language)})',number:true),
    FilledButton(onPressed:()async{
     if(!selected.isBefore(currentMonth))return inputError('Wait until the month ends before closing it.');
     final n=amount(extra,allowZero:true),o=amount(opening,allowZero:true);
