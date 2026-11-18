@@ -64,6 +64,9 @@ String localizedDay(DateTime date,String language){
  if(language=='en')return '${date.year.toString().padLeft(4,'0')}-${date.month.toString().padLeft(2,'0')}-${date.day.toString().padLeft(2,'0')}';
  return '${date.day} ${localizedMonth(date,language)}';
 }
+/// Arabic counts days the Arabic way: يوم واحد، يومان، 3–10 أيام، 11+ يومًا.
+String arabicDays(int n,{bool after=false})=>n==1?(after?'يوم':'يوم واحد'):n==2?(after?'يومين':'يومان'):n>=3&&n<=10?'$n أيام':'$n يومًا';
+
 /// Day and month only, e.g. "20 Nov" (English) or "20 novembre", as used in lists.
 String localizedShortDay(DateTime date,String language){
  final name=_monthsEn[date.month-1];

@@ -243,7 +243,7 @@ extension _MoreScreen on _FinanceState {
    final remain=owedFor(b),paid=billPaid(d,b),amount=val(b,'amount');
    final due=DateTime.tryParse(st(b,'due'));
    final days=due==null?0:DateTime(due.year,due.month,due.day).difference(today).inDays;
-   final when=remain==0?'':days<0?' · overdue':days==0?' · today':days==1?' · tomorrow':days<=7?' · in $days days':'';
+   final when=remain==0?'':days<0?' · overdue':days==0?' · today':days==1?' · tomorrow':days<=7?(language=='ar'?' · بعد ${arabicDays(days,after:true)}':' · in $days days'):'';
    return listRow(key:ValueKey('bill-${st(b,'code')}'),onTap:()=>billForm(b),
     leading:iconTile(remain==0?Icons.check_circle_outline:Icons.receipt_long_outlined),title:rowTitle(st(b,'name'),raw:true),
     subtitle:remain==0?'Paid ${shortDay(st(b,'due'))}':'Due ${shortDay(st(b,'due'))}$when',

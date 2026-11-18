@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/finance.dart';
+import 'package:payday_local/localization.dart';
 import 'package:payday_local/main.dart';
 
 void main() {
@@ -48,5 +49,12 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-next-bill')), findsNothing);
     expect(t.takeException(), isNull);
+  });
+
+  test('Arabic day counts follow Arabic grammar', () {
+    expect(arabicDays(2, after: true), 'يومين');
+    expect(arabicDays(3), '3 أيام');
+    expect(arabicDays(10), '10 أيام');
+    expect(arabicDays(13), '13 يومًا');
   });
 }
