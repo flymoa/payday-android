@@ -102,16 +102,19 @@ extension _Forms on _FinanceState {
   final bill=TextEditingController(text:existing==null?(prefill?.billId??''):st(existing,'bill_id'));
   final amt=TextEditingController(text:existing==null?(prefill==null?'':inputNumber(prefill.amountCents)):inputNumber(val(existing,'amount')));
   var type=existing==null?(prefill?.type??initialType??'Expense'):st(existing,'type');
-  var category=existing==null?(prefill?.category??(type=='Income'?'Salary':type.startsWith('Savings')?'Savings':'Groceries')):st(existing,'category');
+  // A new expense starts with no category: a silent default would file a taxi
+  // or a phone top-up under Groceries and quietly corrupt the budgets.
+  var category=existing==null?(prefill?.category??(type=='Income'?'Salary':type.startsWith('Savings')?'Savings':'')):st(existing,'category');
   // Duplicate: same details as a new entry dated today (bill link not copied).
   if(existing==null&&copyFrom!=null){
    desc.text=st(copyFrom,'description');note.text=st(copyFrom,'note');amt.text=inputNumber(val(copyFrom,'amount'));
    type=st(copyFrom,'type');category=st(copyFrom,'category');
   }
   var cats=categoriesFor(type,editing:existing!=null);
-  if(!cats.contains(category)){if(prefill!=null){cats=[category,...cats];}else{category=cats.first;}}
+  if(category.isNotEmpty&&!cats.contains(category)){if(prefill!=null){cats=[category,...cats];}else{category=cats.first;}}
   var date=existing==null?(prefill!=null||copyFrom!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
+  var categoryMissing=false;
   var allCategories=false;
   // Wallet choice appears only once Cash & Bank tracking is on.
   final walletSetup=WalletSetup.decode(Ledger(d).setting(walletSetupKey));
@@ -136,8 +139,8 @@ extension _Forms on _FinanceState {
       padding:EdgeInsets.symmetric(vertical:12,horizontal:2),backgroundColor:selected?surface:Colors.transparent,
       foregroundColor:selected?ink:muted,elevation:selected?1:0,shadowColor:Colors.black26,shape:StadiumBorder()),
       onPressed:submitting?null:()=>rebuild((){
-       type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=cats.contains(entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings')?
-        (entry=='Expense'?'Groceries':entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
+       type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=entry=='Expense'?'':cats.contains(entry=='Income'?'Salary':'Savings')?
+        (entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
       }),child:LText(entry,style:TextStyle(fontSize:14,fontWeight:FontWeight.w700))));
     }).toList())),
    if(type.startsWith('Savings'))...[
@@ -163,7 +166,7 @@ extension _Forms on _FinanceState {
      enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
      focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)))),
    SizedBox(height:10),
-   if(type=='Expense')Builder(builder:(_){
+   if(type=='Expense'&&category.isNotEmpty)Builder(builder:(_){
     final key=monthKey(date),limit=budgetFor(d,key,category),name=categoryLabel(context,category);
     final spent=monthTransactionsFor(d,key).where((t)=>st(t,'type')=='Expense'&&st(t,'category')==category&&val(t,'id')!=(existing==null?-1:val(existing,'id'))).fold(0,(n,t)=>n+val(t,'amount'));
     final typed=amount(amt)??0,left=limit-spent-typed;
@@ -172,9 +175,11 @@ extension _Forms on _FinanceState {
     return Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(label,color:left<0&&limit>0?danger:null));
    }),
    Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
+   if(categoryMissing&&category.isEmpty)Align(alignment:AlignmentDirectional.centerStart,child:Padding(padding:EdgeInsets.only(top:4),
+    child:LText('Choose a category.',key:ValueKey('transaction-category-missing'),style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,color:danger)))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){
-    final ordered={category,...cats}.toList();
+    final ordered=category.isEmpty?[...cats]:{category,...cats}.toList();
     final choices=allCategories?ordered:ordered.take(7).toList();
     // Grows with the phone's text size so two-line names always fit (86 at normal size).
     final tileHeight=max(86.0,46+MediaQuery.textScalerOf(c).scale(PaydayType.caption)*3.2);
@@ -231,6 +236,8 @@ extension _Forms on _FinanceState {
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}
+    // Shown inside the sheet: a snackbar would sit behind the full-height sheet.
+    if(category.isEmpty){rebuild(()=>categoryMissing=true);return;}
     rebuild(()=>submitting=true);
     final success=await execute(()=>store.saveTransaction(
       id:existing==null?null:val(existing,'id'),date:dayKey(date),

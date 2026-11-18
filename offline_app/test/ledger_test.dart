@@ -33,9 +33,40 @@ void main() {
     ],
   });
 
-  test('bills: partial payments count, only the chosen month is unpaid', () {
+  test('bills: partial payments count, and an older unpaid bill carries forward', () {
     expect(l.billPaid({'code': 'ELEC'}), 30000);
-    expect(l.unpaidBills('2026-11'), 20000 + 25000);
+    // OLD was due in October and is still unpaid: it must not vanish in November.
+    expect(l.unpaidBills('2026-11'), 20000 + 25000 + 99900);
+    expect(l.unpaidBills('2026-10'), 99900);
+    expect(l.billCountsFor({'code': 'OLD', 'due': '2026-10-20', 'amount': 99900}, '2026-11'), isTrue);
+    expect(l.billCountsFor({'code': 'NET', 'due': '2026-11-20', 'amount': 25000}, '2026-10'), isFalse,
+        reason: 'a future bill never counts in an earlier month');
+    expect(l.billCountsFor({'code': 'X', 'due': '', 'amount': 100}, '2026-11'), isFalse);
+  });
+  test('bills: a paid older bill does not carry forward', () {
+    final paid = Ledger({
+      'transactions': [
+        {'date': '2026-10-21', 'type': 'Expense', 'amount': 99900, 'bill_id': 'OLD'},
+      ],
+      'bills': [
+        {'code': 'OLD', 'due': '2026-10-20', 'amount': 99900},
+      ],
+    });
+    expect(paid.billCountsFor(paid.rows('bills').single, '2026-11'), isFalse);
+    expect(paid.billCountsFor(paid.rows('bills').single, '2026-10'), isTrue);
+    expect(paid.unpaidBills('2026-11'), 0);
+  });
+  test('bills: paid date is the latest payment, not the due date', () {
+    final paid = Ledger({
+      'transactions': [
+        {'date': '2026-11-03', 'type': 'Expense', 'amount': 10000, 'bill_id': 'NET'},
+        {'date': '2026-11-09', 'type': 'Expense', 'amount': 15000, 'bill_id': 'NET'},
+        {'date': '2026-11-12', 'type': 'Expense', 'amount': 500, 'bill_id': 'OTHER'},
+      ],
+      'bills': [],
+    });
+    expect(paid.billPaidOn({'code': 'NET'}), '2026-11-09');
+    expect(paid.billPaidOn({'code': 'NONE'}), isNull);
   });
   test('budgets and month filters', () {
     expect(l.budgetFor('2026-11', 'Groceries'), 80000);

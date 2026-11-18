@@ -143,6 +143,7 @@ String? canvasGlyphForIcon(IconData icon){
   Icons.bar_chart_rounded:'bars',Icons.beach_access_outlined:'beach',Icons.check_circle_outline:'check',
   Icons.fact_check_outlined:'check',Icons.edit_outlined:'edit',Icons.info_outline:'info',Icons.visibility_outlined:'eye',
   Icons.visibility_off_outlined:'eye',Icons.grid_view:'grid',Icons.grid_view_outlined:'grid',Icons.trending_up:'bars',
+  Icons.widgets_outlined:'eye',Icons.delete_outline:'trash',Icons.table_chart_outlined:'grid',
  };
  return m[icon];
 }

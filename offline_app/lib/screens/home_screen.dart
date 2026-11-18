@@ -24,19 +24,20 @@ extension _HomeScreen on _FinanceState {
   return listRow(key:ValueKey('home-category-$category'),onTap:onTap??()=>openCategoryRecords(category),
    leading:PaydayCategoryIcon(category,size:38),title:rowTitle(category,category:true),
    subtitle:description,subtitleColor:noteColor,
-   amount:language=='ar'?'${homeDigits(spent).split(decimalSeparator).first} / ${homeDigits(limit).split(decimalSeparator).first}'
+   amount:language=='ar'?(isUnbudgeted?homeDigits(spent):'${homeDigits(spent)} / ${homeDigits(limit)}')
     :isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
    progress:limit<=0?(spent>0?1.0:0.0):spent/limit,progressColor:barColor,
    trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null);
  }
  /// Month switcher shown at the top of pages that depend on the month.
- Widget navMonth()=>Material(color:surface,clipBehavior:Clip.antiAlias,
+ /// With [year], the Year tab steps a whole year and shows only the year.
+ Widget navMonth({bool year=false})=>Material(color:surface,clipBehavior:Clip.antiAlias,
   shape:StadiumBorder(side:BorderSide(color:line)),
   child:Row(children:[
-   IconButton(tooltip:tr(context,'Previous month'),onPressed:()=>shift(-1),icon:PaydayAppIcon(Icons.chevron_left)),
-   Expanded(child:LText(localizedMonth(selected,language),textAlign:TextAlign.center,maxLines:1,
+   IconButton(key:ValueKey(year?'nav-year-previous':'nav-month-previous'),tooltip:tr(context,year?'Previous year':'Previous month'),onPressed:()=>shift(year?-12:-1),icon:PaydayAppIcon(Icons.chevron_left)),
+   Expanded(child:LText(year?'${selected.year}':localizedMonth(selected,language),key:ValueKey('nav-period-label'),textAlign:TextAlign.center,maxLines:1,
     style:TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink))),
-   IconButton(tooltip:tr(context,'Next month'),onPressed:()=>shift(1),icon:PaydayAppIcon(Icons.chevron_right)),
+   IconButton(key:ValueKey(year?'nav-year-next':'nav-month-next'),tooltip:tr(context,year?'Next year':'Next month'),onPressed:()=>shift(year?12:1),icon:PaydayAppIcon(Icons.chevron_right)),
   ]));
  Widget bottomItem(String label,IconData icon,int index)=>Expanded(child:TextButton(key:ValueKey('bottom-$index'),
   style:TextButton.styleFrom(padding:EdgeInsets.symmetric(vertical:6,horizontal:2),foregroundColor:page==index?jade:muted,
@@ -71,7 +72,7 @@ extension _HomeScreen on _FinanceState {
     calculation('Net reserve transfers',-balance.reserveNet),
     Divider(),calculation('Available this month',balance.available,total:true),
     if(showSafe)...[
-     calculation('Unpaid bills due this month',-balance.unpaidBills),
+     calculation('Unpaid bills, including overdue',-balance.unpaidBills),
      calculation('Savings goal still to fund',-balance.savingsGap),
      calculation('Reserve contributions still to fund',-balance.reserveHold),
      calculation('Cash buffer',-balance.buffer),
@@ -218,10 +219,10 @@ extension _HomeScreen on _FinanceState {
    ])),
   ]);
  }
- /// The next bill still owed this month, if it is overdue or due within a week.
+ /// The next bill still owed (this month's, or an older one never paid), if it is overdue or due within a week.
  RowData? nextDueBill(Map<String,List<RowData>> d,DateTime now){
   final l=Ledger(d),today=DateTime(now.year,now.month,now.day);
-  final owed=list(d,'bills').where((b)=>st(b,'due').startsWith(monthKey(now))&&billOutstanding(val(b,'amount'),l.billPaid(b))>0).toList()
+  final owed=list(d,'bills').where((b)=>l.billCountsFor(b,monthKey(now))&&billOutstanding(val(b,'amount'),l.billPaid(b))>0).toList()
    ..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   final due=owed.isEmpty?null:DateTime.tryParse(st(owed.first,'due'));
   return due==null||due.difference(today).inDays>7?null:owed.first;

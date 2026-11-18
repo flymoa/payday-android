@@ -14,6 +14,15 @@ void main(){
    expect(parseMoneyCents(bad),isNull,reason:bad);
   }
  });
+ test('money input accepts digits typed on an Arabic keyboard',(){
+  expect(parseMoneyCents('١٥'),1500,reason:'Arabic-Indic digits');
+  expect(parseMoneyCents('۱۵'),1500,reason:'Eastern Arabic-Indic digits');
+  expect(parseMoneyCents('٤٨٧٫٣٠'),48730,reason:'Arabic decimal separator');
+  expect(parseMoneyCents('٤٨٧,٣٠'),48730,reason:'comma decimal');
+  expect(parseMoneyCents('١٬٢٠٠٫٥٠'),120050,reason:'Arabic thousands separator');
+  expect(parseMoneyCents('٠'),isNull);
+  expect(parseMoneyCents('١٢٫٣٤٥'),isNull,reason:'still no silent rounding');
+ });
  test('record search combines text with type without hiding notes or bill IDs',(){
   final row=<String,Object?>{'type':'Expense','description':'Market','category':'Groceries','note':'Weekly shop','bill_id':'ABC-12'};
   expect(matchesRecord(row,' weekly ','Expense'),isTrue);

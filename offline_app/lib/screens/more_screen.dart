@@ -69,7 +69,7 @@ extension _MoreScreen on _FinanceState {
      onPressed:ended?()=>monthCloseForm(d):null,icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText(closed?'Review close checks':'Continue to close checks'))),
    ])),
    header('Check before closing'),
-   tile('Unpaid bills',balance.unpaidBills>0?'Due this month and still outstanding':'No outstanding bills due this month',money(balance.unpaidBills),
+   tile('Unpaid bills',balance.unpaidBills>0?'Due this month or overdue, still outstanding':'No unpaid bills, this month or overdue',money(balance.unpaidBills),
     icon:Icons.receipt_long_outlined,onTap:()=>openTool(0)),
    tile('Savings still to fund','Remaining part of this month’s savings goal',money(balance.savingsGap),icon:Icons.savings_outlined),
    tile('Reserves still to fund','Remaining planned contributions for this month',money(balance.reserveHold),icon:Icons.beach_access_outlined),
@@ -233,7 +233,8 @@ extension _MoreScreen on _FinanceState {
  }
  String month0()=>monthKey(DateTime.now());
  Widget moreBills(Map<String,List<RowData>> d){
-  final bills=list(d,'bills').where((b)=>st(b,'due').startsWith(month)).toList()..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
+  final ledger=Ledger(d);
+  final bills=list(d,'bills').where((b)=>ledger.billCountsFor(b,month)).toList()..sort((a,b)=>st(a,'due').compareTo(st(b,'due')));
   int owedFor(RowData b)=>billOutstanding(val(b,'amount'),billPaid(d,b));
   final total=bills.fold<int>(0,(n,b)=>n+val(b,'amount')),owed=bills.fold<int>(0,(n,b)=>n+owedFor(b));
   final now=DateTime.now(),today=DateTime(now.year,now.month,now.day);
@@ -246,7 +247,7 @@ extension _MoreScreen on _FinanceState {
    final when=remain==0?'':days<0?' · overdue':days==0?' · today':days==1?' · tomorrow':days<=7?(language=='ar'?' · بعد ${arabicDays(days,after:true)}':' · in $days days'):'';
    return listRow(key:ValueKey('bill-${st(b,'code')}'),onTap:()=>billForm(b),
     leading:iconTile(remain==0?Icons.check_circle_outline:Icons.receipt_long_outlined),title:rowTitle(st(b,'name'),raw:true),
-    subtitle:remain==0?'Paid ${shortDay(st(b,'due'))}':'Due ${shortDay(st(b,'due'))}$when',
+    subtitle:remain==0?'Paid ${shortDay(ledger.billPaidOn(b)??st(b,'due'))}':'Due ${shortDay(st(b,'due'))}$when',
     amount:plain(amount),
     status:remain==0?'Paid':paid>0?'${plain(paid)} paid':'Not paid',
     statusColor:remain==0?jade:(isDark?warn:PaydayColors.statusNearText),

@@ -51,6 +51,21 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('An unpaid bill from last month still shows on Home', (t) async {
+    final now = DateTime.now();
+    final lastMonth = DateTime(now.year, now.month - 1, 20);
+    final data = <String, List<RowData>>{
+      'transactions': [],
+      'bills': [
+        {'id': 1, 'code': 'LYDEC', 'name': 'Lydec', 'due': dayKey(lastMonth), 'amount': 41280, 'category': 'Utilities', 'note': ''},
+      ],
+    };
+    await t.pumpWidget(MaterialApp(home: FinanceScreen(initialData: Future.value(data))));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-next-bill')), findsOneWidget, reason: 'an overdue bill must not vanish at month change');
+    expect(t.takeException(), isNull);
+  });
+
   test('Arabic day counts follow Arabic grammar', () {
     expect(arabicDays(2, after: true), 'يومين');
     expect(arabicDays(3), '3 أيام');
