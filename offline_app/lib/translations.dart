@@ -1,7 +1,7 @@
 // Display-only French and Arabic messages. Stored financial identifiers are never translated.
 const paydayTranslations=<String,List<String>>{
  "Pay cycle":["Cycle de paie","دورة الراتب"],
- "Payday":["Jour de paie","يوم الراتب"],
+ "Salary day":["Jour de paie","يوم الراتب"],
  "Payday saved.":["Jour de paie enregistré.","تم حفظ يوم الراتب."],
  "Save payday":["Enregistrer le jour de paie","حفظ يوم الراتب"],
  "Payday tomorrow":["Paie demain","الراتب غدًا"],

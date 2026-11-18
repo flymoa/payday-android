@@ -39,7 +39,7 @@ extension _SettingsScreen on _FinanceState {
    if(preferencesSaving)LinearProgressIndicator(),
    // Payday first: it changes every number in the app.
    settingsGroup('Pay cycle',[
-    ListTile(key:ValueKey('payday-setting'),leading:PaydayAppIcon(Icons.calendar_today_outlined),title:LText('Payday'),
+    ListTile(key:ValueKey('payday-setting'),leading:PaydayAppIcon(Icons.calendar_today_outlined),title:LText('Salary day'),
      subtitle:LText('Next payday: ${shortDay(dayKey(cycleOf(d).nextPayday))}'),trailing:PaydayAppIcon(Icons.chevron_right),
      onTap:()=>openSettingsPage((_)=>PaydaySettingsPage(initial:paydayRuleOf(d),onChanged:(rule)=>execute(()async{
       await store.setSetting(PaydayRule.dayKey,rule.encodedDay);

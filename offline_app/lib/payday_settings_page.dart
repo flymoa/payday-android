@@ -78,7 +78,7 @@ class _PaydaySettingsPageState extends State<PaydaySettingsPage> {
     final cycles = upcomingCycles(today, rule);
     final next = payCycleFor(today, rule).nextPayday;
     return SettingsPageScaffold(
-      title: 'Payday',
+      title: 'Salary day',
       busy: saving,
       body: ListView(padding: settingsPagePadding, children: [
         if (saving) const LinearProgressIndicator(),

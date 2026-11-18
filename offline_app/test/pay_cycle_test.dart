@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/pay_cycle.dart';
+import 'package:payday_local/translations.dart';
 
 void main() {
   const rule = PaydayRule(); // 28th, paid the Friday before a weekend.
@@ -73,5 +74,9 @@ void main() {
     for (var i = 1; i < next.length; i++) {
       expect(next[i].start, next[i - 1].nextPayday);
     }
+  });
+  test('the app name is never translated', () {
+    // A "Payday" catalog entry once turned the Arabic header into «يوم الراتب».
+    expect(paydayTranslations.containsKey('Payday'), isFalse);
   });
 }
