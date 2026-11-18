@@ -145,7 +145,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
  }
  Widget savings(Map<String,List<RowData>> d){
   final pool=totalPool(d),used=allocated(d),goals=list(d,'goals'),allocations=list(d,'allocations');
-  final thisMonth=balanceFor(d,monthKey(DateTime.now())).savingsNet;
+  // Savings has no month switcher, so everything here is the current month.
+  // Reading the month picked on another tab showed allocations for the wrong month.
+  final now=DateTime.now(),current=monthKey(now);
+  final thisMonth=balanceFor(d,current).savingsNet;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // Everything saved so far, on emerald like Home.
    Container(key:ValueKey('savings-hero'),width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
@@ -178,10 +181,10 @@ extension _RecordsBudgetsSavings on _FinanceState {
      amount:'${target<=0?0:(sum*100/target).clamp(0,100).round()}%',progress:target<=0?0.0:sum/target);
    })]),
    SizedBox(height:8),
-   header('Allocations for ${monthLabel(selected)}'),
-   ...allocations.where((x)=>st(x,'month')==month).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?tr(context,'Goal deleted'):st(g,'name'),month,money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
-   if(allocations.where((x)=>st(x,'month')==month).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),
-   SizedBox(height:10),FilledButton.tonalIcon(onPressed:()=>openTool(4),icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(selected)}'))
+   header('Allocations for ${monthLabel(now)}'),
+   ...allocations.where((x)=>st(x,'month')==current).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(g==null?tr(context,'Goal deleted'):st(g,'name'),monthLabel(now),money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);}),
+   if(allocations.where((x)=>st(x,'month')==current).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),
+   SizedBox(height:10),FilledButton.tonalIcon(onPressed:(){setState(()=>selected=DateTime(now.year,now.month));openTool(4);},icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(now)}'))
   ]);
  }
 }

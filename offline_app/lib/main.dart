@@ -478,10 +478,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
     case 3:screen=[savings,moreReserves,moreWallets][tab](d);break;
     default:screen=home(d);
    }
-   // The month switcher shows where the content depends on the month.
+   // The month switcher shows where the content depends on the month; on Year it steps by year.
    final showMonth=page==1||page==2&&tab!=2;
    return SafeArea(child:ListView(key:ValueKey('page-$page-tab-$tab'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[
-    if(page!=0)subTabs(),if(showMonth)...[navMonth(),SizedBox(height:12)],screen]));
+    if(page!=0)subTabs(),if(showMonth)...[navMonth(year:page==1&&tab==2),SizedBox(height:12)],screen]));
   }),
   // Floating navigation bar: the selected tab is marked by a tinted pill.
   bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(

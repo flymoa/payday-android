@@ -108,10 +108,24 @@ CategoryBudgetStatus categoryBudgetStatus(int spent,int budget){
 }
 
 
+/// Map Arabic-Indic (٠-٩) and Eastern Arabic-Indic (۰-۹) digits to ASCII,
+/// the Arabic decimal separator (٫) to a dot, and drop the Arabic thousands
+/// separator (٬), so an amount typed on an Arabic keyboard is accepted.
+String normalizeDigits(String input){
+ final out=StringBuffer();
+ for(final r in input.runes){
+  if(r>=0x0660&&r<=0x0669){out.writeCharCode(0x30+r-0x0660);}
+  else if(r>=0x06F0&&r<=0x06F9){out.writeCharCode(0x30+r-0x06F0);}
+  else if(r==0x066B){out.write('.');}
+  else if(r!=0x066C){out.writeCharCode(r);}
+ }
+ return out.toString();
+}
+
 /// Accept decimal dirhams with a dot or comma and at most two decimal places.
 /// Reject ambiguous thousands separators, rounding and non-finite values.
 int? parseMoneyCents(String input,{bool allowZero=false}) {
- final text=input.trim();
+ final text=normalizeDigits(input).trim();
  if(!RegExp(r'^\d+(?:[.,]\d{1,2})?$').hasMatch(text))return null;
  final parts=text.replaceAll(',','.').split('.');
  final whole=int.tryParse(parts[0]);

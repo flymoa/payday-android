@@ -38,7 +38,21 @@ class Ledger {
   return out;
  }
  int billPaid(LedgerRow bill)=>rows('transactions').where((x)=>_s(x,'type')=='Expense'&&_s(x,'bill_id')==_s(bill,'code')).fold(0,(n,x)=>n+_v(x,'amount'));
- int unpaidBills(String month)=>rows('bills').where((b)=>_s(b,'due').startsWith(month)).fold(0,(n,b)=>n+billOutstanding(_v(b,'amount'),billPaid(b)));
+ /// Date of the latest payment recorded against [bill], or null if none.
+ String? billPaidOn(LedgerRow bill){
+  final dates=rows('transactions').where((x)=>_s(x,'type')=='Expense'&&_s(x,'bill_id')==_s(bill,'code')).map((x)=>_s(x,'date')).where((d)=>d.isNotEmpty).toList()..sort();
+  return dates.isEmpty?null:dates.last;
+ }
+ /// Whether [bill] belongs to [month]: due in that month, or due earlier and
+ /// still owed. An unpaid bill stays visible until it is paid, so it never
+ /// drops out of "still to pay" when the month changes.
+ bool billCountsFor(LedgerRow bill,String month){
+  final due=_s(bill,'due');
+  if(due.isEmpty)return false;
+  if(due.startsWith(month))return true;
+  return due.compareTo(month)<0&&billOutstanding(_v(bill,'amount'),billPaid(bill))>0;
+ }
+ int unpaidBills(String month)=>rows('bills').where((b)=>billCountsFor(b,month)).fold(0,(n,b)=>n+billOutstanding(_v(b,'amount'),billPaid(b)));
  int totalPool(){
   final ts=rows('transactions');
   final extra=rows('month_closes').where((x)=>_v(x,'entries_ok')==1&&_v(x,'balance_ok')==1).fold(0,(n,x)=>n+_v(x,'extra'));
