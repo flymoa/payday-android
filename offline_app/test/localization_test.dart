@@ -40,7 +40,7 @@ void main(){
  test('formatting changes display only and unknown languages retain English',(){
   expect(supportedLanguage('unknown'),'en');expect(AppPreferences.fromRows([]).language,'en');
   expect(localizedMoney(12345,'MAD','fr'),'123,45 MAD');expect(localizedMoney(-12345,'GBP','en'),'-123.45 GBP');
-  expect(localizedMoney(12345,'EUR','ar'),'123.45 EUR');
+  expect(localizedMoney(12345,'EUR','ar'),'123.45 يورو');
   expect(localizedNumber(123456,'fr',grouped:true),'1\u202f234,56');
   expect(localizedDay(DateTime(2026,10,27),'ar'),'27 أكتوبر 2026');
  });
@@ -80,7 +80,7 @@ void main(){
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
     await t.tap(find.byTooltip(translateMessage('Close settings',code)));await t.pumpAndSettle();
     final semantics=t.ensureSemantics();await t.tap(find.bySemanticsLabel(translateMessage('Add transaction',code)));await t.pumpAndSettle();
-    expect(find.widgetWithText(TextField,translateMessage('Amount (MAD)',code)),findsOneWidget);semantics.dispose();
+    expect(find.widgetWithText(TextField,code=='ar'?'المبلغ (درهم)':translateMessage('Amount (MAD)',code)),findsOneWidget);semantics.dispose();
     expect(t.takeException(),isNull);
    });
   }
