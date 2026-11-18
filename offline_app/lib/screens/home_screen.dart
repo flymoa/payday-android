@@ -24,7 +24,8 @@ extension _HomeScreen on _FinanceState {
   return listRow(key:ValueKey('home-category-$category'),onTap:onTap??()=>openCategoryRecords(category),
    leading:PaydayCategoryIcon(category,size:38),title:rowTitle(category,category:true),
    subtitle:description,subtitleColor:noteColor,
-   amount:isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
+   amount:language=='ar'?'${homeDigits(spent).split(decimalSeparator).first} / ${homeDigits(limit).split(decimalSeparator).first}'
+    :isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',
    progress:limit<=0?(spent>0?1.0:0.0):spent/limit,progressColor:barColor,
    trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null);
  }
@@ -166,9 +167,11 @@ extension _HomeScreen on _FinanceState {
        Row(children:[Expanded(flex:3,child:LText('Safe to spend',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
         SizedBox(width:8),
         Expanded(flex:2,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
-         !current?monthLabel(selected):daysLeft==1?'Last day of the month':'$daysLeft days left',maxLines:1,
+         !current?monthLabel(selected):daysLeft==1?'Last day of the month':language=='ar'?'باقي ${arabicDays(daysLeft)}':'$daysLeft days left',maxLines:1,
          style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
-       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe),style:TextStyle(fontSize:40)),TextSpan(text:' $currency',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted))]),textDirection:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
+       SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe),style:TextStyle(fontSize:40)),TextSpan(text:' ${currencyLabel(currency,language)}',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted,letterSpacing:0,fontFamily:'PlexArabic',fontFamilyFallback:const ['DMSans']))]),
+        // In Arabic the number reads first from the right, then درهم.
+        textDirection:language=='ar'?TextDirection.rtl:TextDirection.ltr,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:heroInk,letterSpacing:-.5))),
        SizedBox(height:14),
        // How much of the month's money is already used.
        ClipRRect(borderRadius:BorderRadius.circular(PaydayRadius.pill),child:SizedBox(height:8,child:Stack(children:[
@@ -188,7 +191,7 @@ extension _HomeScreen on _FinanceState {
       final b=walletBalances(setup,list(d,'transactions'),walletTransfersOf(d));
       Widget one(String w)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Row(children:[PaydayAppIcon(w=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:16,color:muted),SizedBox(width:6),
-        LText(w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
+        LText(language=='ar'?(w=='Cash'?'في الجيب':'في البنك'):w,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))]),SizedBox(height:2),
        FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(b[w]!),
         style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:17,color:b[w]!<0?danger:ink)))]));
       return Row(children:[one('Cash'),SizedBox(width:12),one('Bank'),PaydayAppIcon(Icons.chevron_right,color:muted)]);
@@ -228,7 +231,7 @@ extension _HomeScreen on _FinanceState {
   final due=DateTime.parse(st(bill,'due')),now=DateTime.now();
   final days=DateTime(due.year,due.month,due.day).difference(DateTime(now.year,now.month,now.day)).inDays;
   final when=days<0?'{0} · overdue':days==0?'{0} · today':days==1?'{0} · tomorrow':'{0} · in {1} days';
-  final text=when.replaceAll('{0}',money(owed)).replaceAll('{1}','$days');
+  final text=language=='ar'&&days>1?'${money(owed)} · بعد ${arabicDays(days,after:true)}':when.replaceAll('{0}',money(owed)).replaceAll('{1}','$days');
   final title='{0} is due on {1}'.replaceAll('{0}',st(bill,'name')).replaceAll('{1}',shortDay(st(bill,'due')));
   return Padding(padding:EdgeInsets.only(top:12),child:Material(key:ValueKey('home-next-bill'),
    color:isDark?const Color(0xff2E2618):const Color(0xffFFF3DC),clipBehavior:Clip.antiAlias,

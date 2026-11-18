@@ -35,7 +35,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    for(final entry in days.entries)...[
     Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
      (entry.key==today?'${tr(context,'Today')} · ${shortDay(entry.key)}':entry.key==yesterday?'${tr(context,'Yesterday')} · ${shortDay(entry.key)}':shortDay(entry.key)).toUpperCase(),
-     style:TextStyle(color:muted,fontWeight:FontWeight.w800,fontSize:PaydayType.caption,letterSpacing:.4))),
+     style:TextStyle(color:muted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption,letterSpacing:language=='ar'?0:.4))),
     PaydayPanel(padding:EdgeInsets.zero,child:Column(children:[
      for(var i=0;i<entry.value.length;i++)...[
       if(i>0)Divider(height:1,thickness:1,indent:14,endIndent:14,color:line),
@@ -101,11 +101,9 @@ extension _RecordsBudgetsSavings on _FinanceState {
    OutlinedButton.icon(key:ValueKey('goal-edit'),onPressed:(){Navigator.pop(c);goalForm(g);},icon:PaydayAppIcon(Icons.edit_outlined),label:LText('Edit goal')),
   ]));
  }
- Widget planRow(String title,String subtitle,String value,VoidCallback onTap)=>ListTile(
-  contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:4),leading:PaydayCategoryIcon(title),
-  title:LText(title,style:TextStyle(fontWeight:FontWeight.w700)),
-  subtitle:LText(subtitle,maxLines:2,overflow:TextOverflow.ellipsis),
-  trailing:LText(value,style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink)),onTap:onTap);
+ /// Plan rows use the shared row, so long amounts shrink instead of breaking the layout.
+ Widget planRow(String title,String subtitle,String value,VoidCallback onTap)=>listRow(onTap:onTap,
+  leading:PaydayCategoryIcon(title,size:38),title:rowTitle(title),subtitle:subtitle,amount:value);
  Widget budgets(Map<String,List<RowData>> d){
   final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
