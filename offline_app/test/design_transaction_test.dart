@@ -36,12 +36,12 @@ void main(){
     await tester.ensureVisible(field);await tester.pumpAndSettle();await tester.enterText(field,value);
    }
    await enter('Amount (MAD)','312.40');
+   await pickCategory(tester,'Groceries');
    // The description and note stay folded behind "+ Note" until asked for.
    expect(find.widgetWithText(TextField,'Description'),findsNothing);
    await tester.ensureVisible(find.byKey(const ValueKey('transaction-more-details')));await tester.pumpAndSettle();
    await tester.tap(find.byKey(const ValueKey('transaction-more-details')));await tester.pumpAndSettle();
    await enter('Description','Weekly shop');await enter('Note (optional)','Original note');await enter('Bill ID (optional)','B001');
-   await pickCategory(tester,'Groceries');
    await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
    expect(store.saved!['amount'],31240);expect(store.saved!['type'],'Expense');expect(store.saved!['category'],'Groceries');
    expect(store.saved!['description'],'Weekly shop');expect(store.saved!['note'],'Original note');expect(store.saved!['bill_id'],'B001');
