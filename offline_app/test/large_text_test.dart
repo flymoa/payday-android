@@ -60,13 +60,11 @@ void main() {
           preferencesWriter: (_) async {},
           initialPreferences: AppPreferences(language: language)));
       await t.pumpAndSettle();
-      debugPrint('large-text $language: home ok');
       for (final tab in [1, 2, 3]) {
         final items = find.byKey(ValueKey('bottom-$tab'));
         if (items.evaluate().isEmpty) continue;
         await t.tap(items.first);
         await t.pumpAndSettle();
-        debugPrint('large-text $language: tab $tab ok');
         if (problems.isNotEmpty) problems.add('  ^ on tab $tab');
       }
       // Forms and the settings drawer at the same size.
@@ -74,7 +72,6 @@ void main() {
       await t.pumpAndSettle();
       await t.tap(find.byType(PaydayAddButton));
       await t.pumpAndSettle();
-      debugPrint('large-text $language: form ok');
       if (problems.isNotEmpty) problems.add('  ^ in the transaction form');
       await t.binding.handlePopRoute();
       await t.pumpAndSettle();
@@ -86,6 +83,6 @@ void main() {
       }
       FlutterError.onError = previous;
       expect(problems, isEmpty, reason: problems.join('\n'));
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    });
   }
 }
