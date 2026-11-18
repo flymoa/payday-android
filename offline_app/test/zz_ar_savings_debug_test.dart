@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/app_preferences.dart';
 import 'package:payday_local/main.dart';
@@ -22,7 +23,9 @@ void main() {
       debugPrint('ar-debug $scale: tapped savings');
       for (var i = 0; i < 20; i++) {
         await t.pump(const Duration(milliseconds: 50));
-        debugPrint('ar-debug $scale: frame $i');
+        if (i == 15) debugPrintScheduleFrameStacks = true;
+        debugPrint('ar-debug $scale: frame $i scheduled=${t.binding.hasScheduledFrame} transient=${SchedulerBinding.instance.transientCallbackCount}');
+        if (i == 17) debugPrintScheduleFrameStacks = false;
       }
       await t.tap(find.byKey(const ValueKey('subtab-3-1')));
       for (var i = 0; i < 5; i++) { await t.pump(const Duration(milliseconds: 50)); debugPrint('ar-debug $scale: reserves frame $i'); }
