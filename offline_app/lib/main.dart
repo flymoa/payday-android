@@ -35,7 +35,6 @@ import 'dart:convert';
 import 'brand.dart';
 import 'opening.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -323,6 +322,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   try{
    final created=await store.applyRecurring(DateTime.now());
    if(created>0&&mounted){refresh();inputError('$created recurring entries added.');}
+  }catch(_){}
+  await runRepeatingBills();
+ }
+ Future<void> runRepeatingBills()async{
+  if(widget.initialData!=null)return; // test screens with fixed data
+  try{
+   final created=await store.applyRepeatingBills(DateTime.now());
+   if(created>0&&mounted){refresh();inputError('$created monthly bills added.');}
   }catch(_){}
  }
  Future<void> syncBillReminders()async{

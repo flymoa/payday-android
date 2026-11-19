@@ -9,7 +9,7 @@ Future<Database> openTestDb() async {
   final db = await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);
   await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)');
   await db.execute('CREATE TABLE month_closes(month TEXT PRIMARY KEY, entries_ok INTEGER, balance_ok INTEGER, extra INTEGER, opening_balance INTEGER)');
-  await db.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT, due TEXT, amount INTEGER, category TEXT, note TEXT)');
+  await db.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT, due TEXT, amount INTEGER, category TEXT, note TEXT, repeat_monthly INTEGER NOT NULL DEFAULT 0)');
   await db.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT, type TEXT, category TEXT, amount INTEGER, description TEXT, note TEXT, bill_id TEXT)');
   return db;
 }

@@ -447,6 +447,7 @@ extension _Forms on _FinanceState {
   final value=TextEditingController(text:existing==null?'':inputNumber(val(existing,'amount')));
   var date=existing==null?DateTime.now():parseDay(st(existing,'due'));
   var category=existing==null?'Housing':st(existing,'category');
+  var repeatMonthly=existing!=null&&val(existing,'repeat_monthly')==1;
   final d=await store.snapshot();if(!mounted)return;
   final billCategories=categoryChoices(d,'Expense',existing:existing==null?null:category);
   if(!billCategories.contains(category))category=billCategories.first;
@@ -454,7 +455,9 @@ extension _Forms on _FinanceState {
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount (${currencyLabel(currency,language)})',number:true),field(note,'Note'),
    DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:LText(name,category:true))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:LText('Due: ${uiDay(date)}')),
-   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save bill')),
+   SwitchListTile(key:const Key('bill-repeat-monthly'),contentPadding:EdgeInsets.zero,value:repeatMonthly,onChanged:(v)=>rebuild(()=>repeatMonthly=v),
+    title:LText('Repeats monthly'),subtitle:LText('Each new month gets its own unpaid bill on the same day.')),
+   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text,repeatMonthly:repeatMonthly));if(saveSucceeded&&c.mounted)Navigator.pop(c);if(saveSucceeded&&repeatMonthly)await runRepeatingBills();},child:LText('Save bill')),
    if(existing!=null)Column(children:[
     OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
      icon:PaydayAppIcon(Icons.repeat),label:LText('Repeat next month')),

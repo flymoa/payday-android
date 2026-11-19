@@ -123,7 +123,7 @@ void main(){
  test('real SQLite payment edits, deletion, Undo and bill edits update the plan',()async{
   final db=await databaseFactoryFfiNoIsolate.openDatabase(inMemoryDatabasePath);addTearDown(db.close);
   await db.execute('CREATE TABLE settings(key TEXT PRIMARY KEY,value TEXT NOT NULL)');
-  await db.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT UNIQUE,name TEXT,due TEXT,amount INTEGER,category TEXT,note TEXT)');
+  await db.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT,code TEXT UNIQUE,name TEXT,due TEXT,amount INTEGER,category TEXT,note TEXT,repeat_monthly INTEGER NOT NULL DEFAULT 0)');
   await db.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT,date TEXT,type TEXT,category TEXT,amount INTEGER,description TEXT,note TEXT,bill_id TEXT)');
   final store=OfflineStore(database:db);final platform=FakeBillPlatform();final service=BillReminders(store,platform:platform,clock:()=>now);
   await store.saveBill(code:'A',name:'Private internet bill',due:'2026-11-10',amount:1000,category:'Subscriptions',note:'');
