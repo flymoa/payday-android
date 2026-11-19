@@ -134,8 +134,9 @@ extension _HomeScreen on _FinanceState {
     Expanded(child:LText(label,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:muted,fontSize:PaydayType.caption))),
     IconButton(key:ValueKey('home-backup-snooze'),tooltip:tr(context,'Remind tomorrow'),onPressed:snoozeBackup,
      icon:PaydayAppIcon(Icons.schedule,size:20,color:muted)),
-    TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
-     child:LText(exportingBackup?'Exporting…':'Export',style:TextStyle(fontWeight:FontWeight.w700))),
+    // Longer labels (e.g. Arabic at large text sizes) shrink instead of overflowing.
+    Flexible(child:TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
+     child:FittedBox(fit:BoxFit.scaleDown,child:LText(exportingBackup?'Exporting…':'Export',maxLines:1,style:TextStyle(fontWeight:FontWeight.w700))))),
    ])),
   ]));
  }
