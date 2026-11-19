@@ -157,7 +157,7 @@ String categoryGlyph(String name){
  const words=<String,List<String>>{
   'housing':['rent','home','house','mortgage','apartment','flat','loyer','maison','logement','إيجار','كراء','سكن','منزل'],
   'utilities':['electric','water','gas','internet','wifi','phone','mobile','bill','électricité','eau','téléphone','كهرباء','ماء','هاتف','انترنت'],
-  'groceries':['grocer','food','market','supermarket','courses','marché','épicerie','بقالة','سوق','طعام'],
+  'groceries':['grocer','food','market','supermarket','courses','marché','épicerie','بقالة','سوق','طعام','غذائية','مواد'],
   'transport':['car','fuel','petrol','taxi','bus','train','tram','uber','parking','transport','voiture','essence','carburant','سيارة','بنزين','نقل'],
   'health':['doctor','pharmacy','medic','health','gym','sport','dentist','santé','pharmacie','médecin','صحة','دواء','طبيب'],
   'family':['kid','child','baby','family','parent','enfant','famille','أطفال','عائلة'],

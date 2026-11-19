@@ -74,7 +74,7 @@ String localizedDay(DateTime date,String language){
 }
 /// Arabic counts days the Arabic way: يوم واحد، يومان، 3–10 أيام، 11+ يومًا.
 /// "13 days left" in the user's language; Arabic uses its own counting forms.
-String daysLeftLabel(int n,String language)=>language=='ar'?'باقي ${arabicDays(n)}':translateMessage('{0} days left'.replaceAll('{0}','$n'),language);
+String daysLeftLabel(int n,String language)=>language=='ar'?'بقي ${arabicDays(n)}':translateMessage('{0} days left'.replaceAll('{0}','$n'),language);
 /// Wraps text from user data (a merchant or bill name) in first-strong isolates
 /// so a Latin name inside Arabic, or the reverse, does not reorder the sentence.
 String isolate(String text)=>'${String.fromCharCode(0x2068)}$text${String.fromCharCode(0x2069)}';

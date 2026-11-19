@@ -28,7 +28,7 @@ void main(){
   expect(translateMessage('Settings','fr'),'Paramètres');
   expect(translateMessage('Settings','ar'),'الإعدادات');
   expect(translateMessage('Due: 2026-10-27','fr'),'Échéance : 2026-10-27');
-  expect(translateMessage('Available to assign: 300,00 DH','ar'),'المتاح للتخصيص: 300,00 DH');
+  expect(translateMessage('Available to assign: 300,00 DH','ar'),'بقي للتخصيص: 300,00 DH');
   expect(translateMessage('Bad state: Invalid entry','fr'),'Écriture invalide');
   expect(translateMessage('Original custom label','ar'),'Original custom label');
   for(final entry in paydayTranslations.entries){
@@ -104,7 +104,7 @@ void main(){
  testWidgets('Arabic mixed sentences isolate amount and currency pairs',(t)async{
   await t.pumpWidget(const MaterialApp(locale:Locale('ar'),supportedLocales:[Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,
    home:Scaffold(body:LText('Outstanding: 123,45 DH'))));await t.pumpAndSettle();
-  expect(find.text('المتبقي للدفع: \u2066123,45 DH\u2069'),findsOneWidget);
+  expect(find.text('بقي للأداء: \u2066123,45 DH\u2069'),findsOneWidget);
  });
  testWidgets('native date picker is localized with Arabic right-to-left direction',(t)async{
   await t.pumpWidget(MaterialApp(locale:const Locale('ar'),supportedLocales:const [Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,
