@@ -136,7 +136,7 @@ void main(){
    await chooseCurrency(tester,code);
    await tester.tap(find.widgetWithText(FilledButton,'Use $code'));await tester.pumpAndSettle();
    expect((await store.loadAppPreferences()).currency,code);
-   expect(find.text('${paydayCurrencies[code]} · $code'),findsOneWidget);
+   expect(find.descendant(of:find.byKey(const ValueKey('currency-setting')),matching:find.text(code)),findsOneWidget);
   }
   final saved=await store.loadAppPreferences();
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
@@ -161,7 +161,7 @@ void main(){
   expect((await store.loadAppPreferences()).currency,'MAD');
   expect(find.text('Currency'),findsOneWidget);
   await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
-  expect(find.text('Moroccan dirham · MAD'),findsOneWidget);
+  expect(find.descendant(of:find.byKey(const ValueKey('currency-setting')),matching:find.text('DH')),findsOneWidget);
   expect(find.text('Could not save preferences. Please try again.'),findsWidgets);
   expect(tester.takeException(),isNull);
  });
