@@ -147,7 +147,8 @@ extension _HomeScreen on _FinanceState {
   const heroInk=paydaySand;
   final now=DateTime.now();
   final current=selected.year==now.year&&selected.month==now.month;
-  final daysLeft=DateTime(now.year,now.month+1,0).day-now.day+1;
+  // Home counts down to payday, not to the end of the calendar month.
+  final toPayday=cycleOf(d,now).daysToPayday(now);
   final nextBill=current?nextDueBill(d,now):null;
   String whole(int cents)=>homeDigits(cents).split(decimalSeparator).first;
   Widget heroFigure(String label,String value)=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
@@ -168,7 +169,7 @@ extension _HomeScreen on _FinanceState {
        Row(children:[Expanded(flex:3,child:LText('Safe to spend',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
         SizedBox(width:8),
         Expanded(flex:2,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
-         !current?monthLabel(selected):daysLeft==1?'Last day of the month':language=='ar'?'باقي ${arabicDays(daysLeft)}':'$daysLeft days left',maxLines:1,
+         !current?monthLabel(selected):toPayday==1?'Payday tomorrow':language=='ar'?'الراتب بعد ${arabicDays(toPayday,after:true)}':'$toPayday days to payday',maxLines:1,
          style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
        SizedBox(height:10),FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[TextSpan(text:homeDigits(balance.safe),style:TextStyle(fontSize:40)),TextSpan(text:' ${currencyLabel(currency,language)}',style:TextStyle(fontSize:20,color:PaydayColors.heroMuted,letterSpacing:0,fontFamily:'PlexArabic',fontFamilyFallback:const ['DMSans']))]),
         // In Arabic the number reads first from the right, then درهم.
