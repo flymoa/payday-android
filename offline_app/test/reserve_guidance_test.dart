@@ -32,12 +32,12 @@ void main(){
    expect(find.text('Fully spent'),findsOneWidget);expect(find.text('Near limit'),findsNothing);
    await tester.tap(find.byKey(const ValueKey('bottom-3')));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Savings');
    await tester.tap(find.byKey(const ValueKey('subtab-3-1')));await tester.pumpAndSettle();expect(tester.takeException(),isNull,reason:'Reserves');
-   expect(find.text('800.00 MAD'),findsWidgets,reason:'put aside this month');
+   expect(find.text('800,00 DH'),findsWidgets,reason:'put aside this month');
    await tester.tap(find.byKey(const ValueKey('reserves-help')));await tester.pumpAndSettle();
    expect(find.text('How reserves work'),findsOneWidget);
    await tester.tapAt(const Offset(10,10));await tester.pumpAndSettle();
    await tester.tap(find.byKey(const ValueKey('reserve-1')));await tester.pumpAndSettle();
-   expect(find.text('Still to set aside this month: 800.00 MAD'),findsOneWidget);
+   expect(find.text('Still to set aside this month: 800,00 DH'),findsOneWidget);
    expect(tester.takeException(),isNull);
   });
  }

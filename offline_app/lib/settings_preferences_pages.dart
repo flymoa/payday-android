@@ -48,7 +48,7 @@ class _CurrencySettingsPageState extends State<CurrencySettingsPage>{
   final confirmed=await showDialog<bool>(context:context,builder:(dialog)=>AlertDialog(
    title:LText('Use $value?'),scrollable:true,
    content:LText('This changes the currency for all existing and future amounts. '
-    'Numbers stay the same: 100.00 ${widget.initial} becomes 100.00 $value. '
+    'Numbers stay the same: 100,00 ${currencyLabel(widget.initial,languageOf(context))} becomes 100,00 ${currencyLabel(value,languageOf(context))}. '
     'No exchange conversion is performed. Your records, budgets and savings keep their values.'),
    actions:[TextButton(onPressed:()=>Navigator.pop(dialog,false),child:const LText('Cancel')),
     FilledButton(onPressed:()=>Navigator.pop(dialog,true),child:LText('Use $value'))]));

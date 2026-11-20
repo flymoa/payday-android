@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/main.dart';
+import 'package:payday_local/ui_kit.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/offline_store.dart';
 
@@ -12,7 +13,7 @@ class TimeoutStore extends OfflineStore {
  RowData? record={'id':1,'date':dayKey(DateTime.now()),'type':'Expense',
   'category':'Groceries','description':'Market','amount':10000,'note':'','bill_id':''};
  @override Future<Map<String,List<RowData>>> snapshot()async=>{
-  'transactions':[if(record!=null)record!],
+  'transactions':[?record],
   'categories':[{'name':'Groceries','group_name':'Essential'}],
  };
  @override Future<RowData?> deleteTransactionForUndo(int id)async{
@@ -49,7 +50,7 @@ void main(){
    await tester.pumpWidget(MaterialApp(home:FinanceScreen(key:UniqueKey(),
     initialData:Future.value({'transactions':example.$1}))));
    await tester.pumpAndSettle();
-   expect(tester.widget<FractionallySizedBox>(find.byKey(const ValueKey('home-usage'))).widthFactor,example.$2);
+   expect(tester.widget<PaydayProgress>(find.byKey(const ValueKey('home-usage-bar'))).value,example.$2);
    expect(tester.takeException(),isNull);
   }
  });

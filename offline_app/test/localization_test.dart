@@ -28,7 +28,7 @@ void main(){
   expect(translateMessage('Settings','fr'),'Paramètres');
   expect(translateMessage('Settings','ar'),'الإعدادات');
   expect(translateMessage('Due: 2026-10-27','fr'),'Échéance : 2026-10-27');
-  expect(translateMessage('Available to assign: 300.00 MAD','ar'),'المتاح للتخصيص: 300.00 MAD');
+  expect(translateMessage('Available to assign: 300,00 DH','ar'),'بقي للتخصيص: 300,00 DH');
   expect(translateMessage('Bad state: Invalid entry','fr'),'Écriture invalide');
   expect(translateMessage('Original custom label','ar'),'Original custom label');
   for(final entry in paydayTranslations.entries){
@@ -39,9 +39,9 @@ void main(){
  });
  test('formatting changes display only and unknown languages retain English',(){
   expect(supportedLanguage('unknown'),'en');expect(AppPreferences.fromRows([]).language,'en');
-  expect(localizedMoney(12345,'MAD','fr'),'123,45 MAD');expect(localizedMoney(-12345,'GBP','en'),'-123.45 GBP');
-  expect(localizedMoney(12345,'EUR','ar'),'123.45 يورو');
-  expect(localizedNumber(123456,'fr',grouped:true),'1\u202f234,56');
+  expect(localizedMoney(12345,'MAD','fr'),'123,45 DH');expect(localizedMoney(-12345,'GBP','en'),'−123,45 GBP');
+  expect(localizedMoney(12345,'EUR','ar'),'‎123,45‎ يورو');
+  expect(localizedNumber(123456,'fr',grouped:true),'1\u00a0234,56');
   expect(localizedDay(DateTime(2026,10,27),'ar'),'27 أكتوبر 2026');
  });
  sqfliteFfiInit();
@@ -80,7 +80,7 @@ void main(){
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
     await t.tap(find.byTooltip(translateMessage('Close settings',code)));await t.pumpAndSettle();
     final semantics=t.ensureSemantics();await t.tap(find.bySemanticsLabel(translateMessage('Add transaction',code)));await t.pumpAndSettle();
-    expect(find.widgetWithText(TextField,code=='ar'?'المبلغ (درهم)':translateMessage('Amount (MAD)',code)),findsOneWidget);semantics.dispose();
+    expect(find.widgetWithText(TextField,code=='ar'?'المبلغ (درهم)':translateMessage('Amount (DH)',code)),findsOneWidget);semantics.dispose();
     expect(t.takeException(),isNull);
    });
   }
@@ -103,8 +103,8 @@ void main(){
  });
  testWidgets('Arabic mixed sentences isolate amount and currency pairs',(t)async{
   await t.pumpWidget(const MaterialApp(locale:Locale('ar'),supportedLocales:[Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,
-   home:Scaffold(body:LText('Outstanding: 123.45 MAD'))));await t.pumpAndSettle();
-  expect(find.text('المتبقي للدفع: \u2066123.45 MAD\u2069'),findsOneWidget);
+   home:Scaffold(body:LText('Outstanding: 123,45 DH'))));await t.pumpAndSettle();
+  expect(find.text('بقي للأداء: \u2066123,45 DH\u2069'),findsOneWidget);
  });
  testWidgets('native date picker is localized with Arabic right-to-left direction',(t)async{
   await t.pumpWidget(MaterialApp(locale:const Locale('ar'),supportedLocales:const [Locale('ar')],localizationsDelegates:GlobalMaterialLocalizations.delegates,

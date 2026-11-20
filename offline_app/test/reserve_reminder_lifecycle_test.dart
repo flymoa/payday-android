@@ -6,7 +6,7 @@ import 'package:payday_local/main.dart' show FinanceScreen;
 import 'bill_reminders_test.dart' show BillTestStore;
 import 'reserve_reminders_test.dart' show FakeReservePlatform;
 class CountingReserveReminders extends ReserveReminders{
- CountingReserveReminders(BillTestStore store):super(store,platform:FakeReservePlatform());
+ CountingReserveReminders(BillTestStore super.store):super(platform:FakeReservePlatform());
  int calls=0;
  @override Future<void> synchronize()async{calls++;}
 }
@@ -20,8 +20,8 @@ void main(){
   t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
   t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   await t.pumpAndSettle();expect(reminders.calls,2);
-  await t.ensureVisible(find.text('Remind tomorrow'));await t.pumpAndSettle();
-  await t.tap(find.text('Remind tomorrow'));await t.pumpAndSettle();
+  await t.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await t.pumpAndSettle();
+  await t.tap(find.byKey(const ValueKey('home-backup-snooze')));await t.pumpAndSettle();
   expect(reminders.calls,3);expect(t.takeException(),isNull);
  });
 }

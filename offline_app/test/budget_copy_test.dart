@@ -67,7 +67,7 @@ void main(){
    await tester.pumpAndSettle();await tester.tap(find.text('Budgets').last);await tester.pumpAndSettle();
    await tester.ensureVisible(find.text('Copy last month’s budget'));await tester.pumpAndSettle();
    await tester.tap(find.text('Copy last month’s budget'));await tester.pumpAndSettle();
-   expect(find.text('Assigned after copy: 20.00 MAD'),findsOneWidget);
+   expect(find.text('Assigned after copy: 20,00 DH'),findsOneWidget);
    expect((await db.query('budgets')).length,2);
    await tester.tap(find.text('Copy budget'));
    for(var i=0;i<40;i++){await tester.pump(const Duration(milliseconds:50));}

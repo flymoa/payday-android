@@ -19,12 +19,14 @@ void main(){
   const oldId=220261001;
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,(call)async{
    calls.add(call);
-   if(call.method=='pendingNotificationRequests')return [
+   if(call.method=='pendingNotificationRequests') {
+     return [
     {'id':120261025,'title':'PAYDAY','body':'bill','payload':null},
     {'id':21001,'title':'PAYDAY','body':'backup','payload':null},
     {'id':oldId,'title':'PAYDAY','body':reserveNotificationBody,'payload':'old'},
     {'id':reminder.id,'title':'PAYDAY','body':reserveNotificationBody,'payload':reminder.payload},
    ];
+   }
    if(call.method=='getActiveNotifications')return <Map<String,Object?>>[];
    return true;
   });

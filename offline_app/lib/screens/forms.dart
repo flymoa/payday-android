@@ -162,9 +162,9 @@ extension _Forms on _FinanceState {
     decoration:InputDecoration(labelText:tr(context,'Amount (${currencyLabel(currency,language)})'),floatingLabelBehavior:FloatingLabelBehavior.always,
      labelStyle:TextStyle(fontWeight:FontWeight.w700,color:muted),hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
      filled:true,fillColor:surface,contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:18),
-     border:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
-     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)),
-     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(16),borderSide:BorderSide(color:jade,width:2)))),
+     border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
+     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
+     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)))),
    SizedBox(height:10),
    if(type=='Expense'&&category.isNotEmpty)Builder(builder:(_){
     final key=monthKey(date),limit=budgetFor(d,key,category),name=categoryLabel(context,category);
@@ -205,8 +205,10 @@ extension _Forms on _FinanceState {
     onPressed:submitting?null:()async{
      await incomeCategoriesForm();
      final fresh=await store.snapshot();
-     if(c.mounted)rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
+     if(c.mounted) {
+       rebuild((){d.clear();d.addAll(fresh);cats=categoriesFor(type,editing:existing!=null);
       if(!cats.contains(category))category=cats.first;});
+     }
     })),
    if(walletSetup!=null)Padding(padding:EdgeInsets.only(top:16),child:Row(children:[
     Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
@@ -231,8 +233,6 @@ extension _Forms on _FinanceState {
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:danger)))
   ]),footer:(c,rebuild)=>FilledButton(
    key:ValueKey('save-transaction'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(52)),
-   child:LText(submitting?'Saving…':existing!=null?'Save changes':
-    type=='Expense'?'Save expense':type=='Income'?'Save income':type=='Savings out'?'Move to savings':'Take from savings'),
    onPressed:submitting?null:()async{
     final cents=amount(amt);
     if(cents==null){inputError('Enter a positive amount.');return;}
@@ -247,9 +247,13 @@ extension _Forms on _FinanceState {
        type=='Savings in'?'Saved. ${money(cents)} taken from savings.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
     if(success&&walletSetup!=null)unawaited(store.setSetting(walletLastKey,wallet).catchError((_){}));
-    if(success&&type=='Expense')await warnIfBudgetCrossed(category,monthKey(date),cents,
+    if(success&&type=='Expense') {
+      await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
+    }
    },
+   child:LText(submitting?'Saving…':existing!=null?'Save changes':
+    type=='Expense'?'Save expense':type=='Income'?'Save income':type=='Savings out'?'Move to savings':'Take from savings'),
   ),fullScreen:true);
  }
  /// After saving an expense, says once when its category reaches 85% or goes over.
@@ -443,6 +447,7 @@ extension _Forms on _FinanceState {
   final value=TextEditingController(text:existing==null?'':inputNumber(val(existing,'amount')));
   var date=existing==null?DateTime.now():parseDay(st(existing,'due'));
   var category=existing==null?'Housing':st(existing,'category');
+  var repeatMonthly=existing!=null&&val(existing,'repeat_monthly')==1;
   final d=await store.snapshot();if(!mounted)return;
   final billCategories=categoryChoices(d,'Expense',existing:existing==null?null:category);
   if(!billCategories.contains(category))category=billCategories.first;
@@ -450,7 +455,9 @@ extension _Forms on _FinanceState {
    field(name,'Bill name'),field(code,'Unique Bill ID'),field(value,'Due amount (${currencyLabel(currency,language)})',number:true),field(note,'Note'),
    DropdownButtonFormField<String>(initialValue:category,items:billCategories.map((name)=>DropdownMenuItem(value:name,child:LText(name,category:true))).toList(),onChanged:(v){if(v!=null)category=v;}),
    TextButton(onPressed:()async{final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>date=p);},child:LText('Due: ${uiDay(date)}')),
-   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text));if(saveSucceeded&&c.mounted)Navigator.pop(c);},child:LText('Save bill')),
+   SwitchListTile(key:const Key('bill-repeat-monthly'),contentPadding:EdgeInsets.zero,value:repeatMonthly,onChanged:(v)=>rebuild(()=>repeatMonthly=v),
+    title:LText('Repeats monthly'),subtitle:LText('Each new month gets its own unpaid bill on the same day.')),
+   FilledButton(onPressed:()async{final n=amount(value);if(n==null)return inputError('Invalid bill amount');final saveSucceeded=await execute(()=>store.saveBill(id:existing==null?null:val(existing,'id'),code:code.text,name:name.text,due:dayKey(date),amount:n,category:category,note:note.text,repeatMonthly:repeatMonthly));if(saveSucceeded&&c.mounted)Navigator.pop(c);if(saveSucceeded&&repeatMonthly)await runRepeatingBills();},child:LText('Save bill')),
    if(existing!=null)Column(children:[
     OutlinedButton.icon(onPressed:()async{Navigator.pop(c);if(mounted)await repeatBillForm(existing);},
      icon:PaydayAppIcon(Icons.repeat),label:LText('Repeat next month')),
@@ -536,7 +543,7 @@ extension _Forms on _FinanceState {
      leading:PaydayAppIcon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
        color:st(m,'kind')=='add'?jade:amber),
      title:LText(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
-     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · '+st(m,'note')}'),
+     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · ${st(m,'note')}'}'),
      trailing:LText('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
        style:TextStyle(fontWeight:FontWeight.w800,
          color:st(m,'kind')=='add'?jade:amber)),

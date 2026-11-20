@@ -28,7 +28,7 @@ void main(){
  test('300 MAD available rejects 400 with exact maximum and overage',(){
   final c=check(base,'Groceries',40000);
   expect(c.allowed,isFalse);expect(c.maximum,30000);expect(c.exceededBy,10000);
-  expect(c.message,contains('300.00 MAD'));expect(c.message,contains('100.00 MAD'));
+  expect(c.message,contains('300,00 MAD'));expect(c.message,contains('100,00 MAD'));
  });
  test('assigning exactly the remainder reaches the income cap',(){
   final c=check(base,'Groceries',30000);
@@ -60,7 +60,7 @@ void main(){
  });
  test('income reductions cannot underfund assigned budgets; zero plan blocks assignments',(){
   final c=check(base,'Income plan',60000);
-  expect(c.allowed,isFalse);expect(c.message,contains('700.00 MAD'));expect(c.exceededBy,10000);
+  expect(c.allowed,isFalse);expect(c.message,contains('700,00 MAD'));expect(c.exceededBy,10000);
   expect(check([],'Groceries',1).allowed,isFalse);
   expect(check([],'Groceries',0).allowed,isTrue);
  });
@@ -113,7 +113,7 @@ void main(){
   await tester.enterText(find.byType(TextField),'400');
   await tester.tap(find.text('Save budget'));await tester.pumpAndSettle();
   expect(find.text('Budget limit reached'),findsOneWidget);
-  expect(find.textContaining('You exceeded this limit by 100.00 MAD.'),findsOneWidget);
+  expect(find.textContaining('You exceeded this limit by 100,00 DH.'),findsOneWidget);
   expect(await db.query('budgets',where:'category=?',whereArgs:['Groceries']),isEmpty);
   await tester.tap(find.text('OK'));await tester.pumpAndSettle();
   expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,'400');

@@ -18,14 +18,16 @@ class PaydayCategoryIcon extends StatelessWidget {
   // Rounded tile with a stroke glyph, as on the design canvas.
   return ExcludeSemantics(child:Container(width:size,height:size,
    padding:EdgeInsets.all(size*.24),
-   decoration:BoxDecoration(borderRadius:BorderRadius.circular(size*.35),color:canvasTileColor(dark)),
+   decoration:BoxDecoration(borderRadius:BorderRadius.circular(PaydayRadius.lg),color:canvasTileColor(dark)),
    child:glyph));
  }
 }
 
 class PaydayGlyphPainter extends CustomPainter {
- const PaydayGlyphPainter(this.category,this.dark,{this.foreground});
+ const PaydayGlyphPainter(this.category,this.dark,{this.foreground,this.accent=false});
  final Color? foreground;
+ /// Saffron detail stroke; off by default (saffron is reserved for the add button).
+ final bool accent;
  final String category;
  final bool dark;
  @override void paint(Canvas canvas,Size size){
@@ -34,7 +36,7 @@ class PaydayGlyphPainter extends CustomPainter {
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   final teal=Paint()..color=dark?PaydayColors.darkPrimary:PaydayColors.emerald
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
-  final copper=Paint()..color=dark?PaydayColors.darkCopper:PaydayColors.saffron
+  final copper=Paint()..color=accent?(dark?PaydayColors.darkCopper:PaydayColors.saffron):navy.color
    ..style=PaintingStyle.stroke..strokeWidth=1.65..strokeCap=StrokeCap.round..strokeJoin=StrokeJoin.round;
   void line(double x,double y,double x2,double y2,Paint p)=>canvas.drawLine(Offset(x,y),Offset(x2,y2),p);
   void path(List<Offset> points,Paint p,{bool close=false}){
@@ -136,7 +138,7 @@ class PaydayGlyphPainter extends CustomPainter {
   }
   canvas.restore();
  }
- @override bool shouldRepaint(covariant PaydayGlyphPainter old)=>old.category!=category||old.dark!=dark;
+ @override bool shouldRepaint(covariant PaydayGlyphPainter old)=>old.category!=category||old.dark!=dark||old.accent!=accent||old.foreground!=foreground;
 }
 
 
@@ -155,7 +157,7 @@ String categoryGlyph(String name){
  const words=<String,List<String>>{
   'housing':['rent','home','house','mortgage','apartment','flat','loyer','maison','logement','إيجار','كراء','سكن','منزل'],
   'utilities':['electric','water','gas','internet','wifi','phone','mobile','bill','électricité','eau','téléphone','كهرباء','ماء','هاتف','انترنت'],
-  'groceries':['grocer','food','market','supermarket','courses','marché','épicerie','بقالة','سوق','طعام'],
+  'groceries':['grocer','food','market','supermarket','courses','marché','épicerie','بقالة','سوق','طعام','غذائية','مواد'],
   'transport':['car','fuel','petrol','taxi','bus','train','tram','uber','parking','transport','voiture','essence','carburant','سيارة','بنزين','نقل'],
   'health':['doctor','pharmacy','medic','health','gym','sport','dentist','santé','pharmacie','médecin','صحة','دواء','طبيب'],
   'family':['kid','child','baby','family','parent','enfant','famille','أطفال','عائلة'],

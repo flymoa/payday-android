@@ -45,16 +45,24 @@ const _builtinCategories={
 };
 String categoryLabel(BuildContext context,String name)=>_builtinCategories.contains(name)?tr(context,name):name;
 
-String localizedNumber(int cents,String language,{bool grouped=false}){
+String _digits(int cents,{bool grouped=false}){
  final negative=cents<0,absolute=cents.abs();var whole='${absolute~/100}';
- if(grouped)whole=whole.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'),(_)=>language=='fr'?'\u202f':',');
- return '${negative?'−':''}$whole${language=='fr'?',':'.'}${(absolute%100).toString().padLeft(2,'0')}';
+ if(grouped)whole=whole.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'),(_)=>'\u00a0');
+ return '${negative?'−':''}$whole,${(absolute%100).toString().padLeft(2,'0')}';
 }
-/// Amounts on screen always group thousands (1,234.50 / 1 234,50). Inputs stay ungrouped.
+/// Arabic reads right to left, but a number is one left-to-right unit: the minus stays
+/// on the number's left and its digit groups stay in order. Left-to-right marks (LRM) on
+/// both sides keep it whole inside RTL text; the text engine ignores LRI/PDI isolates.
+String arabicNumber(String number,String language)=>language=='ar'?'\u200e$number\u200e':number;
+String localizedNumber(int cents,String language,{bool grouped=false})=>
+ grouped?arabicNumber(_digits(cents,grouped:true),language):_digits(cents);
+/// Whole units only, for summary figures ("12 500").
+String localizedWhole(int cents,String language)=>arabicNumber(_digits(cents,grouped:true).split(',').first,language);
+/// Amounts on screen group thousands like Moroccan receipts: "1 284,50 DH". Inputs stay ungrouped ("1284,50").
 /// In Arabic the currency is written as a word after the number ("1,240.00 درهم").
 const arabicCurrency={'MAD':'درهم','EUR':'يورو','USD':'دولار','GBP':'جنيه'};
-String currencyLabel(String currency,String language)=>language=='ar'?(arabicCurrency[currency]??currency):currency;
-String localizedMoney(int cents,String currency,String language)=>'${language=='en'&&cents<0?'-'+localizedNumber(-cents,language,grouped:true):localizedNumber(cents,language,grouped:true)} ${currencyLabel(currency,language)}';
+String currencyLabel(String currency,String language)=>language=='ar'?(arabicCurrency[currency]??currency):currency=='MAD'?'DH':currency;
+String localizedMoney(int cents,String currency,String language)=>'${localizedNumber(cents,language,grouped:true)} ${currencyLabel(currency,language)}';
 const _monthsEn=['January','February','March','April','May','June','July','August','September','October','November','December'];
 String localizedMonth(DateTime date,String language,{bool short=false}){
  if(language=='en'&&short)return '${_monthsEn[date.month-1].substring(0,3)} ${date.year}';
@@ -65,6 +73,15 @@ String localizedDay(DateTime date,String language){
  return '${date.day} ${localizedMonth(date,language)}';
 }
 /// Arabic counts days the Arabic way: يوم واحد، يومان، 3–10 أيام، 11+ يومًا.
+/// "13 days left" in the user's language; Arabic uses its own counting forms.
+String daysLeftLabel(int n,String language)=>language=='ar'?'بقي ${arabicDays(n)}':translateMessage('{0} days left'.replaceAll('{0}','$n'),language);
+/// Wraps text from user data (a merchant or bill name) in first-strong isolates
+/// so a Latin name inside Arabic, or the reverse, does not reorder the sentence.
+String isolate(String text)=>'${String.fromCharCode(0x2068)}$text${String.fromCharCode(0x2069)}';
+/// It turns the hero total into a daily figure, so it adds information instead of repeating it.
+/// Arabic locale only, in Arabic-script Darija (wording to be confirmed by the user).
+String? darijaNudge(int safeCents,int daysLeft,double usedFraction,String language)=>
+ language=='ar'&&safeCents>0&&daysLeft>1&&usedFraction<.8?'مزيان، باقي ليك حوالي ${localizedWhole(safeCents~/daysLeft,language)} درهم فالنهار حتى لآخر الشهر':null;
 String arabicDays(int n,{bool after=false})=>n==1?(after?'يوم':'يوم واحد'):n==2?(after?'يومين':'يومان'):n>=3&&n<=10?'$n أيام':'$n يومًا';
 
 /// Day and month only, e.g. "20 Nov" (English) or "20 novembre", as used in lists.
@@ -104,11 +121,11 @@ class LText extends StatelessWidget{
  @override Widget build(BuildContext context){
   final value=category?categoryLabel(context,data):tr(context,data);
   final arabic=languageOf(context)=='ar';
-  final numeric=RegExp(r'\d').hasMatch(value)&&RegExp(r'^(?:[\d\s.,+−%/()\u202f]|MAD|EUR|GBP|USD)+$').hasMatch(value);
+  final numeric=RegExp(r'\d').hasMatch(value)&&RegExp(r'^(?:[\d\s.,+−%/()\u202f\u00a0\u200e]|MAD|DH|EUR|GBP|USD)+$').hasMatch(value);
   // Numbers stay left to right inside Arabic; the currency word follows the number.
   final displayed=arabic&&!numeric?value
-   .replaceAllMapped(RegExp(r'[+−-]?[0-9][0-9.,\u202f]*\s+(?:MAD|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069')
-   .replaceAllMapped(RegExp(r'([+−-]?[0-9][0-9.,\u202f/ ]*[0-9%])(?=\s*(?:درهم|يورو|دولار|جنيه))'),(m)=>'\u2066${m.group(1)}\u2069'):value;
+   .replaceAllMapped(RegExp(r'[\u200e]?[+−-]?[0-9][0-9.,\u202f\u00a0\u200e]*\s+(?:MAD|DH|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069')
+   .replaceAllMapped(RegExp(r'([\u200e]?[+−-]?[0-9][0-9.,\u202f\u00a0\u200e/ ]*[0-9%\u200e])(?=\s*(?:درهم|يورو|دولار|جنيه))'),(m)=>'\u2066${m.group(1)}\u2069'):value;
   return Text(displayed,style:arabic?arabicStyle(style):style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
    maxLines:maxLines,softWrap:softWrap,overflow:overflow,
    semanticsLabel:semanticsLabel==null?null:tr(context,semanticsLabel!));

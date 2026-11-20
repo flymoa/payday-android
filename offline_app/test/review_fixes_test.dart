@@ -23,10 +23,10 @@ class CategoryStore extends OfflineStore {
 
 void main() {
   test('amounts on screen group thousands in every language', () {
-    expect(localizedMoney(123456789, 'MAD', 'en'), '1,234,567.89 MAD');
-    expect(localizedMoney(123456, 'MAD', 'fr'), '1\u202f234,56 MAD');
-    expect(localizedMoney(-250000, 'EUR', 'en'), '-2,500.00 EUR');
-    expect(localizedMoney(4550, 'MAD', 'en'), '45.50 MAD');
+    expect(localizedMoney(123456789, 'MAD', 'en'), '1\u00a0234\u00a0567,89 DH');
+    expect(localizedMoney(123456, 'MAD', 'fr'), '1\u00a0234,56 DH');
+    expect(localizedMoney(-250000, 'EUR', 'en'), '−2\u00a0500,00 EUR');
+    expect(localizedMoney(4550, 'MAD', 'en'), '45,50 DH');
   });
 
   test('brand name is written Payday in every visible sentence', () {

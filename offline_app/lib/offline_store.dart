@@ -50,14 +50,14 @@ class OfflineStore {
    // Rollback path: keep using the untouched unencrypted file; retry next launch.
    if(await fileIsPlainSqlite(file))password=null;
   }
-  _database=await cipher.openDatabase(file,password:password,version:4,onCreate:(d,v) async {
+  _database=await cipher.openDatabase(file,password:password,version:5,onCreate:(d,v) async {
    await d.execute('CREATE TABLE transactions(id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, type TEXT NOT NULL, category TEXT NOT NULL, description TEXT NOT NULL DEFAULT "", amount INTEGER NOT NULL, note TEXT NOT NULL DEFAULT "", bill_id TEXT NOT NULL DEFAULT "", account TEXT NOT NULL DEFAULT "Cash")');
    await d.execute('CREATE INDEX ix_transactions_date ON transactions(date)');
    await d.execute('CREATE TABLE budgets(month TEXT NOT NULL, category TEXT NOT NULL, amount INTEGER NOT NULL, PRIMARY KEY(month, category))');
    await d.execute('CREATE TABLE categories(name TEXT PRIMARY KEY, group_name TEXT NOT NULL)');
    await d.execute('CREATE TABLE goals(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, target INTEGER NOT NULL)');
    await d.execute('CREATE TABLE allocations(id INTEGER PRIMARY KEY AUTOINCREMENT, month TEXT NOT NULL, goal_id INTEGER NOT NULL, amount INTEGER NOT NULL, FOREIGN KEY(goal_id) REFERENCES goals(id))');
-   await d.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, due TEXT NOT NULL, amount INTEGER NOT NULL, category TEXT NOT NULL, note TEXT NOT NULL DEFAULT "")');
+   await d.execute('CREATE TABLE bills(id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, due TEXT NOT NULL, amount INTEGER NOT NULL, category TEXT NOT NULL, note TEXT NOT NULL DEFAULT "", repeat_monthly INTEGER NOT NULL DEFAULT 0)');
    await d.execute('CREATE TABLE month_closes(month TEXT PRIMARY KEY, entries_ok INTEGER NOT NULL DEFAULT 0, balance_ok INTEGER NOT NULL DEFAULT 0, extra INTEGER NOT NULL DEFAULT 0, opening_balance INTEGER NOT NULL DEFAULT 0)');
    await d.execute('CREATE TABLE reserves(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, target INTEGER NOT NULL, funded INTEGER NOT NULL DEFAULT 0, due TEXT NOT NULL, start_month TEXT NOT NULL)');
    await createReserveMovements(d);
@@ -77,6 +77,8 @@ class OfflineStore {
    if(oldVersion<3)await createLookupIndexes(d);
    // Wallets: existing records count as Cash; balances only use entries made after setup.
    if(oldVersion<4)await d.execute("ALTER TABLE transactions ADD COLUMN account TEXT NOT NULL DEFAULT 'Cash'");
+   // Monthly bills: existing bills stay one-off until the user turns repeating on.
+   if(oldVersion<5)await d.execute('ALTER TABLE bills ADD COLUMN repeat_monthly INTEGER NOT NULL DEFAULT 0');
   });
   return _database!;
  }
@@ -127,7 +129,7 @@ class OfflineStore {
   if(parsed==null||date.length!=10||parsed.year<2000)throw ArgumentError('Choose a valid payment date, not a future date.');
   final future=DateTime(parsed.year,parsed.month,parsed.day).isAfter(DateTime.now());
   final values={'date':date,'type':type,'category':category,'amount':amount,'description':description,'note':note,'bill_id':billId,
-   if(account!=null)'account':account};
+   'account':?account};
   final d=await db;
   await d.transaction((txn)async{
    final dates=<Object?>[date];
@@ -222,9 +224,9 @@ class OfflineStore {
   });
  }
  Future<void> deleteAllocation(int id) async => (await db).delete('allocations',where:'id=?',whereArgs:[id]);
- Future<void> saveBill({int? id,required String code,required String name,required String due,required int amount,required String category,required String note}) async{
+ Future<void> saveBill({int? id,required String code,required String name,required String due,required int amount,required String category,required String note,bool repeatMonthly=false}) async{
   if(code.trim().isEmpty||name.trim().isEmpty||amount<=0)throw ArgumentError('Invalid bill');
-  final v={'code':code.trim(),'name':name.trim(),'due':due,'amount':amount,'category':category,'note':note};
+  final v={'code':code.trim(),'name':name.trim(),'due':due,'amount':amount,'category':category,'note':note,'repeat_monthly':repeatMonthly?1:0};
   await (await db).transaction((txn)async{
    final taken=await txn.query('bills',columns:['id'],where:id==null?'code=?':'code=? AND id<>?',whereArgs:id==null?[v['code']]:[v['code'],id]);
    if(taken.isNotEmpty)throw StateError(billIdTakenMessage);
@@ -261,6 +263,33 @@ class OfflineStore {
    return true;
   });
  }
+ /// Creates the missing monthly copies of every repeating bill, up to [now]'s
+ /// month. Each copy keeps the bill's day (clamped to short months) with the
+ /// new month and year. Copies use the same `REPEAT:<id>:<yyyy-MM>` codes as
+ /// "Repeat next month", so a month is never created twice.
+ Future<int> applyRepeatingBills(DateTime now)async{
+  return (await db).transaction((txn)async{
+   final sources=await txn.query('bills',where:'repeat_monthly=1');
+   final current=DateTime(now.year,now.month);
+   var created=0;
+   for(final source in sources){
+    final start=DateTime.tryParse(source['due']?.toString()??'');
+    if(start==null)continue;
+    for(var month=DateTime(start.year,start.month+1);!month.isAfter(current);month=DateTime(month.year,month.month+1)){
+     final last=DateTime(month.year,month.month+1,0).day;
+     final due=dayKey(DateTime(month.year,month.month,start.day>last?last:start.day));
+     final code='REPEAT:${source['id']}:${due.substring(0,7)}';
+     if((await txn.query('bills',columns:['id'],where:'code=?',whereArgs:[code])).isNotEmpty)continue;
+     await txn.insert('bills',{
+      'code':code,'name':source['name'],'due':due,'amount':source['amount'],
+      'category':source['category'],'note':source['note'],
+     });
+     created++;
+    }
+   }
+   return created;
+  });
+ }
  Future<void> removeBill(int id) async => (await db).delete('bills',where:'id=?',whereArgs:[id]);
  Future<void> saveReserve({int? id,required String name,required int target,required int funded,required String due,required String startMonth}) async{
   if(name.trim().isEmpty||target<=0||funded<0)throw ArgumentError('Invalid reserve');
@@ -278,8 +307,10 @@ class OfflineStore {
       "SELECT COALESCE(SUM(CASE WHEN kind='add' THEN amount ELSE -amount END),0) AS net FROM reserve_movements WHERE reserve_id=?",
       [id]);
     final fundedNow=funded+(net.single['net'] as num).toInt();
-    if(target<fundedNow)throw StateError(
+    if(target<fundedNow) {
+      throw StateError(
       'Target cannot be lower than the money currently in this reserve.');
+    }
     await d.update('reserves',v,where:'id=?',whereArgs:[id]);
   }
  }
@@ -328,10 +359,14 @@ class OfflineStore {
    for(final movement in chronological){
     final delta=(movement['amount'] as num).toInt();
     running+=(movement['kind']=='add'?delta:-delta);
-    if(running<0)throw StateError(
+    if(running<0) {
+      throw StateError(
       'Transfer would make the historical reserve balance negative.');
-    if(running>(reserve['target'] as num).toInt())throw StateError(
+    }
+    if(running>(reserve['target'] as num).toInt()) {
+      throw StateError(
       'Transfer would exceed the reserve target.');
+    }
    }
   });
  }
@@ -340,8 +375,10 @@ class OfflineStore {
   await d.transaction((txn) async{
    final transfers=Sqflite.firstIntValue(await txn.rawQuery(
      'SELECT COUNT(*) FROM reserve_movements WHERE reserve_id=?',[id]))??0;
-   if(transfers>0)throw StateError(
+   if(transfers>0) {
+     throw StateError(
      'This reserve has transfer history. Keep it for your records.');
+   }
    await txn.delete('reserves',where:'id=?',whereArgs:[id]);
   });
  }
@@ -465,7 +502,9 @@ class OfflineStore {
  Future<void> addCategory(String name,String group) async{
   final clean=name.trim(),normalized=name.trim().toLowerCase();
   if(clean.isEmpty || !['Essential','Flexible','Income'].contains(group)||
-    ['income plan','savings goal','savings','uncategorized'].contains(normalized))throw ArgumentError('Choose a valid category name.');
+    ['income plan','savings goal','savings','uncategorized'].contains(normalized)) {
+    throw ArgumentError('Choose a valid category name.');
+  }
   const incomeDefaults=['salary','freelance','business','gifts','other income'];
   if(group!='Income'&&incomeDefaults.contains(normalized))throw ArgumentError('This name belongs to income categories.');
   await (await db).transaction((txn)async{
@@ -539,7 +578,7 @@ class OfflineStore {
   });
  }
 /// Columns that must hold whole numbers, and columns that must hold dates, when present.
- static const _wholeNumbers={'id','amount','target','funded','goal_id','reserve_id','entries_ok','balance_ok','extra','opening_balance'};
+ static const _wholeNumbers={'id','amount','target','funded','goal_id','reserve_id','entries_ok','balance_ok','extra','opening_balance','repeat_monthly'};
  static const _dayColumns={'date','due'};
  static const _monthColumns={'month','start_month'};
  static final _day=RegExp(r'^\d{4}-\d{2}-\d{2}$'),_month=RegExp(r'^\d{4}-\d{2}$');
