@@ -37,6 +37,15 @@ extension _SettingsScreen on _FinanceState {
   final canChange=widget.onPreferencesChanged!=null&&!preferencesSaving;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    if(preferencesSaving)LinearProgressIndicator(),
+   // Payday first: it changes every number in the app.
+   settingsGroup('Pay cycle',[
+    ListTile(key:ValueKey('payday-setting'),leading:PaydayAppIcon(Icons.calendar_today_outlined),title:LText('Salary day'),
+     subtitle:LText('Next payday: ${shortDay(dayKey(cycleOf(d).nextPayday))}'),trailing:PaydayAppIcon(Icons.chevron_right),
+     onTap:()=>openSettingsPage((_)=>PaydaySettingsPage(initial:paydayRuleOf(d),onChanged:(rule)=>execute(()async{
+      await store.setSetting(PaydayRule.dayKey,rule.encodedDay);
+      await store.setSetting(PaydayRule.weekendKey,rule.weekend.name);
+     },saved:'Payday saved.')))),
+   ]),
    settingsGroup('General',[
     ListTile(key:ValueKey('language-setting'),leading:PaydayAppIcon(Icons.translate),title:LText('Language'),
      subtitle:Text(paydayLanguages[language]!),trailing:PaydayAppIcon(Icons.chevron_right),

@@ -20,6 +20,8 @@ import 'restore_snapshot.dart';
 import 'csv_export.dart';
 import 'recurring.dart';
 import 'ledger.dart';
+import 'pay_cycle.dart';
+import 'payday_settings_page.dart';
 import 'home_widget.dart';
 import 'db_encryption.dart';
 import 'dart:async';
@@ -369,6 +371,12 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  String get month=>monthKey(selected);
  void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
+ /// The payday rule the user picked in Settings (default: the 28th, Friday before a weekend).
+ PaydayRule paydayRuleOf(Map<String,List<RowData>> d){final l=Ledger(d);return PaydayRule.fromSettings(l.setting(PaydayRule.dayKey),l.setting(PaydayRule.weekendKey));}
+ /// The pay cycle containing [today]; a logged salary near payday moves its start.
+ PayCycle cycleOf(Map<String,List<RowData>> d,[DateTime? today])=>payCycleFor(today??DateTime.now(),paydayRuleOf(d),
+  salaryDates:list(d,'transactions').where((t)=>st(t,'type')=='Income'&&st(t,'category')=='Salary')
+   .map((t)=>DateTime.tryParse(st(t,'date'))).whereType<DateTime>());
  Future<bool> execute(Future<void> Function() fn,{String saved='Saved on this phone.'})async{
   if(writing)return false;
   writing=true;

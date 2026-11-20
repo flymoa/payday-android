@@ -73,7 +73,7 @@ void main() {
 
     await t.tap(find.byType(PaydayAddButton));
     await settle(t, seconds: 2);
-    await t.enterText(find.widgetWithText(TextField, 'Amount (MAD)'), '12.50');
+    await t.enterText(find.widgetWithText(TextField, 'Amount (DH)'), '12.50');
     await t.ensureVisible(find.byKey(const ValueKey('transaction-more-details')));
     await t.tap(find.byKey(const ValueKey('transaction-more-details')));
     await settle(t, seconds: 1);
@@ -84,7 +84,7 @@ void main() {
     await settle(t, seconds: 3);
 
     await waitFor(t, find.text('Emulator coffee'));
-    expect(find.textContaining('12.50'), findsWidgets);
+    expect(find.textContaining('12,50'), findsWidgets);
     final real = '${await cipher.getDatabasesPath()}/payday_local_v1.db';
     expect(await fileIsPlainSqlite(real), isFalse, reason: 'app database must be encrypted');
   });

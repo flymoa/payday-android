@@ -151,7 +151,8 @@ extension _HomeScreen on _FinanceState {
   const heroInk=paydaySand;
   final now=DateTime.now();
   final current=selected.year==now.year&&selected.month==now.month;
-  final daysLeft=DateTime(now.year,now.month+1,0).day-now.day+1;
+  // Home counts down to payday, not to the end of the calendar month.
+  final toPayday=cycleOf(d,now).daysToPayday(now);
   final nextBill=current?nextDueBill(d,now):null;
   final unit=currencyLabel(currency,language);
   String whole(int cents)=>'${localizedWhole(cents,language)} $unit';
@@ -165,7 +166,7 @@ extension _HomeScreen on _FinanceState {
   // Hero amount: integer at display size, decimals and currency lifted and muted like a price tag.
   final digits=homeDigits(balance.safe).split(',');
   final lifted=TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.heroDecimals,fontWeight:FontWeight.w600,color:PaydayColors.heroMuted,letterSpacing:0,fontFeatures:PaydayText.tabular);
-  final nudge=current?darijaNudge(balance.safe,daysLeft,balance.usedFraction,language):null;
+  final nudge=current?darijaNudge(balance.safe,toPayday,balance.usedFraction,language):null;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // Home shows this month; the switcher appears only after another month was picked elsewhere.
    if(!current)...[navMonth(),SizedBox(height:PaydaySpace.md)],
@@ -176,7 +177,7 @@ extension _HomeScreen on _FinanceState {
       Row(children:[Expanded(flex:3,child:LText('Safe to spend',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700))),
        SizedBox(width:PaydaySpace.sm),
        Expanded(flex:2,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,child:LText(
-        !current?monthLabel(selected):daysLeft==1?'Last day of the month':daysLeftLabel(daysLeft,language),maxLines:1,
+        !current?monthLabel(selected):toPayday==1?'Payday tomorrow':language=='ar'?'الراتب بعد ${arabicDays(toPayday,after:true)}':'$toPayday days to payday',maxLines:1,
         style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption))))]),
       SizedBox(height:PaydaySpace.sm),
       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:Text.rich(TextSpan(children:[
