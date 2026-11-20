@@ -70,12 +70,12 @@ void main(){
     expect(find.text('Salam'),findsNothing);
     expect(find.byType(PaydayBrand),findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
-    await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Appearance'));await tester.pumpAndSettle();
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.dark);
     expect(find.byKey(overlay),findsNothing);
-    await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
+    await tester.tap(find.text('Appearance'));await tester.pumpAndSettle();
     await tester.tap(find.text('Light'));
     await tester.pumpAndSettle();
     expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,ThemeMode.light);

@@ -38,9 +38,9 @@ class _BackupSettingsPageState extends State<BackupSettingsPage>{
   }catch(_){if(mounted)setState(()=>error='Could not refresh backup status. Please try again.');}
   finally{if(mounted)setState(()=>busy=false);}
  }
- @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Backups & data',busy:busy,
+ @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Backup & restore',busy:busy,
   actions:[IconButton(tooltip:tr(context,'About backups'),icon:const PaydayAppIcon(Icons.info_outline,size:20),
-   onPressed:()=>showSettingsInfo(context,'Backups & data','New exports are password protected. Keep the password: Payday cannot recover it. Older JSON backups still work. Restore shows a summary before replacing records and keeps this phone’s App lock and reminder settings. Records on this phone are not encrypted by Payday. An export date confirms the handoff to your chosen app; keep the saved file somewhere safe.'))],
+   onPressed:()=>showSettingsInfo(context,'Backup & restore','New exports are password protected. Keep the password: Payday cannot recover it. Older JSON backups still work. Restore shows a summary before replacing records and keeps this phone’s App lock and reminder settings. Records on this phone are not encrypted by Payday. An export date confirms the handoff to your chosen app; keep the saved file somewhere safe.'))],
   body:ListView(padding:settingsPagePadding,children:[
    if(busy)const LinearProgressIndicator(),
    Padding(padding:const EdgeInsets.only(bottom:20),child:LText(status,style:const TextStyle(fontWeight:FontWeight.w700))),

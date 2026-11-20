@@ -78,7 +78,7 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> wit
   final backupReady=state?.enabled==true&&state?.allowed==true;
   final billReady=billState?.preferences.enabled==true&&billState?.allowed==true;
   final reserveReady=reserveState?.preferences.enabled==true&&reserveState?.allowed==true;
-  return SettingsPageScaffold(title:'Notifications',busy:busy,
+  return SettingsPageScaffold(title:'Reminders',busy:busy,
     actions:[IconButton(tooltip:tr(context,'About notifications'),icon:const PaydayAppIcon(Icons.info_outline,size:20),onPressed:()=>showSettingsInfo(context,'Notifications',
      [backupNotificationExplanation,if(widget.bills!=null)billNotificationExplanation,if(widget.reserves!=null)reserveNotificationExplanation].join('\n\n')))],
     body:ListView(padding:settingsPagePadding,children:[

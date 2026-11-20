@@ -60,13 +60,13 @@ void main(){
  testWidgets('settings opens only from the gear; tabs and edge swipe do not open it',(tester)async{
   await tester.pumpWidget(PaydayLocal(store:store));await tester.pumpAndSettle();
   await tester.dragFrom(const Offset(1,200),const Offset(280,0));await tester.pumpAndSettle();
-  expect(find.text('Theme'),findsNothing);
+  expect(find.text('Appearance'),findsNothing);
   await tester.tap(find.byKey(const ValueKey('bottom-2')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('subtab-2-1')));await tester.pumpAndSettle();
   expect(find.text('Settings'),findsNothing);expect(find.byKey(const ValueKey('home-settings-button')),findsOneWidget);
   expect(find.byKey(const ValueKey('page-2-tab-1')),findsOneWidget);
   await tester.dragFrom(const Offset(1,200),const Offset(280,0));await tester.pumpAndSettle();
-  expect(find.text('Theme'),findsNothing);
+  expect(find.text('Appearance'),findsNothing);
   await tester.tap(find.text('Home'));await tester.pumpAndSettle();await openSettings(tester);
   expect(find.text('Security'),findsOneWidget);expect(find.text('App lock'),findsOneWidget);
   expect(find.byKey(const ValueKey('app-lock-info')),findsOneWidget);

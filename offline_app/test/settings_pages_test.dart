@@ -60,12 +60,12 @@ void main(){
   expect(find.text('Settings'),findsOneWidget);expect(find.byKey(const ValueKey('app-lock-setting')),findsNothing);
   await tester.ensureVisible(find.byKey(const ValueKey('about-help-setting')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('about-help-setting')));await tester.pumpAndSettle();
-  expect(find.text('About & Help'),findsOneWidget);expect(find.text('Getting started'),findsOneWidget);
+  expect(find.text('About Payday'),findsOneWidget);expect(find.text('Getting started'),findsOneWidget);
   await tester.binding.handlePopRoute();await tester.pumpAndSettle();
   expect(find.text('Settings'),findsOneWidget);
   await tester.tap(find.byTooltip('Close settings'));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('bottom-2')));await tester.pumpAndSettle();
-  expect(find.text('Settings'),findsNothing);expect(find.text('About & Help'),findsNothing);
+  expect(find.text('Settings'),findsNothing);expect(find.text('About Payday'),findsNothing);
   expect(tester.takeException(),isNull);
  });
 }
