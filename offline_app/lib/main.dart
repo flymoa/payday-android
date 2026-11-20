@@ -1,6 +1,7 @@
 import 'design_tokens.dart';
 import 'ui_kit.dart';
 import 'settings_home.dart';
+import 'build_info.dart';
 import 'wallets.dart';
 import 'hijri.dart';
 import 'localization.dart';

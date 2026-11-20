@@ -22,7 +22,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage>{
   catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:LText('Could not save theme. Please try again.')));}
   finally{if(mounted)setState(()=>saving=false);}
  }
- @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Theme',busy:saving,
+ @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'Appearance',busy:saving,
   body:ListView(padding:settingsPagePadding,children:[
    if(saving)const LinearProgressIndicator(),
    Card(clipBehavior:Clip.antiAlias,child:RadioGroup<ThemeMode>(groupValue:widget.initial,onChanged:choose,

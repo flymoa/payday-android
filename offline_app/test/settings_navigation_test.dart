@@ -15,13 +15,13 @@ void main(){
     initialPreferences:AppPreferences(appearance:brightness==Brightness.dark?ThemeMode.dark:ThemeMode.light)));
    await t.pumpAndSettle();
    await t.tap(find.byKey(const ValueKey('home-settings-button')));await t.pumpAndSettle();
-   for(final title in ['Theme','Notifications','App lock','Currency','Money settings','Backups & data','About & Help']){
+   for(final title in ['Appearance','Reminders','App lock','Currency','Money settings','Backup & restore','About Payday']){
     final entry=find.text(title);await t.ensureVisible(entry);await t.pumpAndSettle();await t.tap(entry);await t.pumpAndSettle();
     final scaffold=find.byType(SettingsPageScaffold);expect(scaffold,findsOneWidget,reason:title);
     expect(t.getSize(scaffold).width,320,reason:'$title must fill the screen');
     expect(find.byTooltip('Back to Settings'),findsOneWidget);
     expect(find.byType(BottomSheet),findsNothing);expect(find.byType(AlertDialog),findsNothing);
-    if(title=='Currency'||title=='Backups & data'){
+    if(title=='Currency'||title=='Backup & restore'){
      await t.binding.handlePopRoute();
     }else{await t.tap(find.byTooltip('Back to Settings'));}
     await t.pumpAndSettle();expect(find.text('Settings'),findsOneWidget);expect(find.byType(SettingsPageScaffold),findsNothing);

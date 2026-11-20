@@ -14,6 +14,22 @@ Future<void> showSettingsInfo(BuildContext context,String title,String message)=
  context:context,builder:(dialog)=>AlertDialog(title:LText(title),scrollable:true,
   content:LText(message),actions:[TextButton(onPressed:()=>Navigator.pop(dialog),child:const LText('Got it'))]));
 
+/// Round back button used across Settings, as on the design canvas.
+class SettingsBackButton extends StatelessWidget{
+ const SettingsBackButton({super.key,required this.tooltip,required this.onPressed});
+ final String tooltip;
+ final VoidCallback? onPressed;
+ @override Widget build(BuildContext context){
+  final dark=Theme.of(context).brightness==Brightness.dark;
+  return Padding(padding:const EdgeInsetsDirectional.only(start:12),child:Center(child:IconButton(
+   tooltip:tr(context,tooltip),onPressed:onPressed,
+   style:IconButton.styleFrom(fixedSize:const Size(44,44),
+    backgroundColor:dark?PaydayCard.surfaceDark:PaydayCard.surfaceLight,
+    side:BorderSide(color:dark?PaydayCard.borderDark:PaydayCard.borderLight)),
+   icon:const PaydayAppIcon(Icons.arrow_back,size:20))));
+ }
+}
+
 const settingsPagePadding=EdgeInsetsDirectional.fromSTEB(16,16,16,32);
 
 /// Shared layout for every destination opened from the Home settings drawer.
@@ -24,9 +40,10 @@ class SettingsPageScaffold extends StatelessWidget{
  final List<Widget> actions;
  final bool busy;
  @override Widget build(BuildContext context)=>PopScope<Object?>(canPop:!busy,child:Scaffold(
-  appBar:AppBar(toolbarHeight:64,centerTitle:false,titleSpacing:0,
-   title:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(title)),
-   leading:IconButton(tooltip:tr(context,'Back to Settings'),onPressed:busy?null:()=>Navigator.pop(context),icon:const PaydayAppIcon(Icons.arrow_back)),
+  appBar:AppBar(toolbarHeight:64,centerTitle:false,titleSpacing:12,leadingWidth:56,
+   title:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
+    child:LText(title,style:const TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:24))),
+   leading:SettingsBackButton(tooltip:'Back to Settings',onPressed:busy?null:()=>Navigator.pop(context)),
    actions:actions),
   body:SafeArea(child:body)));
 }
@@ -75,7 +92,7 @@ class AboutHelpPage extends StatelessWidget{
    if(context.mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:LText('Could not copy app details. Please try again.')));
   }
  }
- @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'About & Help',
+ @override Widget build(BuildContext context)=>SettingsPageScaffold(title:'About Payday',
   body:ListView(padding:settingsPagePadding,children:[
    const Padding(padding:EdgeInsets.only(bottom:8),child:Align(alignment:AlignmentDirectional.centerStart,child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:PaydayBrand(compact:true)))),
    LText('Version $paydayVersion · Build $paydayBuildNumber',style:TextStyle(fontSize:PaydayType.caption,color:Theme.of(context).colorScheme.onSurfaceVariant)),

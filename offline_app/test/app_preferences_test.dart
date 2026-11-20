@@ -77,7 +77,7 @@ void main(){
   await tester.tap(find.byKey(const ValueKey('home-settings-button')));await tester.pumpAndSettle();
  }
  Future<void> chooseTheme(WidgetTester tester,String name)async{
-  await tester.tap(find.text('Theme'));await tester.pumpAndSettle();
+  await tester.tap(find.text('Appearance'));await tester.pumpAndSettle();
   await tester.tap(find.text(name).last);await tester.pumpAndSettle();
  }
  Future<void> chooseCurrency(WidgetTester tester,String code)async{
@@ -96,7 +96,7 @@ void main(){
   await openSettings(tester);
   // Settings is a full page now, not a side drawer.
   expect(find.byType(Drawer),findsNothing);expect(find.text('Settings'),findsOneWidget);
-  expect(find.text('General'),findsOneWidget);expect(find.text('Privacy & security'),findsOneWidget);
+  expect(find.text('GENERAL'),findsOneWidget);expect(find.text('PRIVACY & SECURITY'),findsOneWidget);
   expect(find.text('Opening animation'),findsNothing);expect(find.text('Reduce motion'),findsNothing);
   expect(find.text('App lock'),findsOneWidget);
   await chooseTheme(tester,'Dark');
@@ -107,15 +107,15 @@ void main(){
   expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.dark);
   tester.platformDispatcher.platformBrightnessTestValue=Brightness.light;await tester.pumpAndSettle();
   expect(Theme.of(tester.element(find.byType(FinanceScreen,skipOffstage:false))).brightness,Brightness.light);
-  await tester.ensureVisible(find.text('Backups & data'));await tester.pumpAndSettle();
-  await tester.tap(find.text('Backups & data'));await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('Backup & restore'));await tester.pumpAndSettle();
+  await tester.tap(find.text('Backup & restore'));await tester.pumpAndSettle();
   expect(find.text('Export backup'),findsOneWidget);expect(find.text('Restore'),findsOneWidget);
   await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
-  expect(find.text('Theme'),findsOneWidget);
+  expect(find.text('Appearance'),findsOneWidget);
   await tester.binding.handlePopRoute();await tester.pumpAndSettle();
-  expect(find.text('Theme'),findsNothing);
+  expect(find.text('Appearance'),findsNothing);
   await openSettings(tester);await tester.tap(find.byTooltip('Close settings'));await tester.pumpAndSettle();
-  expect(find.text('Theme'),findsNothing);
+  expect(find.text('Appearance'),findsNothing);
   expect(tester.takeException(),isNull);
  });
  testWidgets('currency confirmation, cancel, persistence, forms and cold launch ignore old flags',(tester)async{
@@ -136,7 +136,7 @@ void main(){
    await chooseCurrency(tester,code);
    await tester.tap(find.widgetWithText(FilledButton,'Use $code'));await tester.pumpAndSettle();
    expect((await store.loadAppPreferences()).currency,code);
-   expect(find.text('${paydayCurrencies[code]} · $code'),findsOneWidget);
+   expect(find.descendant(of:find.byKey(const ValueKey('currency-setting')),matching:find.text(code)),findsOneWidget);
   }
   final saved=await store.loadAppPreferences();
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
@@ -161,7 +161,7 @@ void main(){
   expect((await store.loadAppPreferences()).currency,'MAD');
   expect(find.text('Currency'),findsOneWidget);
   await tester.tap(find.byTooltip('Back to Settings'));await tester.pumpAndSettle();
-  expect(find.text('Moroccan dirham · MAD'),findsOneWidget);
+  expect(find.descendant(of:find.byKey(const ValueKey('currency-setting')),matching:find.text('DH')),findsOneWidget);
   expect(find.text('Could not save preferences. Please try again.'),findsWidgets);
   expect(tester.takeException(),isNull);
  });

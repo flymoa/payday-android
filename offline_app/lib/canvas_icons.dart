@@ -138,7 +138,7 @@ String? canvasGlyphForIcon(IconData icon){
   Icons.close:'close',Icons.search:'search',Icons.tune:'filter',Icons.tune_outlined:'filter',
   Icons.calendar_today_outlined:'cal',Icons.today:'cal',Icons.event_outlined:'cal',Icons.edit_calendar_outlined:'cal',
   Icons.account_balance_wallet_outlined:'bank',Icons.payments_outlined:'cash',Icons.repeat:'swap',
-  Icons.notifications_none:'bell',Icons.lock_outline:'lock',Icons.lock_open_outlined:'lock',Icons.ios_share:'upload',
+  Icons.notifications_none:'bell',Icons.lock_outline:'lock',Icons.lock_open_outlined:'lock',Icons.ios_share:'upload',Icons.upload_outlined:'upload',
   Icons.file_open:'download',Icons.translate:'globe',Icons.dark_mode_outlined:'moon',Icons.light_mode_outlined:'sun',
   Icons.bar_chart_rounded:'bars',Icons.beach_access_outlined:'beach',Icons.check_circle_outline:'check',
   Icons.fact_check_outlined:'check',Icons.edit_outlined:'edit',Icons.info_outline:'info',Icons.visibility_outlined:'eye',
