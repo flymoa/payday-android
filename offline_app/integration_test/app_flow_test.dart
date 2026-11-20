@@ -74,6 +74,8 @@ void main() {
     await t.tap(find.byType(PaydayAddButton));
     await settle(t, seconds: 2);
     await t.enterText(find.widgetWithText(TextField, 'Amount (DH)'), '12.50');
+    await t.tap(find.text('Groceries').last);
+    await settle(t, seconds: 1);
     await t.ensureVisible(find.byKey(const ValueKey('transaction-more-details')));
     await t.tap(find.byKey(const ValueKey('transaction-more-details')));
     await settle(t, seconds: 1);
