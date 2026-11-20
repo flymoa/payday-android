@@ -85,7 +85,7 @@ void main() {
 
     await waitFor(t, find.text('Emulator coffee'));
     final shown = [for (final w in t.widgetList<Text>(find.byType(Text))) w.data ?? w.textSpan?.toPlainText() ?? ''];
-    expect(shown.any((x) => x.contains('12,50')), isTrue, reason: 'texts on screen: ${shown.where((x) => RegExp(r'\d').hasMatch(x)).join(' | ')}');
+    expect(shown.any((x) => x.contains('12,50')), isTrue, reason: 'texts on screen: ${shown.join(' | ')}');
     final real = '${await cipher.getDatabasesPath()}/payday_local_v1.db';
     expect(await fileIsPlainSqlite(real), isFalse, reason: 'app database must be encrypted');
   });
