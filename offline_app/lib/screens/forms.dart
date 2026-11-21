@@ -42,7 +42,7 @@ extension _Forms on _FinanceState {
 
  Future<void> confirmDelete(String title,Future<void> Function() action,{String message='This permanently removes the selected local record.',String? saved}) async {
   final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:LText(title),content:LText(message),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Delete'))]));
-  if(ok==true)await execute(action,saved:saved);
+  if(ok==true)await (saved==null?execute(action):execute(action,saved:saved));
  }
  /// Scrollable form with a fixed action area that clears Android's system bar.
  Future<void> sheet(String title,Widget Function(BuildContext,StateSetter) builder,
