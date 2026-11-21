@@ -37,11 +37,11 @@ extension _AlertsScreen on _FinanceState {
    out.add((key:'home-backup',icon:Icons.ios_share,
     title:backup.lastExport==null?'No backup yet':'Last backup {0}'.replaceAll('{0}',uiDay(backup.lastExport!.toLocal())),
     subtitle:'Your records live only on this phone. Export a backup to keep them safe.',urgent:false,onTap:null,
-    actions:Row(mainAxisAlignment:MainAxisAlignment.end,children:[
+    // Wraps to two lines on narrow screens or large text instead of overflowing.
+    actions:Wrap(alignment:WrapAlignment.end,spacing:PaydaySpace.sm,runSpacing:PaydaySpace.xs,children:[
      TextButton(key:ValueKey('home-backup-snooze'),onPressed:snoozeBackup,child:LText('Remind tomorrow')),
-     SizedBox(width:PaydaySpace.sm),
-     Flexible(child:FilledButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
-      child:FittedBox(fit:BoxFit.scaleDown,child:LText(exportingBackup?'Exporting…':'Export',maxLines:1)))),
+     FilledButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
+      child:LText(exportingBackup?'Exporting…':'Export',maxLines:1)),
     ])));
   }
   out.sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
@@ -60,7 +60,7 @@ extension _AlertsScreen on _FinanceState {
     ])),
     if(a.onTap!=null)...[SizedBox(width:4),PaydayAppIcon(Icons.chevron_right,size:18,color:muted)],
    ]),
-   if(a.actions!=null)Padding(padding:EdgeInsetsDirectional.only(start:48,top:PaydaySpace.sm),child:a.actions!),
+   if(a.actions!=null)Padding(padding:EdgeInsetsDirectional.only(start:48,top:PaydaySpace.sm),child:SizedBox(width:double.infinity,child:a.actions!)),
   ]))));
 
  Widget alertsBody(Map<String,List<RowData>> d){
