@@ -382,6 +382,48 @@ class OfflineStore {
    await txn.delete('reserves',where:'id=?',whereArgs:[id]);
   });
  }
+ /// Deleting a reserve that has not reached its target keeps its money: the
+ /// balance moves to savings (a "Savings out" entry today) and is allocated to a
+ /// savings goal with the reserve's name and target. A goal with that name is
+ /// reused, its target raised if needed. A fully funded reserve is simply removed
+ /// with its history. Returns the money moved.
+ Future<int> deleteReserveKeepingMoney(int id,{DateTime? now}) async {
+  final today=now??DateTime.now();
+  final d=await db;
+  return d.transaction((txn) async{
+   final rows=await txn.query('reserves',where:'id=?',whereArgs:[id]);
+   if(rows.isEmpty)throw StateError('Reserve no longer exists.');
+   final reserve=rows.single;
+   final name=(reserve['name'] as String).trim(),target=(reserve['target'] as num).toInt();
+   final net=Sqflite.firstIntValue(await txn.rawQuery(
+     "SELECT COALESCE(SUM(CASE WHEN kind='add' THEN amount ELSE -amount END),0) FROM reserve_movements WHERE reserve_id=?",[id]))??0;
+   final balance=(reserve['funded'] as num).toInt()+net;
+   var moved=0;
+   if(balance<target){
+    final month=monthKey(today);
+    if(balance>0&&await monthIsClosed(txn,month))throw StateError(closedMonthMessage);
+    final existing=await txn.query('goals',where:'name=?',whereArgs:[name]);
+    final int goalId;
+    if(existing.isEmpty){
+     goalId=await txn.insert('goals',{'name':name,'target':target});
+    }else{
+     goalId=(existing.single['id'] as num).toInt();
+     final allocated=Sqflite.firstIntValue(await txn.rawQuery('SELECT COALESCE(SUM(amount),0) FROM allocations WHERE goal_id=?',[goalId]))??0;
+     final needed=allocated+balance;
+     if((existing.single['target'] as num).toInt()<needed)await txn.update('goals',{'target':needed},where:'id=?',whereArgs:[goalId]);
+    }
+    if(balance>0){
+     await txn.insert('transactions',{'date':dayKey(today),'type':'Savings out','category':'Savings','amount':balance,
+      'description':name,'note':'Moved from a deleted reserve','bill_id':''});
+     await txn.insert('allocations',{'month':month,'goal_id':goalId,'amount':balance});
+     moved=balance;
+    }
+   }
+   await txn.delete('reserve_movements',where:'reserve_id=?',whereArgs:[id]);
+   await txn.delete('reserves',where:'id=?',whereArgs:[id]);
+   return moved;
+  });
+ }
  Future<void> saveMonthClose(String month,{required bool entriesOk,required bool balanceOk,required int extra,required int openingBalance,Map<String,int>? carryToNext}) async {
   if(extra<0)throw ArgumentError('Invalid savings');
   if(carryToNext!=null&&carryToNext.values.any((v)=>v<=0||v>100000000000))throw ArgumentError('Invalid carry-over');
