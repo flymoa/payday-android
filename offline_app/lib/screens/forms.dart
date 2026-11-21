@@ -40,9 +40,9 @@ extension _Forms on _FinanceState {
    })));
  }
 
- Future<void> confirmDelete(String title,Future<void> Function() action) async {
-  final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:LText(title),content:LText('This permanently removes the selected local record.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Delete'))]));
-  if(ok==true)await execute(action);
+ Future<void> confirmDelete(String title,Future<void> Function() action,{String message='This permanently removes the selected local record.',String? saved}) async {
+  final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:LText(title),content:LText(message),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),FilledButton(onPressed:()=>Navigator.pop(c,true),child:LText('Delete'))]));
+  if(ok==true)await (saved==null?execute(action):execute(action,saved:saved));
  }
  /// Scrollable form with a fixed action area that clears Android's system bar.
  Future<void> sheet(String title,Widget Function(BuildContext,StateSetter) builder,
@@ -595,7 +595,16 @@ extension _Forms on _FinanceState {
     firstDate:DateTime(2000),lastDate:DateTime(2100));if(p!=null)rebuild(()=>start=p);},
     child:LText('Start month: ${monthLabel(start)}')),
    if(existing!=null)TextButton(onPressed:()async{
-     Navigator.pop(c);await confirmDelete('Delete reserve?',()=>store.removeReserve(val(existing,'id')));
+     Navigator.pop(c);
+     final d=await store.snapshot();if(!mounted)return;
+     final saved=Ledger(d).reserveFundedAt(existing,'9999-12'),goal=st(existing,'name').trim(),aim=val(existing,'target');
+     // Unfinished reserve: its money is savings, so it moves to a savings goal with the same name.
+     final keep=saved<aim;
+     await confirmDelete('Delete reserve?',()=>store.deleteReserveKeepingMoney(val(existing,'id')),
+      message:keep?(saved>0?'${money(saved)} moves to Savings, into a goal called $goal with a target of ${money(aim)}.'
+        :'A savings goal called $goal with a target of ${money(aim)} takes its place.')
+       :'This reserve reached its target. It is removed with its history.',
+      saved:keep?'Moved to Savings: $goal.':'Reserve deleted.');
     },child:LText('Delete reserve',style:TextStyle(color:danger))),
   ]),footer:(c,rebuild)=>FilledButton(
    onPressed:()async{
