@@ -122,24 +122,6 @@ extension _HomeScreen on _FinanceState {
  Future<void> snoozeBackup()async{
   await execute(()=>store.setSetting('backup_snooze_until',DateTime.now().add(Duration(days:1)).toUtc().toIso8601String()));
  }
- Widget backupReminderCard(Map<String,List<RowData>> d){
-  final reminder=backupReminder(d);
-  if(!reminder.visible)return SizedBox.shrink();
-  // One quiet row at the end of Home: housekeeping should not outrank money.
-  final label=reminder.lastExport==null?tr(context,'No backup yet')
-   :tr(context,'Last backup {0}'.replaceAll('{0}',uiDay(reminder.lastExport!.toLocal())));
-  return Padding(key:ValueKey('home-backup'),padding:EdgeInsets.only(top:PaydaySpace.xl),child:Column(children:[
-   SizedBox(height:48,child:Row(children:[
-    PaydayAppIcon(Icons.ios_share,color:muted,size:18),SizedBox(width:PaydaySpace.sm),
-    Expanded(child:LText(label,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:muted,fontSize:PaydayType.caption))),
-    IconButton(key:ValueKey('home-backup-snooze'),tooltip:tr(context,'Remind tomorrow'),onPressed:snoozeBackup,
-     icon:PaydayAppIcon(Icons.schedule,size:20,color:muted)),
-    // Longer labels (e.g. Arabic at large text sizes) shrink instead of overflowing.
-    Flexible(child:TextButton(onPressed:exportingBackup||restoringBackup?null:exportBackup,
-     child:FittedBox(fit:BoxFit.scaleDown,child:LText(exportingBackup?'Exporting…':'Export',maxLines:1,style:TextStyle(fontWeight:FontWeight.w700))))),
-   ])),
-  ]));
- }
 
  Widget home(Map<String,List<RowData>> d){
   final ts=monthTransactions(d),balance=monthlyBalance(d);
@@ -223,7 +205,6 @@ extension _HomeScreen on _FinanceState {
    section('Recent','See all',()=>setState(()=>page=1)),
    if(recent.isEmpty)PaydayEmpty(icon:Icons.receipt_long_outlined,message:'No activity today or yesterday.')
    else groupedRows([for(final r in recent)recentActivityTile(r)]),
-   backupReminderCard(d),
   ]);
  }
  /// The next bill still owed (this month's, or an older one never paid), if it is overdue or due within a week.

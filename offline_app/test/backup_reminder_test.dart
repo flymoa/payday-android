@@ -46,7 +46,7 @@ void main(){
     final store=BackupStore(db);var calls=0;
     await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(
      store:store,initialData:store.snapshot(),backupCipher:FakeBackupCipher(),backupShare:(json)async{expect(json,'encrypted-only');calls++;return ShareResult('test',status);} )));
-    await tester.pumpAndSettle();await tester.ensureVisible(find.text('Export'));await tester.pumpAndSettle();
+    await tester.pumpAndSettle();await tester.tap(find.byKey(const ValueKey('home-bell-button')));await tester.pumpAndSettle();await tester.ensureVisible(find.text('Export'));await tester.pumpAndSettle();
     await tester.tap(find.text('Export'));await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('backup-password')),'A password saved safely');
     await tester.enterText(find.byKey(const ValueKey('backup-password-confirm')),'A password saved safely');
@@ -64,7 +64,7 @@ void main(){
  testWidgets('remind tomorrow persists snooze without marking an export',(tester)async{
   final store=BackupStore(db);
   await tester.pumpWidget(MaterialApp(home:FinanceScreen(store:store,initialData:store.snapshot())));
-  await tester.pumpAndSettle();await tester.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await tester.pumpAndSettle();
+  await tester.pumpAndSettle();await tester.tap(find.byKey(const ValueKey('home-bell-button')));await tester.pumpAndSettle();await tester.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('home-backup-snooze')));
   for(var i=0;i<30;i++){await tester.pump(const Duration(milliseconds:50));}
   expect(find.byKey(const ValueKey('home-backup')),findsNothing);

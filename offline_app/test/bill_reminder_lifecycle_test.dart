@@ -19,7 +19,7 @@ void main(){
   t.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
   t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   await t.pumpAndSettle();expect(reminders.calls,2);
-  await t.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await t.pumpAndSettle();
+  await t.tap(find.byKey(const ValueKey('home-bell-button')));await t.pumpAndSettle();await t.ensureVisible(find.byKey(const ValueKey('home-backup-snooze')));await t.pumpAndSettle();
   await t.tap(find.byKey(const ValueKey('home-backup-snooze')));await t.pumpAndSettle();
   expect(reminders.calls,3);expect(t.takeException(),isNull);
  });

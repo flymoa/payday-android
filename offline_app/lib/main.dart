@@ -50,6 +50,7 @@ part 'screens/settings_screen.dart';
 part 'screens/forms.dart';
 part 'screens/backup_actions.dart';
 part 'screens/welcome_screen.dart';
+part 'screens/alerts_screen.dart';
 
 void main(){
  WidgetsFlutterBinding.ensureInitialized();
@@ -242,7 +243,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  String currencyMessage(String message)=>translateMessage(message.replaceAll(' MAD',' ${currencyLabel(currency,language)}'),language);
  /// Rebuilds the open Settings page after this screen rebuilds (new preferences or data).
  final settingsRefresh=ValueNotifier<int>(0);
- bool settingsOpen=false;
+ bool settingsOpen=false,alertsOpen=false;
  Future<void> openSettingsDrawer()async{
   if(settingsOpen)return;
   settingsOpen=true;
@@ -474,7 +475,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
 
  // Home V2.2 presentation helpers — finance data remains sourced from SQLite.
  @override Widget build(BuildContext context){
-  if(settingsOpen)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)settingsRefresh.value++;});
+  if(settingsOpen||alertsOpen)WidgetsBinding.instance.addPostFrameCallback((_){if(mounted)settingsRefresh.value++;});
   return buildScreen(context);
  }
  Widget buildScreen(BuildContext context)=>welcome?welcomeFlow():LayoutBuilder(builder:(context,constraints)=>PopScope<Object?>(
@@ -489,8 +490,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    title:page==0?FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true))
     :LText(const ['','Records','Budgets','Savings'][page],key:ValueKey('page-title-$page'),
      style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:26,color:ink)),centerTitle:false,
-   // Settings is the only action; the tools that were under More now live in the small tabs.
-   actions:[Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
+   // Notifications, then Settings; the tools that were under More now live in the small tabs.
+   actions:[alertsButton(),SizedBox(width:8),Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
      style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.settings_outlined,size:22)))]),
   body:FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
    if(snap.hasError) {
