@@ -123,8 +123,16 @@ extension _MoreScreen on _FinanceState {
    IntrinsicHeight(child:Row(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
     walletBalanceCard('Cash',balances['Cash']!),SizedBox(width:10),walletBalanceCard('Bank',balances['Bank']!)])),
    SizedBox(height:12),
-   SizedBox(width:double.infinity,child:FilledButton.icon(key:ValueKey('wallet-transfer'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(50)),
-    onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.repeat),label:LText('Transfer'))),
+   Row(children:[
+    Expanded(child:FilledButton.icon(key:ValueKey('wallet-atm'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(50)),
+     onPressed:()=>walletTransferForm(atm:true),icon:PaydayAppIcon(Icons.local_atm_outlined),label:FittedBox(child:LText('ATM withdrawal')))),
+    SizedBox(width:10),
+    Expanded(child:OutlinedButton.icon(key:ValueKey('wallet-transfer'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(50)),
+     onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.repeat),label:FittedBox(child:LText('Transfer')))),
+   ]),
+   SizedBox(height:10),
+   SizedBox(width:double.infinity,child:OutlinedButton.icon(key:ValueKey('wallet-count-cash'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(48)),
+    onPressed:()=>cashCount(balances['Cash']!),icon:PaydayAppIcon(Icons.toll_outlined),label:LText('Count cash'))),
    SizedBox(height:12),
    if(transfers.isEmpty)PaydayEmpty(icon:Icons.repeat,message:'No transfers yet.')
    else groupedRows([for(final t in transfers)listRow(leading:iconTile(Icons.repeat),
@@ -147,15 +155,18 @@ extension _MoreScreen on _FinanceState {
    final ok=await execute(()=>store.saveWalletSetup(cash:a,bank:b));if(ok&&c.mounted)Navigator.pop(c);
   },child:LText('Save balances')));
  }
- Future<void> walletTransferForm()async{
+ Future<void> walletTransferForm({bool atm=false})async{
   var from='Bank';var date=DateTime.now();final value=TextEditingController();
-  await sheet('Transfer',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  await sheet(atm?'ATM withdrawal':'Transfer',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Wrap(spacing:8,runSpacing:8,children:[
     PaydayPill(key:ValueKey('transfer-bank-cash'),label:'Bank → Cash',selected:from=='Bank',onTap:()=>rebuild(()=>from='Bank')),
     PaydayPill(key:ValueKey('transfer-cash-bank'),label:'Cash → Bank',selected:from=='Cash',onTap:()=>rebuild(()=>from='Cash')),
    ]),
    SizedBox(height:8),LText('Withdrawing cash? Choose Bank → Cash.',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    SizedBox(height:14),field(value,'Amount ($currency)',number:true),
+   Wrap(spacing:8,runSpacing:8,children:[for(final v in const [200,500,1000,2000])PaydayPill(key:ValueKey('transfer-quick-$v'),label:localizedWhole(v*100,language),
+    selected:amount(value)==v*100,onTap:()=>rebuild(()=>value.text='$v'))]),
+   SizedBox(height:8),LText('Moving money between Cash and Bank is not spending. Safe to spend stays the same.',style:TextStyle(color:muted,fontSize:PaydayType.caption)),
    TextButton.icon(icon:PaydayAppIcon(Icons.edit_calendar_outlined),onPressed:()async{
     final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:DateTime.now());if(p!=null)rebuild(()=>date=p);},
     label:LText('Transfer date: ${uiDay(date)}')),

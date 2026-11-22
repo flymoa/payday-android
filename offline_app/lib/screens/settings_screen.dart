@@ -66,6 +66,8 @@ extension _SettingsScreen on _FinanceState {
       await store.setSetting(PaydayRule.dayKey,rule.encodedDay);
       await store.setSetting(PaydayRule.weekendKey,rule.weekend.name);
      },saved:'Payday saved.')))),
+    settingRow(key:ValueKey('salary-early'),icon:Icons.event_outlined,title:'Salary came early',subtitle:'Add it now: the new cycle starts today',
+     onTap:()=>transactionForm(null,initialType:'Income')),
    ]),
    settingsGroup('Reminders',[
     settingRow(key:ValueKey('notifications-setting'),icon:Icons.notifications_none,title:'Reminders',subtitle:'Bills, reserves and backups',
@@ -88,6 +90,7 @@ extension _SettingsScreen on _FinanceState {
       refreshStatus:()async=>backupDateLabel(backupReminder(await data)),
       onExport:exportBackup,onRestore:importBackup,
       loadSnapshotDate:snapshots.savedAt,onUndoRestore:undoLastRestore,onExportCsv:exportCsv))),
+    settingRow(key:ValueKey('import-csv'),icon:Icons.download_outlined,title:'Import CSV',subtitle:'From your bank or another app',onTap:importCsv),
     settingRow(key:ValueKey('money-settings'),icon:Icons.account_balance_wallet_outlined,title:'Money settings',
      subtitle:'Cash buffer and opening savings',onTap:()=>settingsForm(d)),
    ]),

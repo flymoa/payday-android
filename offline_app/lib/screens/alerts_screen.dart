@@ -32,6 +32,24 @@ extension _AlertsScreen on _FinanceState {
    out.add((key:'alert-reserve-${val(r,'id')}',icon:Icons.savings_outlined,title:isolate(st(r,'name')),subtitle:s.guidance,
     urgent:s.overdue,onTap:(){Navigator.of(context).maybePop();openTool(1);},actions:null));
   }
+  final key=monthKey(now);
+  for(final n in nearLimit(d,key)){
+   out.add((key:'alert-budget-${n.$1}',icon:Icons.pie_chart_outline,title:'{0} reached 80%'.replaceAll('{0}',categoryLabel(context,n.$1)),
+    subtitle:'{0} left'.replaceAll('{0}',money(n.$3-n.$2)),urgent:false,onTap:(){Navigator.of(context).maybePop();setState((){page=2;subTab[2]=0;});},actions:null));
+  }
+  for(final r in daretsOf(d)){
+   if(r.finished||r.paid.contains(key)||key.compareTo(r.start)<0)continue;
+   out.add((key:'alert-daret-${r.id}',icon:Icons.autorenew,title:isolate(r.name),subtitle:'{0} to pay this month'.replaceAll('{0}',money(r.amount)),
+    urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(8);},actions:null));
+  }
+  final cycle=cycleOf(d,now);
+  final paydaySoon=cycle.nextPayday.difference(today).inDays<=2||today.difference(cycle.start).inDays<=2;
+  if(paydaySoon){
+   for(final k in kridiOf(d).where((k)=>k.iOwe&&k.balance>0&&k.kind!='loan'&&k.remind)){
+    out.add((key:'alert-kridi-${k.id}',icon:k.kind=='shop'?Icons.storefront_outlined:Icons.people_outline,title:isolate(k.name),
+     subtitle:'You owe {0} · payday'.replaceAll('{0}',money(k.balance)),urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
+   }
+  }
   final backup=backupReminder(d);
   if(backup.visible){
    out.add((key:'home-backup',icon:Icons.ios_share,

@@ -35,6 +35,8 @@ import 'app_icon.dart';
 import 'category_icon.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'v3_logic.dart';
+import 'package:flutter/services.dart';
 import 'brand.dart';
 import 'opening.dart';
 import 'package:flutter/material.dart';
@@ -52,6 +54,7 @@ part 'screens/backup_actions.dart';
 part 'screens/welcome_screen.dart';
 part 'screens/alerts_screen.dart';
 part 'screens/reports_screen.dart';
+part 'screens/v3_screens.dart';
 
 void main(){
  WidgetsFlutterBinding.ensureInitialized();
@@ -274,12 +277,12 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool welcome=false; // first open on an empty phone
  /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
  final subTab=<int,int>{1:0,2:0,3:0};
- static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Cash & Bank']};
+ static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Kridi','Daret','Wallets']};
  DateTime? calendarDay; // day picked in Records · Calendar
  bool reportYear=false; // Records · Reports shows the year instead of the month
  /// Opens a tool in the tab it now lives in (0 bills, 1 reserves, 2 year, 4 review, 5 recurring, 6 Cash & Bank).
  void openTool(int tool){
-  const at={0:[2,1],1:[3,1],2:[1,2],4:[1,3],5:[2,2],6:[3,2]};
+  const at={0:[2,1],1:[3,1],2:[1,2],4:[1,3],5:[2,2],6:[3,4],7:[3,2],8:[3,3]};
   final t=at[tool]!;
   setState((){page=t[0];subTab[t[0]]=t[1];if(tool==2)reportYear=true;});
  }
@@ -513,7 +516,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    switch(page){
     case 1:screen=[records,calendarView,reportsView,monthlyReview][tab](d);break;
     case 2:screen=[budgets,moreBills,moreRecurring][tab](d);break;
-    case 3:screen=[savings,moreReserves,moreWallets][tab](d);break;
+    case 3:screen=[savings,moreReserves,moreKridi,moreDaret,moreWallets][tab](d);break;
     default:screen=home(d);
    }
    // The month switcher shows where the content depends on the month; on Year it steps by year.

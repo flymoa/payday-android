@@ -79,7 +79,7 @@ extension _Forms on _FinanceState {
   child:TextField(controller:c,maxLines:lines,keyboardType:number?TextInputType.numberWithOptions(decimal:true):TextInputType.text,
    decoration:InputDecoration(labelText:tr(context,label),isDense:true)));
  int? amount(TextEditingController c,{bool allowZero=false}){
-  return parseMoneyCents(c.text,allowZero:allowZero);
+  return allowZero?parseMoneyCents(c.text,allowZero:true):evalAmountCents(c.text);
  }
  void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));}
  Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType,RowData? copyFrom}) async{
@@ -115,6 +115,8 @@ extension _Forms on _FinanceState {
   var date=existing==null?(prefill!=null||copyFrom!=null||month==monthKey(DateTime.now())?DateTime.now():selected):parseDay(st(existing,'date'));
   var submitting=false;
   var categoryMissing=false;
+  List<(String,int)>? splits;var keepAsQuickAdd=false;
+  final lastCategory=Ledger(d).setting(lastExpenseCategoryKey)??'';
   var allCategories=false;
   // Wallet choice appears only once Cash & Bank tracking is on.
   final walletSetup=WalletSetup.decode(Ledger(d).setting(walletSetupKey));
@@ -165,6 +167,22 @@ extension _Forms on _FinanceState {
      border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
      enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
      focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)))),
+   SizedBox(height:8),
+   // Sums like 85+40: the keyboard has no + key, so these add the sign.
+   Wrap(spacing:6,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
+    for(final op in const ['+','−','×','÷'])SizedBox(width:44,height:40,child:OutlinedButton(
+     key:ValueKey('amount-op-$op'),style:OutlinedButton.styleFrom(padding:EdgeInsets.zero,backgroundColor:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,side:BorderSide.none,
+      shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12))),
+     onPressed:(){final t=amt.text.trimRight();if(t.isEmpty)return;rebuild((){amt.text=t+op;amt.selection=TextSelection.collapsed(offset:amt.text.length);});},
+     child:Text(op,style:TextStyle(fontFamily:'Bricolage',fontSize:20,fontWeight:FontWeight.w800,color:jade)))),
+    if(isAmountExpression(amt.text))Text('= ${evalAmountCents(amt.text)==null?'…':money(evalAmountCents(amt.text)!)}',key:ValueKey('amount-result'),
+     style:TextStyle(fontWeight:FontWeight.w800,color:jade)),
+    if(existing==null)TextButton.icon(key:ValueKey('transaction-paste'),onPressed:()async{
+     final m=await pasteBankMessage();if(m==null)return;
+     rebuild((){amt.text=inputNumber(m.amountCents);if(m.merchant.isNotEmpty){desc.text=m.merchant;details=true;}
+      if(m.date!=null)date=m.date!;if(m.income&&type!='Income'){type='Income';cats=categoriesFor(type);category=cats.contains('Salary')?'Salary':cats.first;}});
+    },icon:PaydayAppIcon(Icons.content_paste,size:18),label:LText('Paste SMS')),
+   ]),
    SizedBox(height:10),
    if(type=='Expense'&&category.isNotEmpty)Builder(builder:(_){
     final key=monthKey(date),limit=budgetFor(d,key,category),name=categoryLabel(context,category);
@@ -179,7 +197,7 @@ extension _Forms on _FinanceState {
     child:LText('Choose a category.',key:ValueKey('transaction-category-missing'),style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,color:danger)))),
    SizedBox(height:12),
    LayoutBuilder(builder:(context,limits){
-    final ordered=category.isEmpty?[...cats]:{category,...cats}.toList();
+    final ordered=category.isEmpty?(type=='Expense'&&cats.contains(lastCategory)?{lastCategory,...cats}.toList():[...cats]):{category,...cats}.toList();
     final choices=allCategories?ordered:ordered.take(7).toList();
     // Grows with the phone's text size so two-line names always fit (86 at normal size).
     final tileHeight=max(86.0,46+MediaQuery.textScalerOf(c).scale(PaydayType.caption)*3.2);
@@ -228,6 +246,22 @@ extension _Forms on _FinanceState {
      child:LText(details?'Hide note':'+ Note',style:TextStyle(fontWeight:FontWeight.w700))),
    ]),
    if(details)...[SizedBox(height:12),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)')],
+   if(type=='Expense'&&existing==null)...[
+    SizedBox(height:8),
+    contentCard(Column(children:[
+     listRow(key:ValueKey('transaction-split'),leading:iconTile(Icons.call_split,size:36),title:rowTitle('Split this expense'),
+      subtitle:splits==null?'One receipt, several categories':splits!.map((p)=>'${categoryLabel(context,p.$1)} ${localizedWhole(p.$2,language)}').join(' · '),
+      trailing:PaydayAppIcon(Icons.chevron_right,size:18,color:muted),onTap:()async{
+       final total=amount(amt);if(total==null){inputError('Enter a positive amount.');return;}
+       final parts=await splitForm(categoriesFor('Expense'),total,category);
+       if(parts!=null)rebuild((){splits=parts;category=parts.first.$1;});
+      }),
+     Divider(height:1,color:line),
+     listRow(key:ValueKey('transaction-quick-add'),leading:iconTile(Icons.bolt_outlined,size:36),title:rowTitle('Save as quick add'),
+      subtitle:'Shows on Home for one-tap entry',trailing:Switch(value:keepAsQuickAdd,onChanged:(v)=>rebuild(()=>keepAsQuickAdd=v)),
+      onTap:()=>rebuild(()=>keepAsQuickAdd=!keepAsQuickAdd)),
+    ])),
+   ],
    if(existing!=null)TextButton.icon(key:ValueKey('duplicate-transaction'),onPressed:()async{Navigator.pop(c);await transactionForm(null,copyFrom:existing);},
     icon:PaydayAppIcon(Icons.copy_outlined),label:LText('Duplicate as new (today)')),
    if(existing!=null)TextButton(onPressed:()async{Navigator.pop(c);await deleteTransactionWithUndo(val(existing,'id'));},child:LText('Delete transaction',style:TextStyle(color:danger)))
@@ -239,7 +273,13 @@ extension _Forms on _FinanceState {
     // Shown inside the sheet: a snackbar would sit behind the full-height sheet.
     if(category.isEmpty){rebuild(()=>categoryMissing=true);return;}
     rebuild(()=>submitting=true);
-    final success=await execute(()=>store.saveTransaction(
+    if(splits!=null&&splits!.fold<int>(0,(n,p)=>n+p.$2)!=cents){rebuild((){submitting=false;splits=null;});inputError('The amount changed. Split the expense again.');return;}
+    final success=splits!=null?await execute(()async{
+      for(final p in splits!){
+       await store.saveTransaction(date:dayKey(date),type:'Expense',category:p.$1,amount:p.$2,description:desc.text.trim(),
+        note:note.text.trim().isEmpty?tr(context,'Split'):note.text.trim(),billId:'',account:walletSetup==null?null:wallet);
+      }
+     },saved:'Saved. {0} split across {1} categories.'.replaceAll('{0}',money(cents)).replaceAll('{1}','${splits!.length}')):await execute(()=>store.saveTransaction(
       id:existing==null?null:val(existing,'id'),date:dayKey(date),
       type:type,category:category,amount:cents,
       description:desc.text.trim(),note:note.text.trim(),billId:bill.text.trim(),account:walletSetup==null?null:wallet),
@@ -247,6 +287,16 @@ extension _Forms on _FinanceState {
        type=='Savings in'?'Saved. ${money(cents)} taken from savings.':'Saved. ${money(cents)} added to ${categoryLabel(context,category)}.');
     if(c.mounted){if(success){Navigator.pop(c);}else{rebuild(()=>submitting=false);}}
     if(success&&walletSetup!=null)unawaited(store.setSetting(walletLastKey,wallet).catchError((_){}));
+    if(success&&type=='Expense'){
+     unawaited(store.setSetting(lastExpenseCategoryKey,category).catchError((_){}));
+     if(keepAsQuickAdd){
+      final now=await store.snapshot();
+      final qs=decodeQuickAdds(Ledger(now).setting(quickAddKey));
+      final label=desc.text.trim().isEmpty?categoryLabel(context,category):desc.text.trim();
+      qs.add(QuickAdd(label,cents,category,walletSetup==null?null:wallet));
+      await store.setSetting(quickAddKey,encodeQuickAdds(qs));refresh();
+     }
+    }
     if(success&&type=='Expense') {
       await warnIfBudgetCrossed(category,monthKey(date),cents,
      existing!=null&&st(existing,'type')=='Expense'&&st(existing,'category')==category&&st(existing,'date').startsWith(monthKey(date))?val(existing,'amount'):0);
