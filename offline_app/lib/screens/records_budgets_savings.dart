@@ -122,6 +122,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
      'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.',
      style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:assigned>inc?danger:muted))],
    ])),
+   budgetAlertBanner(d),
    if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')
    else groupedRows(separate:true,[for(final c in categories)Builder(builder:(_){
     final name=st(c,'name');

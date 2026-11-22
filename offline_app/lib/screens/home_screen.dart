@@ -179,6 +179,7 @@ extension _HomeScreen on _FinanceState {
        heroFigure('Bills ahead',whole(balance.unpaidBills)),
       ]),
      ])))),
+   quickAddRow(d),
    if(nudge!=null)Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.md,0,0),
     child:LText(nudge,key:ValueKey('home-nudge'),style:TextStyle(color:muted,fontWeight:FontWeight.w600))),
    // Cash & Bank at a glance, once tracking is on: plain row on the page, no box.

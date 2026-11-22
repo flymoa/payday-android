@@ -111,7 +111,7 @@ void main() {
         await t.tap(find.byKey(const ValueKey('subtab-2-1')));
         await t.pumpAndSettle();
         await shot('6_bills_tab');
-        for (final tab in [(2, 2, '6b_recurring'), (3, 1, '6c_reserves'), (3, 2, '6d_cash_bank'), (1, 3, '6e_review'), (1, 1, '6f_calendar'), (1, 2, '6g_reports')]) {
+        for (final tab in [(2, 2, '6b_recurring'), (3, 1, '6c_reserves'), (3, 4, '6d_cash_bank'), (3, 2, '6h_kridi'), (3, 3, '6i_daret'), (1, 3, '6e_review'), (1, 1, '6f_calendar'), (1, 2, '6g_reports')]) {
           await t.tap(find.byKey(ValueKey('bottom-${tab.$1}')));
           await t.pumpAndSettle();
           await t.tap(find.byKey(ValueKey('subtab-${tab.$1}-${tab.$2}')));

@@ -93,6 +93,14 @@ String localizedLongDay(DateTime date,String language){
  final w=translateMessage(_weekdaysEn[date.weekday-1],language),m=translateMessage(_monthsEn[date.month-1],language);
  return language=='en'?'$w ${date.day} $m':'$w ${date.day} ${m.toLowerCase()}';
 }
+/// "Mar" / "mars" for a yyyy-mm key, as under daret turns.
+String localizedShortMonth(String key,String language){
+ final m=int.tryParse(key.length>=7?key.substring(5,7):'')??1;
+ final name=_monthsEn[(m-1).clamp(0,11)];
+ if(language=='en')return name.substring(0,3);
+ final t=translateMessage(name,language);
+ return t.length>5?'${t.substring(0,4)}.':t;
+}
 /// Day and month only, e.g. "20 Nov" (English) or "20 novembre", as used in lists.
 String localizedShortDay(DateTime date,String language){
  final name=_monthsEn[date.month-1];

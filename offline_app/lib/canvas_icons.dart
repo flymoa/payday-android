@@ -53,6 +53,17 @@ const canvasIconPaths=<String,String>{
  'list':'M8 6h12 M8 12h12 M8 18h12 M4 6h.01 M4 12h.01 M4 18h.01',
  'dots':'M5 12h.01 M12 12h.01 M19 12h.01',
  'grid':'M4 4h7v7H4z M13 4h7v7h-7z M4 13h7v7H4z M13 13h7v7h-7z',
+ 'store':'M3 9l1.5-5h15L21 9 M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z M5 13v8h14v-8 M10 21v-5h4v5',
+ 'users':'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21v-1a6 6 0 0 1 12 0v1 M16 3.5a4 4 0 0 1 0 7.5 M22 21v-1a6 6 0 0 0-4-5.6',
+ 'cycle':'M21 12a9 9 0 0 1-15.5 6.2 M3 12A9 9 0 0 1 18.5 5.8 M18 2v4h-4 M6 22v-4h4',
+ 'star':'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z',
+ 'minus':'M5 12h14',
+ 'file':'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h6',
+ 'calc':'M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z M8 6h8v4H8z M8 14h.01 M12 14h.01 M16 14h.01 M8 18h.01 M12 18h.01 M16 18h.01',
+ 'paste':'M9 4h6v3H9z M8 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2 M8 12h8 M8 16h5',
+ 'split':'M16 3h5v5 M8 3H3v5 M21 3l-7.5 7.5 M3 3l7.5 7.5V21',
+ 'atm':'M3 5h18v6H3z M7 11v9h10v-9 M12 14v3 M10.5 15.5h3',
+ 'coins':'M9 8a6 3 0 1 0 0 .01 M3 8v4c0 1.7 2.7 3 6 3s6-1.3 6-3V8 M3 12v4c0 1.7 2.7 3 6 3 M15 11.5c3.3 0 6 1.3 6 3s-2.7 3-6 3-6-1.3-6-3 M21 14.5v4c0 1.7-2.7 3-6 3s-6-1.3-6-3',
  'grip':'M9 6h.01 M15 6h.01 M9 12h.01 M15 12h.01 M9 18h.01 M15 18h.01',
 };
 
@@ -126,7 +137,7 @@ String canvasGlyphForCategory(String glyph)=>switch(glyph){
  'eating out'=>'fork','shopping'=>'bag','subscriptions'=>'phone','leisure'=>'sun','debt payment'=>'receipt',
  'income'||'salary'||'income plan'||'freelance'||'business'||'other income'=>'case','expense'=>'receipt',
  'reserve'=>'beach','savings'||'savings goal'=>'jar','gifts'=>'gift','education'=>'book','travel'=>'beach',
- 'pets'=>'heart',_=>'tag',
+ 'pets'=>'heart','daret'=>'cycle',_=>'tag',
 };
 
 /// Canvas glyph for an app icon, or null to keep the app's own drawing.
@@ -144,6 +155,10 @@ String? canvasGlyphForIcon(IconData icon){
   Icons.fact_check_outlined:'check',Icons.edit_outlined:'edit',Icons.info_outline:'info',Icons.visibility_outlined:'eye',
   Icons.visibility_off_outlined:'eye',Icons.grid_view:'grid',Icons.grid_view_outlined:'grid',Icons.trending_up:'bars',
   Icons.widgets_outlined:'eye',Icons.delete_outline:'trash',Icons.table_chart_outlined:'grid',
+  Icons.bolt_outlined:'bolt',Icons.storefront_outlined:'store',Icons.directions_car_outlined:'car',Icons.people_outline:'users',
+  Icons.check:'check',Icons.autorenew:'cycle',Icons.star_outline:'star',Icons.download_outlined:'download',Icons.remove:'minus',
+  Icons.description_outlined:'file',Icons.calculate_outlined:'calc',Icons.content_paste:'paste',Icons.call_split:'split',
+  Icons.local_atm_outlined:'atm',Icons.toll_outlined:'coins',Icons.handshake_outlined:'users',
  };
  return m[icon];
 }
