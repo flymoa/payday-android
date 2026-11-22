@@ -291,19 +291,21 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Widget subTabs(){
   final labels=subTabLabels[page]!,current=subTab[page]??0;
   final style=TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.small);
+  final measureStyle=DefaultTextStyle.of(context).style.merge(Theme.of(context).textTheme.bodyMedium).merge(style);
   const pad=14.0;
   return Padding(padding:EdgeInsets.only(bottom:PaydaySpace.md),child:LayoutBuilder(builder:(context,box){
    // Every tab keeps the same text size and is never cut: each is as wide as its own label,
    // spare room is shared out evenly, and when the labels do not fit the row scrolls sideways.
    final scaler=MediaQuery.textScalerOf(context);
-   final text=[for(final l in labels)(TextPainter(text:TextSpan(text:tr(context,l),style:style),maxLines:1,textDirection:Directionality.of(context),textScaler:scaler)..layout()).width];
+   final text=[for(final l in labels)(TextPainter(text:TextSpan(text:tr(context,l),style:measureStyle),maxLines:1,textDirection:Directionality.of(context),textScaler:scaler)..layout()).width];
    final inner=box.maxWidth-PaydaySpace.xs*2;
    // Roomy padding when it fits, tighter padding before falling back to scrolling.
-   final roomy=text.fold<double>(0,(a,b)=>a+b+pad*2)<=inner;
+   final roomy=text.fold<double>(0,(a,b)=>a+b+pad*2)*1.06<=inner;
    final widths=[for(final w in text)w+(roomy?pad*2:16)];
    final total=widths.fold<double>(0,(a,b)=>a+b);
-   final extra=total<inner?(inner-total)/labels.length:0.0;
-   final row=Row(mainAxisSize:MainAxisSize.min,children:[for(var i=0;i<labels.length;i++)SizedBox(width:widths[i]+extra,child:Semantics(selected:i==current,button:true,
+   final fits=total*1.06<=inner;
+   Widget cell(int i,Widget child)=>fits?Expanded(flex:(widths[i]*10).round(),child:child):SizedBox(width:widths[i],child:child);
+   final row=Row(mainAxisSize:fits?MainAxisSize.max:MainAxisSize.min,children:[for(var i=0;i<labels.length;i++)cell(i,Semantics(selected:i==current,button:true,
     child:Material(color:i==current?surface:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.pill),
      child:InkWell(key:ValueKey('subtab-$page-$i'),borderRadius:BorderRadius.circular(PaydayRadius.pill),
       onTap:()=>setState(()=>subTab[page]=i),
@@ -311,7 +313,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
        child:LText(labels[i],maxLines:1,softWrap:false,textAlign:TextAlign.center,style:style.copyWith(color:i==current?ink:muted))))))))]);
    return Container(padding:EdgeInsets.all(PaydaySpace.xs),
     decoration:BoxDecoration(color:isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,borderRadius:BorderRadius.circular(PaydayRadius.pill)),
-    child:total<=inner?row:SingleChildScrollView(scrollDirection:Axis.horizontal,child:row));
+    child:fits?row:SingleChildScrollView(scrollDirection:Axis.horizontal,child:row));
   }));
  }
  final purchase=TextEditingController(text:'200');
