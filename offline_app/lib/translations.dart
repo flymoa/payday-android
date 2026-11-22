@@ -760,7 +760,7 @@ const paydayTranslations=<String,List<String>>{
  "Recurring":["Récurrentes","المتكرّرة"],
  "{0} days left":["Encore {0} jours","بقي {0} يومًا"],
  "Last day of the month":["Dernier jour du mois","آخر يوم في الشهر"],
- "Bills ahead":["Factures à venir","فواتير قادمة"],
+ "Bills ahead":["À payer","فواتير قادمة"],
  "{0} · overdue":["{0} · en retard","{0} · متأخرة"],
  "{0} · due today":["{0} · à payer aujourd’hui","{0} · تُؤدّى اليوم"],
  "{0} · due tomorrow":["{0} · à payer demain","{0} · تُؤدّى غدًا"],

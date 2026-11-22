@@ -96,7 +96,8 @@ extension _AlertsScreen on _FinanceState {
 
  /// The bell in the header: a small count when something needs attention.
  Widget alertsButton()=>FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
-  final count=snap.hasData?alertsFor(snap.data!).length:0;
+  // Only what appeared since the bell was last opened is counted.
+  final count=snap.hasData?unseenAlerts(snap.data!):0;
   return Stack(clipBehavior:Clip.none,children:[
    IconButton(key:ValueKey('home-bell-button'),tooltip:tr(context,'Notifications'),onPressed:openAlerts,
     style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),
@@ -108,9 +109,25 @@ extension _AlertsScreen on _FinanceState {
   ]);
  });
 
+ static const alertsSeenKey='alerts_seen';
+ String alertSignature(PaydayAlert a)=>'${a.key}|${a.title}';
+ int unseenAlerts(Map<String,List<RowData>> d){
+  final raw=Ledger(d).setting(alertsSeenKey);
+  Set<String> seen;
+  try{seen=seenAlerts??(raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List));}catch(_){seen=<String>{};}
+  return alertsFor(d).where((a)=>!seen.contains(alertSignature(a))).length;
+ }
  Future<void> openAlerts()async{
   if(alertsOpen)return;
   alertsOpen=true;
+  // Opening the bell marks everything on it as seen; the number comes back only for new items.
+  try{
+   final d=await store.snapshot();
+   if(!mounted)return;
+   final signatures=[for(final a in alertsFor(d))alertSignature(a)];
+   setState(()=>seenAlerts=signatures.toSet());
+   await store.setSetting(alertsSeenKey,jsonEncode(signatures));
+  }catch(_){}
   try{
    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>SettingsHomePage(refresh:settingsRefresh,
     title:'Notifications',closeTooltip:'Close notifications',listKey:'alerts-list',
