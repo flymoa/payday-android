@@ -114,7 +114,7 @@ extension _AlertsScreen on _FinanceState {
  int unseenAlerts(Map<String,List<RowData>> d){
   final raw=Ledger(d).setting(alertsSeenKey);
   Set<String> seen;
-  try{seen=raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List);}catch(_){seen=<String>{};}
+  try{seen=seenAlerts??(raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List));}catch(_){seen=<String>{};}
   return alertsFor(d).where((a)=>!seen.contains(alertSignature(a))).length;
  }
  Future<void> openAlerts()async{
@@ -124,8 +124,9 @@ extension _AlertsScreen on _FinanceState {
   try{
    final d=await store.snapshot();
    if(!mounted)return;
-   await store.setSetting(alertsSeenKey,jsonEncode([for(final a in alertsFor(d))alertSignature(a)]));
-   refresh();
+   final signatures=[for(final a in alertsFor(d))alertSignature(a)];
+   setState(()=>seenAlerts=signatures.toSet());
+   await store.setSetting(alertsSeenKey,jsonEncode(signatures));
   }catch(_){}
   try{
    await Navigator.of(context).push<void>(MaterialPageRoute<void>(builder:(_)=>SettingsHomePage(refresh:settingsRefresh,
