@@ -21,6 +21,8 @@ void main() {
 
   testWidgets('Year shows a year switcher that steps a whole year', (t) async {
     await open(t, {'transactions': []}, page: 1, tab: 2);
+    await t.tap(find.byKey(const ValueKey('reports-year')));
+    await t.pumpAndSettle();
     final year = DateTime.now().year;
     expect(label(t), '$year');
     expect(find.byKey(const ValueKey('nav-month-previous')), findsNothing);

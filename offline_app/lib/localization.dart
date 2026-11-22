@@ -84,6 +84,15 @@ String? darijaNudge(int safeCents,int daysLeft,double usedFraction,String langua
  language=='ar'&&safeCents>0&&daysLeft>1&&usedFraction<.8?'مزيان، باقي ليك حوالي ${localizedWhole(safeCents~/daysLeft,language)} درهم فالنهار حتى لآخر الشهر':null;
 String arabicDays(int n,{bool after=false})=>n==1?(after?'يوم':'يوم واحد'):n==2?(after?'يومين':'يومان'):n>=3&&n<=10?'$n أيام':'$n يومًا';
 
+/// Weekday initials, Monday first.
+List<String> localizedWeekdayLetters(String language)=>language=='fr'?const ['L','M','M','J','V','S','D']
+ :language=='ar'?const ['ن','ث','ر','خ','ج','س','ح']:const ['M','T','W','T','F','S','S'];
+const _weekdaysEn=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+/// "Friday 21 November" / "Vendredi 21 novembre".
+String localizedLongDay(DateTime date,String language){
+ final w=translateMessage(_weekdaysEn[date.weekday-1],language),m=translateMessage(_monthsEn[date.month-1],language);
+ return language=='en'?'$w ${date.day} $m':'$w ${date.day} ${m.toLowerCase()}';
+}
 /// Day and month only, e.g. "20 Nov" (English) or "20 novembre", as used in lists.
 String localizedShortDay(DateTime date,String language){
  final name=_monthsEn[date.month-1];

@@ -396,7 +396,7 @@ extension _MoreScreen on _FinanceState {
     final inc=sumType(rows,'Income'),exp=sumType(rows,'Expense'),savings=sumType(rows,'Savings out')-sumType(rows,'Savings in');
     return listRow(leading:iconTile(Icons.calendar_today_outlined,size:36),title:rowTitle(localizedMonth(DateTime(selected.year,i+1),language),raw:true),
      subtitle:'Income ${money(inc)} · Spent ${money(exp)}',amount:plain(savings),status:'Saved',amountColor:savings>0?jade:ink,
-     onTap:(){setState((){selected=DateTime(selected.year,i+1);subTab[1]=1;});});
+     onTap:(){setState((){selected=DateTime(selected.year,i+1);subTab[1]=3;});});
    })),
   ]);
  }

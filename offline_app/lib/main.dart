@@ -51,6 +51,7 @@ part 'screens/forms.dart';
 part 'screens/backup_actions.dart';
 part 'screens/welcome_screen.dart';
 part 'screens/alerts_screen.dart';
+part 'screens/reports_screen.dart';
 
 void main(){
  WidgetsFlutterBinding.ensureInitialized();
@@ -273,12 +274,14 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool welcome=false; // first open on an empty phone
  /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
  final subTab=<int,int>{1:0,2:0,3:0};
- static const subTabLabels=<int,List<String>>{1:['List','Review','Year'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Cash & Bank']};
+ static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Cash & Bank']};
+ DateTime? calendarDay; // day picked in Records · Calendar
+ bool reportYear=false; // Records · Reports shows the year instead of the month
  /// Opens a tool in the tab it now lives in (0 bills, 1 reserves, 2 year, 4 review, 5 recurring, 6 Cash & Bank).
  void openTool(int tool){
-  const at={0:[2,1],1:[3,1],2:[1,2],4:[1,1],5:[2,2],6:[3,2]};
+  const at={0:[2,1],1:[3,1],2:[1,2],4:[1,3],5:[2,2],6:[3,2]};
   final t=at[tool]!;
-  setState((){page=t[0];subTab[t[0]]=t[1];});
+  setState((){page=t[0];subTab[t[0]]=t[1];if(tool==2)reportYear=true;});
  }
  Widget subTabs(){
   final labels=subTabLabels[page]!,current=subTab[page]??0;
@@ -488,7 +491,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   appBar:AppBar(automaticallyImplyLeading:false,toolbarHeight:76,titleSpacing:16,
    // Home carries the brand; each tab shows its own name, as on the design canvas.
    title:page==0?FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:const PaydayBrand(compact:true))
-    :LText(const ['','Records','Budgets','Savings'][page],key:ValueKey('page-title-$page'),
+    :LText(const ['','Records','Budgets','Money'][page],key:ValueKey('page-title-$page'),
      style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:26,color:ink)),centerTitle:false,
    // Notifications, then Settings; the tools that were under More now live in the small tabs.
    actions:[alertsButton(),SizedBox(width:8),Padding(padding:EdgeInsetsDirectional.only(end:12),child:IconButton(key:ValueKey('home-settings-button'),tooltip:tr(context,'Open settings'),onPressed:openSettingsDrawer,
@@ -508,7 +511,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    final tab=subTab[page]??0;
    Widget screen;
    switch(page){
-    case 1:screen=[records,monthlyReview,moreYear][tab](d);break;
+    case 1:screen=[records,calendarView,reportsView,monthlyReview][tab](d);break;
     case 2:screen=[budgets,moreBills,moreRecurring][tab](d);break;
     case 3:screen=[savings,moreReserves,moreWallets][tab](d);break;
     default:screen=home(d);
@@ -516,7 +519,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    // The month switcher shows where the content depends on the month; on Year it steps by year.
    final showMonth=page==1||page==2&&tab!=2;
    return SafeArea(child:ListView(key:ValueKey('page-$page-tab-$tab'),padding:EdgeInsetsDirectional.fromSTEB(16,4,16,100),children:[
-    if(page!=0)subTabs(),if(showMonth)...[navMonth(year:page==1&&tab==2),SizedBox(height:12)],screen]));
+    if(page!=0)subTabs(),if(showMonth)...[navMonth(year:page==1&&tab==2&&reportYear),SizedBox(height:12)],screen]));
   }),
   // Floating navigation bar: the selected tab is marked by a tinted pill.
   bottomNavigationBar:SafeArea(top:false,child:Padding(padding:EdgeInsetsDirectional.fromSTEB(12,0,12,10),child:Container(
@@ -524,12 +527,12 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.hero),border:Border.all(color:line)),
    child:Row(children:[
     bottomItem('Home',Icons.space_dashboard_outlined,0),
-    bottomItem('Budgets',Icons.pie_chart_outline,2),
+    bottomItem('Records',Icons.receipt_long_outlined,1),
     Expanded(child:Align(heightFactor:1,child:Transform.translate(offset:Offset(0,-12),child:Semantics(button:true,label:tr(context,'Add transaction'),child:
      // Solid ring in the page colour separates the button from the bar; no glow or shadow.
      Container(width:56,height:56,decoration:BoxDecoration(color:cream,borderRadius:BorderRadius.circular(PaydayRadius.xl)),
       padding:EdgeInsets.all(4),child:PaydayAddButton(onPressed:()=>transactionForm(null))))))),
-    bottomItem('Savings',Icons.savings_outlined,3),bottomItem('Records',Icons.receipt_long_outlined,1),
+    bottomItem('Budgets',Icons.pie_chart_outline,2),bottomItem('Money',Icons.savings_outlined,3),
    ])))),
  )));
 
