@@ -62,4 +62,33 @@ void main() {
     expect(find.text('D'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('tapping a slice of the ring shows its category and amount', (t) async {
+    await openRecords(t, 2);
+    final ring = find.byKey(const ValueKey('reports-donut-tap'));
+    await t.tapAt(t.getCenter(ring) + const Offset(88, 0));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('reports-slice-detail')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('reports-slice-detail')), matching: find.text('Groceries')), findsOneWidget);
+    await t.tapAt(t.getCenter(ring));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('reports-slice-detail')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('small tabs keep one text size and never cut a label at large text', (t) async {
+    await t.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    await t.pumpWidget(MediaQuery(data: const MediaQueryData(size: Size(360, 800), textScaler: TextScaler.linear(1.3)),
+        child: PaydayLocal(initialData: Future.value(data), preferencesWriter: (_) async {}, initialPreferences: const AppPreferences(language: 'fr'))));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('bottom-3')));
+    await t.pumpAndSettle();
+    for (final label in ['Objectifs', 'Réserves', 'Kridi', 'Daret', 'Comptes']) {
+      final text = t.widget<Text>(find.descendant(of: find.byKey(ValueKey('subtab-3-${['Objectifs', 'Réserves', 'Kridi', 'Daret', 'Comptes'].indexOf(label)}')), matching: find.byType(Text)));
+      expect(text.style?.fontSize, 14, reason: label);
+      expect(text.overflow, isNot(TextOverflow.ellipsis), reason: label);
+    }
+    expect(t.takeException(), isNull);
+  });
 }
