@@ -145,7 +145,7 @@ extension _ReportsScreen on _FinanceState {
      Expanded(child:LText('{0} up {1}% on last month'.replaceAll('{0}',categoryLabel(context,biggestRise.first.key)).replaceAll('{1}','${biggestRise.first.value}'),
       style:TextStyle(fontWeight:FontWeight.w800,color:saffronText)))]))),
    SizedBox(height:PaydaySpace.md),
-   if(cats.isEmpty)PaydayEmpty(icon:Icons.donut_large,message:'No spending this month yet.')
+   if(cats.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending this month yet.')
    else groupedRows([
     for(var i=0;i<cats.length;i++)listRow(key:ValueKey('report-${cats[i].key}'),
      leading:Container(width:12,height:12,decoration:BoxDecoration(color:i<5?palette[i]:palette[5],borderRadius:BorderRadius.circular(4))),

@@ -26,7 +26,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: FinanceScreen(
       store: store, initialData: Future.value(<String, List<RowData>>{}))));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Savings').last);
+    await tester.tap(find.byKey(const ValueKey('bottom-3')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goal-new')));
     await tester.pumpAndSettle();
