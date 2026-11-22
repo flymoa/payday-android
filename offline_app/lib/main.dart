@@ -277,7 +277,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  bool welcome=false; // first open on an empty phone
  /// Small tabs inside Records (1), Budgets (2) and Savings (3); each page remembers its last one.
  final subTab=<int,int>{1:0,2:0,3:0};
- static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Kridi','Daret','Cash & Bank']};
+ static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Kridi','Daret','Wallets']};
  DateTime? calendarDay; // day picked in Records · Calendar
  bool reportYear=false; // Records · Reports shows the year instead of the month
  /// Opens a tool in the tab it now lives in (0 bills, 1 reserves, 2 year, 4 review, 5 recurring, 6 Cash & Bank).
