@@ -169,14 +169,14 @@ extension _Forms on _FinanceState {
      focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)))),
    SizedBox(height:8),
    // Sums like 85+40: the keyboard has no + key, so these add the sign.
-   Row(children:[
-    for(final op in const ['+','−','×','÷'])Padding(padding:EdgeInsetsDirectional.only(end:6),child:SizedBox(width:44,height:40,child:OutlinedButton(
+   Wrap(spacing:6,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
+    for(final op in const ['+','−','×','÷'])SizedBox(width:44,height:40,child:OutlinedButton(
      key:ValueKey('amount-op-$op'),style:OutlinedButton.styleFrom(padding:EdgeInsets.zero,backgroundColor:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,side:BorderSide.none,
       shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12))),
      onPressed:(){final t=amt.text.trimRight();if(t.isEmpty)return;rebuild((){amt.text=t+op;amt.selection=TextSelection.collapsed(offset:amt.text.length);});},
-     child:Text(op,style:TextStyle(fontFamily:'Bricolage',fontSize:20,fontWeight:FontWeight.w800,color:jade))))),
-    Expanded(child:isAmountExpression(amt.text)?Text('= ${evalAmountCents(amt.text)==null?'…':money(evalAmountCents(amt.text)!)}',key:ValueKey('amount-result'),
-     textAlign:TextAlign.end,style:TextStyle(fontWeight:FontWeight.w800,color:jade)):const SizedBox.shrink()),
+     child:Text(op,style:TextStyle(fontFamily:'Bricolage',fontSize:20,fontWeight:FontWeight.w800,color:jade)))),
+    if(isAmountExpression(amt.text))Text('= ${evalAmountCents(amt.text)==null?'…':money(evalAmountCents(amt.text)!)}',key:ValueKey('amount-result'),
+     style:TextStyle(fontWeight:FontWeight.w800,color:jade)),
     if(existing==null)TextButton.icon(key:ValueKey('transaction-paste'),onPressed:()async{
      final m=await pasteBankMessage();if(m==null)return;
      rebuild((){amt.text=inputNumber(m.amountCents);if(m.merchant.isNotEmpty){desc.text=m.merchant;details=true;}
