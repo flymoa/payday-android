@@ -296,8 +296,11 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    // Every tab keeps the same text size and is never cut: each is as wide as its own label,
    // spare room is shared out evenly, and when the labels do not fit the row scrolls sideways.
    final scaler=MediaQuery.textScalerOf(context);
-   final widths=[for(final l in labels)(TextPainter(text:TextSpan(text:tr(context,l),style:style),maxLines:1,textDirection:Directionality.of(context),textScaler:scaler)..layout()).width+pad*2];
+   final text=[for(final l in labels)(TextPainter(text:TextSpan(text:tr(context,l),style:style),maxLines:1,textDirection:Directionality.of(context),textScaler:scaler)..layout()).width];
    final inner=box.maxWidth-PaydaySpace.xs*2;
+   // Roomy padding when it fits, tighter padding before falling back to scrolling.
+   final roomy=text.fold<double>(0,(a,b)=>a+b+pad*2)<=inner;
+   final widths=[for(final w in text)w+(roomy?pad*2:16)];
    final total=widths.fold<double>(0,(a,b)=>a+b);
    final extra=total<inner?(inner-total)/labels.length:0.0;
    final row=Row(mainAxisSize:MainAxisSize.min,children:[for(var i=0;i<labels.length;i++)SizedBox(width:widths[i]+extra,child:Semantics(selected:i==current,button:true,
