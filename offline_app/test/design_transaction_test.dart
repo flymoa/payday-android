@@ -62,6 +62,8 @@ void main(){
   await tester.enterText(amount,'45');
   final yesterday=find.byKey(const ValueKey('transaction-date-yesterday'));
   await tester.ensureVisible(yesterday);await tester.pumpAndSettle();
+  // Lift it clear of the pinned Save bar.
+  await tester.drag(find.ancestor(of:yesterday,matching:find.byType(Scrollable)).first,const Offset(0,-200));await tester.pumpAndSettle();
   await tester.tap(yesterday);await tester.pumpAndSettle();
   await pickCategory(tester,'Housing');
   await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
