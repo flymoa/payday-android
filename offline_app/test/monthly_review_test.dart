@@ -30,7 +30,7 @@ void main(){
    };
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();await tester.tap(find.byKey(const ValueKey('bottom-1')));await tester.pumpAndSettle();
-   await tester.tap(find.byKey(const ValueKey('subtab-1-3')));await tester.pumpAndSettle();
+   await tester.ensureVisible(find.byKey(const ValueKey('subtab-1-3')));await tester.pumpAndSettle();await tester.tap(find.byKey(const ValueKey('subtab-1-3')));await tester.pumpAndSettle();
    expect(find.text('790,00 DH'),findsOneWidget);
    expect(find.text('Over budget'),findsOneWidget);
    expect(find.text('Spending without a category budget'),findsOneWidget);

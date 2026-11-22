@@ -280,7 +280,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  final subTab=<int,int>{1:0,2:0,3:0};
  static const subTabLabels=<int,List<String>>{1:['List','Calendar','Reports','Review'],2:['Budgets','Bills','Recurring'],3:['Goals','Reserves','Kridi','Daret','Wallets']};
  DateTime? calendarDay; // day picked in Records · Calendar
- bool reportYear=false; // Records · Reports shows the year instead of the month
+ bool reportYear=false;
+ int? reportSlice; // slice tapped in the Reports ring
  /// Opens a tool in the tab it now lives in (0 bills, 1 reserves, 2 year, 4 review, 5 recurring, 6 Cash & Bank).
  void openTool(int tool){
   const at={0:[2,1],1:[3,1],2:[1,2],4:[1,3],5:[2,2],6:[3,4],7:[3,2],8:[3,3]};
@@ -289,19 +290,31 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  }
  Widget subTabs(){
   final labels=subTabLabels[page]!,current=subTab[page]??0;
-  return Padding(padding:EdgeInsets.only(bottom:PaydaySpace.md),child:Container(
-   padding:EdgeInsets.all(PaydaySpace.xs),
-   decoration:BoxDecoration(color:isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,borderRadius:BorderRadius.circular(PaydayRadius.pill)),
-   child:Row(children:[for(var i=0;i<labels.length;i++)Expanded(child:Semantics(selected:i==current,button:true,
+  final style=TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.small);
+  final measureStyle=DefaultTextStyle.of(context).style.merge(Theme.of(context).textTheme.bodyMedium).merge(style);
+  const pad=14.0;
+  return Padding(padding:EdgeInsets.only(bottom:PaydaySpace.md),child:LayoutBuilder(builder:(context,box){
+   // Every tab keeps the same text size and is never cut: each is as wide as its own label,
+   // spare room is shared out evenly, and when the labels do not fit the row scrolls sideways.
+   final scaler=MediaQuery.textScalerOf(context);
+   final text=[for(final l in labels)(TextPainter(text:TextSpan(text:tr(context,l),style:measureStyle),maxLines:1,textDirection:Directionality.of(context),textScaler:scaler)..layout()).width];
+   final inner=box.maxWidth-PaydaySpace.xs*2;
+   // Roomy padding when it fits, tighter padding before falling back to scrolling.
+   final roomy=text.fold<double>(0,(a,b)=>a+b+pad*2)*1.06<=inner;
+   final widths=[for(final w in text)w+(roomy?pad*2:16)];
+   final total=widths.fold<double>(0,(a,b)=>a+b);
+   final fits=total*1.06<=inner;
+   Widget cell(int i,Widget child)=>fits?Expanded(flex:(widths[i]*10).round(),child:child):SizedBox(width:widths[i],child:child);
+   final row=Row(mainAxisSize:fits?MainAxisSize.max:MainAxisSize.min,children:[for(var i=0;i<labels.length;i++)cell(i,Semantics(selected:i==current,button:true,
     child:Material(color:i==current?surface:Colors.transparent,borderRadius:BorderRadius.circular(PaydayRadius.pill),
      child:InkWell(key:ValueKey('subtab-$page-$i'),borderRadius:BorderRadius.circular(PaydayRadius.pill),
       onTap:()=>setState(()=>subTab[page]=i),
-      child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Center(child:Padding(
-       padding:EdgeInsets.symmetric(horizontal:labels.length>4?2:PaydaySpace.sm),
-       // Same size on every tab: a row of five uses a smaller size for all of them, never per label.
-       child:LText(labels[i],maxLines:1,softWrap:false,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,
-        style:TextStyle(fontWeight:FontWeight.w700,fontSize:labels.length>4?PaydayType.caption:PaydayType.small,color:i==current?ink:muted))))))))),
-   ])));
+      child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Center(
+       child:LText(labels[i],maxLines:1,softWrap:false,textAlign:TextAlign.center,style:style.copyWith(color:i==current?ink:muted))))))))]);
+   return Container(padding:EdgeInsets.all(PaydaySpace.xs),
+    decoration:BoxDecoration(color:isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,borderRadius:BorderRadius.circular(PaydayRadius.pill)),
+    child:fits?row:SingleChildScrollView(scrollDirection:Axis.horizontal,child:row));
+  }));
  }
  final purchase=TextEditingController(text:'200');
  @override void initState(){
@@ -380,7 +393,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   unawaited(updateHomeWidget());
  }
  String get month=>monthKey(selected);
- void shift(int n){setState(()=>selected=DateTime(selected.year,selected.month+n));}
+ void shift(int n){setState((){selected=DateTime(selected.year,selected.month+n);reportSlice=null;});}
  /// The payday rule the user picked in Settings (default: the 28th, Friday before a weekend).
  PaydayRule paydayRuleOf(Map<String,List<RowData>> d){final l=Ledger(d);return PaydayRule.fromSettings(l.setting(PaydayRule.dayKey),l.setting(PaydayRule.weekendKey));}
  /// The pay cycle containing [today]; a logged salary near payday moves its start.

@@ -5,24 +5,40 @@ part of '../main.dart';
 
 /// Ring chart of spending by category. Each slice keeps a 2° gap so small slices stay readable.
 class _DonutPainter extends CustomPainter{
- _DonutPainter(this.values,this.colors,this.track);
+ _DonutPainter(this.values,this.colors,this.track,{this.selected,this.t=0});
  final List<int> values;final List<Color> colors;final Color track;
+ /// Tapped slice and how far its animation has run (0 to 1): it thickens while the others fade.
+ final int? selected;final double t;
+ static const ringShare=.13;
  @override void paint(Canvas canvas,Size size){
-  final stroke=size.width*.13;
-  final rect=Rect.fromLTWH(stroke/2,stroke/2,size.width-stroke,size.height-stroke);
+  final stroke=size.width*ringShare;
+  final grow=stroke*.45;
+  final rect=Rect.fromLTWH(stroke/2+grow/2,stroke/2+grow/2,size.width-stroke-grow,size.height-stroke-grow);
   final total=values.fold<int>(0,(a,b)=>a+b);
-  final base=Paint()..style=PaintingStyle.stroke..strokeWidth=stroke..color=track;
-  canvas.drawArc(rect,0,6.2832,false,base);
+  canvas.drawArc(rect,0,6.2832,false,Paint()..style=PaintingStyle.stroke..strokeWidth=stroke..color=track);
   if(total<=0)return;
   var start=-1.5708;
   for(var i=0;i<values.length;i++){
    final sweep=6.2832*values[i]/total;
    final gap=values.length>1?0.035:0.0;
-   if(sweep>gap)canvas.drawArc(rect,start+gap/2,sweep-gap,false,Paint()..style=PaintingStyle.stroke..strokeWidth=stroke..color=colors[i%colors.length]);
+   final on=selected==i;
+   final color=colors[i%colors.length].withValues(alpha:selected==null||on?1:1-.6*t);
+   if(sweep>gap)canvas.drawArc(rect,start+gap/2,sweep-gap,false,Paint()..style=PaintingStyle.stroke..strokeWidth=on?stroke+grow*t:stroke..color=color);
    start+=sweep;
   }
  }
- @override bool shouldRepaint(_DonutPainter old)=>old.values!=values||old.colors!=colors;
+ /// Which slice a tap at [p] lands on, or null for the centre or outside the ring.
+ static int? hit(Offset p,Size size,List<int> values){
+  final c=size.center(Offset.zero),v=p-c,r=v.distance;
+  final stroke=size.width*ringShare,outer=size.width/2,inner=outer-stroke*1.8;
+  final total=values.fold<int>(0,(a,b)=>a+b);
+  if(r<inner||r>outer||total<=0)return null;
+  var angle=v.direction+1.5708;if(angle<0)angle+=6.2832;
+  var acc=0.0;
+  for(var i=0;i<values.length;i++){acc+=6.2832*values[i]/total;if(angle<=acc)return i;}
+  return values.length-1;
+ }
+ @override bool shouldRepaint(_DonutPainter old)=>old.values!=values||old.colors!=colors||old.selected!=selected||old.t!=t;
 }
 
 extension _ReportsScreen on _FinanceState {
@@ -125,13 +141,30 @@ extension _ReportsScreen on _FinanceState {
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    toggle,SizedBox(height:12),
    contentCard(Padding(padding:EdgeInsets.all(PaydaySpace.lg),child:Column(children:[
-    SizedBox(width:180,height:180,child:Stack(alignment:Alignment.center,children:[
-     CustomPaint(key:ValueKey('reports-donut'),size:const Size(180,180),painter:_DonutPainter(slices,palette,isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh)),
-     Column(mainAxisSize:MainAxisSize.min,children:[
-      FittedBox(child:Text(localizedWhole(total,language),style:TextStyle(fontFamily:'Bricolage',fontSize:26,fontWeight:FontWeight.w800,color:ink))),
-      LText('{0} spent'.replaceAll('{0}',currencyLabel(currency,language)),style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:muted)),
-     ]),
-    ])),
+    Builder(builder:(_){
+     final sliceNames=[...shown.map((e)=>e.key),if(rest>0)'Other'];
+     final sel=reportSlice!=null&&reportSlice!<slices.length?reportSlice:null;
+     return GestureDetector(key:ValueKey('reports-donut-tap'),behavior:HitTestBehavior.opaque,
+      onTapUp:(e){final i=_DonutPainter.hit(e.localPosition,const Size(200,200),slices);setState(()=>reportSlice=i==null||i==sel?null:i);},
+      child:SizedBox(width:200,height:200,child:TweenAnimationBuilder<double>(key:ValueKey('donut-$sel'),tween:Tween(begin:0,end:1),
+       duration:MediaQuery.disableAnimationsOf(context)?Duration.zero:const Duration(milliseconds:320),curve:Curves.easeOutBack,
+       builder:(_,t,__)=>Stack(alignment:Alignment.center,children:[
+        CustomPaint(key:ValueKey('reports-donut'),size:const Size(200,200),
+         painter:_DonutPainter(slices,palette,isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,selected:sel,t:t.clamp(0,1).toDouble())),
+        // The centre swaps between the month total and the tapped category.
+        AnimatedSwitcher(duration:const Duration(milliseconds:220),
+         transitionBuilder:(w,a)=>FadeTransition(opacity:a,child:ScaleTransition(scale:Tween(begin:.85,end:1.0).animate(a),child:w)),
+         child:SizedBox(key:ValueKey('centre-$sel'),width:120,child:sel==null?Column(mainAxisSize:MainAxisSize.min,children:[
+          FittedBox(child:Text(localizedWhole(total,language),style:TextStyle(fontFamily:'Bricolage',fontSize:26,fontWeight:FontWeight.w800,color:ink))),
+          LText('{0} spent'.replaceAll('{0}',currencyLabel(currency,language)),textAlign:TextAlign.center,style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:muted)),
+         ]):Column(key:ValueKey('reports-slice-detail'),mainAxisSize:MainAxisSize.min,children:[
+          Container(width:10,height:10,decoration:BoxDecoration(color:palette[sel%palette.length],shape:BoxShape.circle)),SizedBox(height:4),
+          LText(sliceNames[sel],category:true,maxLines:2,textAlign:TextAlign.center,style:TextStyle(fontSize:13,fontWeight:FontWeight.w800,color:ink)),
+          FittedBox(child:Text(localizedWhole(slices[sel],language),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:ink))),
+          Text('${currencyLabel(currency,language)} · ${total==0?0:slices[sel]*100~/total}%',style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:muted)),
+         ]))),
+       ]))));
+    }),
     SizedBox(height:PaydaySpace.md),
     Row(children:[
      Expanded(child:LText(income>0?'Spent {0} of {1}'.replaceAll('{0}',money(total)).replaceAll('{1}',money(income)):'Spent {0}'.replaceAll('{0}',money(total)),
