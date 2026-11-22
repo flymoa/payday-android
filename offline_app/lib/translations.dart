@@ -52,7 +52,6 @@ const paydayTranslations=<String,List<String>>{
  "Spent {0} of {1}":["{0} dépensés sur {1}","صرفت {0} من {1}"],
  "{0} up {1}% on last month":["{0} +{1} % sur le mois dernier","{0} ارتفع {1}% عن الشهر الماضي"],
  "No spending this month yet.":["Aucune dépense ce mois-ci.","لا مصاريف هذا الشهر بعد."],
- "New this month":["Nouveau ce mois","جديد هذا الشهر"],
  "Same as last month":["Comme le mois dernier","مثل الشهر الماضي"],
  "+{0}% vs last month":["+{0} % / mois dernier","+{0}% عن الشهر الماضي"],
  "{0}% vs last month":["{0} % / mois dernier","{0}% عن الشهر الماضي"],
