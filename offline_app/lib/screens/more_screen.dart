@@ -125,10 +125,10 @@ extension _MoreScreen on _FinanceState {
    SizedBox(height:12),
    Row(children:[
     Expanded(child:FilledButton.icon(key:ValueKey('wallet-atm'),style:FilledButton.styleFrom(minimumSize:Size.fromHeight(50)),
-     onPressed:()=>walletTransferForm(atm:true),icon:PaydayAppIcon(Icons.local_atm_outlined),label:FittedBox(child:LText('ATM withdrawal')))),
+     onPressed:()=>walletTransferForm(atm:true),icon:PaydayAppIcon(Icons.local_atm_outlined),label:LText('ATM withdrawal',maxLines:2,textAlign:TextAlign.center))),
     SizedBox(width:10),
     Expanded(child:OutlinedButton.icon(key:ValueKey('wallet-transfer'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(50)),
-     onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.repeat),label:FittedBox(child:LText('Transfer')))),
+     onPressed:()=>walletTransferForm(),icon:PaydayAppIcon(Icons.repeat),label:LText('Transfer',maxLines:2,textAlign:TextAlign.center))),
    ]),
    SizedBox(height:10),
    SizedBox(width:double.infinity,child:OutlinedButton.icon(key:ValueKey('wallet-count-cash'),style:OutlinedButton.styleFrom(minimumSize:Size.fromHeight(48)),

@@ -296,9 +296,10 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
      child:InkWell(key:ValueKey('subtab-$page-$i'),borderRadius:BorderRadius.circular(PaydayRadius.pill),
       onTap:()=>setState(()=>subTab[page]=i),
       child:ConstrainedBox(constraints:const BoxConstraints(minHeight:44),child:Center(child:Padding(
-       padding:EdgeInsets.symmetric(horizontal:PaydaySpace.sm),
-       child:FittedBox(fit:BoxFit.scaleDown,child:LText(labels[i],maxLines:1,softWrap:false,
-        style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.small,color:i==current?ink:muted)))))))))),
+       padding:EdgeInsets.symmetric(horizontal:labels.length>4?2:PaydaySpace.sm),
+       // Same size on every tab: a row of five uses a smaller size for all of them, never per label.
+       child:LText(labels[i],maxLines:1,softWrap:false,overflow:TextOverflow.ellipsis,textAlign:TextAlign.center,
+        style:TextStyle(fontWeight:FontWeight.w700,fontSize:labels.length>4?PaydayType.caption:PaydayType.small,color:i==current?ink:muted))))))))),
    ])));
  }
  final purchase=TextEditingController(text:'200');

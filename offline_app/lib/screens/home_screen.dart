@@ -17,14 +17,15 @@ extension _HomeScreen on _FinanceState {
   final caution=isNear||ahead;
   final barColor=isOver?danger:isSpent?muted:caution?warn:homeGreen;
   final noteColor=isOver?danger:caution?saffronText:null;
-  final left='${money(limit-spent)} left';
-  final description=isOver?'Over by ${money(spent-limit)}':isUnbudgeted?'No budget set':isSpent?'Fully spent':
+  String w(int c)=>'${localizedWhole(c,language)} ${currencyLabel(currency,language)}';
+  final left='${w(limit-spent)} left';
+  final description=isOver?'Over by ${w(spent-limit)}':isUnbudgeted?'No budget set':isSpent?'Fully spent':
    isNear?'Near limit · $left':ahead?'Spending fast · $left':left;
   return listRow(key:ValueKey('home-category-$category'),onTap:onTap??()=>openCategoryRecords(category),
    leading:PaydayCategoryIcon(category,size:38),title:rowTitle(category,category:true),
    subtitle:description,subtitleColor:noteColor,
-   amount:language=='ar'?(isUnbudgeted?homeDigits(spent):'${homeDigits(spent)} / ${homeDigits(limit)}')
-    :isUnbudgeted?money(spent):'${plain(spent)} / ${money(limit)}',amountColor:muted,
+   // Whole numbers keep the row to one calm line; cents are in Records.
+   amount:isUnbudgeted?localizedWhole(spent,language):'${localizedWhole(spent,language)} / ${localizedWhole(limit,language)}',amountColor:muted,
    progress:limit<=0?(spent>0?1.0:0.0):spent/limit,progressColor:barColor,
    trackColor:isOver?(isDark?PaydayColors.darkStatusOverTrack:PaydayColors.statusOverTrack):null);
  }
