@@ -26,14 +26,14 @@ extension _RecordsBudgetsSavings on _FinanceState {
    ])))));
  }
  /// Records grouped by day, newest first, each day in its own panel.
- List<Widget> recordDays(List<RowData> rows,{WalletSetup? wallets}){
+ List<Widget> recordDays(List<RowData> rows,{WalletSetup? wallets,bool showHeaders=true}){
   final now=DateTime.now();
   final today=dayKey(now),yesterday=dayKey(DateTime(now.year,now.month,now.day-1));
   final days=<String,List<RowData>>{};
   for(final t in rows){days.putIfAbsent(st(t,'date'),()=><RowData>[]).add(t);}
   return [
    for(final entry in days.entries)...[
-    Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
+    if(showHeaders)Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
      (entry.key==today?'${tr(context,'Today')} · ${shortDay(entry.key)}':entry.key==yesterday?'${tr(context,'Yesterday')} · ${shortDay(entry.key)}':shortDay(entry.key)).toUpperCase(),
      style:TextStyle(color:muted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption,letterSpacing:language=='ar'?0:.4))),
     groupedRows([for(final t in entry.value)recordTile(t,showWallet:wallets!=null,afterId:wallets?.afterId??0)]),

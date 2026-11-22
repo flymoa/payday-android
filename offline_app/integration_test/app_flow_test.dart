@@ -112,7 +112,7 @@ void main() {
     {
       await t.tap(records.first);
       await settle(t, seconds: 1);
-      await t.tap(find.byKey(const ValueKey('subtab-1-1')));
+      await t.tap(find.byKey(const ValueKey('subtab-1-3')));
       await settle(t, seconds: 1);
       await waitFor(t, find.text('Check before closing'));
       expect(t.takeException(), isNull);
