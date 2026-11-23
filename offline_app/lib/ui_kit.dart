@@ -126,14 +126,15 @@ class PaydayEmpty extends StatelessWidget {
           if (action != null) ...[const SizedBox(height: PaydaySpace.lg), action!],
         ]));
     }
-    // Empty states sit on the page; a box around "nothing here" adds weight without content.
+    // Empty states sit on the page, start-aligned like the headings above them;
+    // a box around "nothing here" adds weight without content.
     return SizedBox(width: double.infinity, child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: PaydaySpace.xl, vertical: PaydaySpace.xl),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
+      padding: const EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs, PaydaySpace.lg, PaydaySpace.xl, PaydaySpace.lg),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
         disc,
-        const SizedBox(height: 12),
-        LText(message, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
-        if (action != null) ...[const SizedBox(height: PaydaySpace.lg), action!],
+        const SizedBox(width: PaydaySpace.md),
+        Expanded(child: LText(message, style: TextStyle(color: scheme.onSurfaceVariant))),
+        if (action != null) ...[const SizedBox(width: PaydaySpace.sm), action!],
       ])));
   }
 }

@@ -227,8 +227,7 @@ extension _V3Screens on _FinanceState {
  /// One tab because both are money moving between you and people you know.
  Widget owedAndDaret(Map<String,List<RowData>> d)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
   moreKridi(d),
-  Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.xl,0,PaydaySpace.sm),
-   child:LText('Daret',key:ValueKey('daret-section'),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.section,fontWeight:FontWeight.w800,color:ink))),
+  Padding(padding:EdgeInsetsDirectional.fromSTEB(0,PaydaySpace.xl,0,PaydaySpace.sm),   child:LText('Daret',key:ValueKey('daret-section'),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.section,fontWeight:FontWeight.w800,color:ink))),
   moreDaret(d),
  ]);
 
