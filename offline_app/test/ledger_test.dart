@@ -78,6 +78,15 @@ void main() {
     expect(l.allocated(), 5000);
     expect(l.buffer(), 20000);
   });
+  test('the cash buffer is held only once the month has income', () {
+    expect(const Ledger({}).bufferFor('2026-11'), 0, reason: 'fresh install: nothing to hold back');
+    final withIncome = Ledger({
+      'transactions': [{'date': '2026-11-28', 'type': 'Income', 'amount': 1250000}],
+      'settings': [{'key': 'buffer', 'value': '30000'}],
+    });
+    expect(withIncome.bufferFor('2026-11'), 30000);
+    expect(withIncome.bufferFor('2026-12'), 0, reason: 'no salary logged yet next month');
+  });
   test('reserves: net month movement, history order and remaining hold', () {
     expect(l.reserveNetForMonth('2026-11'), 8000);
     expect(l.reserveHistory(1).map((r) => r['id']), [2, 1]);

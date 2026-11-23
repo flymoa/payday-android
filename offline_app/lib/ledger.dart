@@ -61,6 +61,9 @@ class Ledger {
  }
  int allocated()=>rows('allocations').fold(0,(n,x)=>n+_v(x,'amount'));
  int buffer()=>int.tryParse(setting('buffer')??'')??20000;
+ /// Cash buffer held back in [month]. Nothing is held before any income is
+ /// recorded that month: a fresh install must not open on "−200,00 DH".
+ int bufferFor(String month)=>sumType(monthTransactions(month),'Income')>0?buffer():0;
 
  List<LedgerRow> reserveHistory(int reserveId){
   final out=rows('reserve_movements').where((r)=>_v(r,'reserve_id')==reserveId).toList();
