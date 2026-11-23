@@ -245,7 +245,8 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  /// Status colours that stay readable on both sand and charcoal.
  Color get danger=>isDark?PaydayColors.darkStatusOver:PaydayColors.statusOver;
  Color get saffronText=>isDark?PaydayColors.darkSaffronText:PaydayColors.saffronText;
- Color get warn=>isDark?PaydayColors.darkStatusNear:PaydayColors.statusNear;
+ /// Near-limit bars: saffronText in light (5.5:1 on sand), never raw saffron or #D2A15A.
+ Color get warn=>isDark?PaydayColors.darkStatusNear:PaydayColors.saffronText;
  Color get amber=>saffronText;
  bool writing=false;
  bool exportingBackup=false;
