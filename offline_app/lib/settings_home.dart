@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'design_tokens.dart';
 import 'localization.dart';
 import 'settings_pages.dart';
 
@@ -17,7 +18,7 @@ class SettingsHomePage extends StatelessWidget {
           titleSpacing: 12,
           leadingWidth: 56,
           leading: SettingsBackButton(tooltip: closeTooltip, onPressed: () => Navigator.of(context).maybePop()),
-          title: LText(title, style: TextStyle(fontFamily: 'Bricolage', fontWeight: FontWeight.w800, fontSize: 24)),
+          title: LText(title, style: TextStyle(fontFamily: 'Bricolage', fontWeight: FontWeight.w800, fontSize: PaydayType.title)),
         ),
         body: SafeArea(
             child: ListenableBuilder(

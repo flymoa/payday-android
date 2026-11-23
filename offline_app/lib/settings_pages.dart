@@ -42,7 +42,7 @@ class SettingsPageScaffold extends StatelessWidget{
  @override Widget build(BuildContext context)=>PopScope<Object?>(canPop:!busy,child:Scaffold(
   appBar:AppBar(toolbarHeight:64,centerTitle:false,titleSpacing:12,leadingWidth:56,
    title:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(title,style:const TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:24))),
+    child:LText(title,style:const TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:PaydayType.title))),
    leading:SettingsBackButton(tooltip:'Back to Settings',onPressed:busy?null:()=>Navigator.pop(context)),
    actions:actions),
   body:SafeArea(child:body)));

@@ -63,6 +63,18 @@ String localizedWhole(int cents,String language)=>arabicNumber(_digits(cents,gro
 const arabicCurrency={'MAD':'درهم','EUR':'يورو','USD':'دولار','GBP':'جنيه'};
 String currencyLabel(String currency,String language)=>language=='ar'?(arabicCurrency[currency]??currency):currency=='MAD'?'DH':currency;
 String localizedMoney(int cents,String currency,String language)=>'${localizedNumber(cents,language,grouped:true)} ${currencyLabel(currency,language)}';
+/// How much precision an amount needs where it is shown.
+///   exact:   always two decimals ("1 284,50 DH"): forms, sheets, confirmations.
+///   list:    rows in a list. Whole when the cents are ,00 ("50 DH"), else two decimals ("63,50 DH").
+///   summary: totals above a list and hero sub-figures. Whole units only ("12 500 DH").
+enum MoneyStyle{exact,list,summary}
+/// The one money formatter for the screens. [unit]: false drops the currency
+/// where it is printed separately (the Reports ring centre).
+String displayMoney(int cents,String currency,String language,{MoneyStyle style=MoneyStyle.exact,bool unit=true}){
+ final whole=style==MoneyStyle.summary||style==MoneyStyle.list&&cents%100==0;
+ final number=whole?localizedWhole(cents,language):localizedNumber(cents,language,grouped:true);
+ return unit?'$number ${currencyLabel(currency,language)}':number;
+}
 const _monthsEn=['January','February','March','April','May','June','July','August','September','October','November','December'];
 String localizedMonth(DateTime date,String language,{bool short=false}){
  if(language=='en'&&short)return '${_monthsEn[date.month-1].substring(0,3)} ${date.year}';
@@ -112,11 +124,12 @@ String displayDay(BuildContext context,String iso){
 
 /// Arabic type rules from the design: no letter spacing, at least 13px, taller lines,
 /// and weights IBM Plex Sans Arabic has (Bold at most).
-TextStyle arabicStyle(TextStyle? style){
+TextStyle arabicStyle(TextStyle? style,{bool numeric=false}){
  final s=style??const TextStyle();
  final size=s.fontSize;
  final weight=s.fontWeight;
- return s.copyWith(letterSpacing:0,
+ // Arabic is never set in Bricolage or DM Sans: neither has Arabic glyphs.
+ return s.copyWith(letterSpacing:0,fontFamily:numeric?null:'PlexArabic',
   fontSize:size!=null&&size<13?13:null,
   height:s.height??((size??14)>=20?1.35:1.5),
   fontWeight:weight!=null&&weight.value>700?FontWeight.w700:null);
@@ -143,7 +156,7 @@ class LText extends StatelessWidget{
   final displayed=arabic&&!numeric?value
    .replaceAllMapped(RegExp(r'[\u200e]?[+−-]?[0-9][0-9.,\u202f\u00a0\u200e]*\s+(?:MAD|DH|EUR|GBP|USD)'),(m)=>'\u2066${m.group(0)}\u2069')
    .replaceAllMapped(RegExp(r'([\u200e]?[+−-]?[0-9][0-9.,\u202f\u00a0\u200e/ ]*[0-9%\u200e])(?=\s*(?:درهم|يورو|دولار|جنيه))'),(m)=>'\u2066${m.group(1)}\u2069'):value;
-  return Text(displayed,style:arabic?arabicStyle(style):style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
+  return Text(displayed,style:arabic?arabicStyle(style,numeric:numeric):style,textAlign:textAlign,textDirection:textDirection??(numeric?TextDirection.ltr:null),
    maxLines:maxLines,softWrap:softWrap,overflow:overflow,
    semanticsLabel:semanticsLabel==null?null:tr(context,semanticsLabel!));
  }

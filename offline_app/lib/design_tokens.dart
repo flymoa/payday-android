@@ -38,6 +38,16 @@ abstract final class PaydayColors {
   static const darkBudgetDisc = darkIconDisc;
   static const darkOpeningMark = Color(0xff8CC8AD);
   static const darkCopper = Color(0xffF6B95A);
+  /// Saffron in the dark theme: lifted so it does not vibrate on charcoal.
+  /// Raw [saffron] (#F4A62A) is used in the light theme only.
+  static const darkSaffron = darkCopper;
+  /// Edge on the saffron add button (light): 5.48:1 on sand, so the button
+  /// shape reads at 3:1 even though the fill itself is 1.88:1.
+  static const saffronEdge = Color(0xff8A5A12);
+
+  // Tinted surfaces for one-line notices (near-limit banner, report insight).
+  static const nearTintLight = Color(0xffFCEBD0);
+  static const nearTintDark = Color(0xff3A2E1C);
   static const darkStatusOver = Color(0xffF08A7C); // readable red on charcoal
   static const darkStatusOverBorder = Color(0xff6B3A35);
   static const darkStatusOverTrack = Color(0xff4A2B28);
@@ -104,6 +114,24 @@ abstract final class PaydayChart {
   static const spentDark = Color(0xff7D8689); // ~3.9:1 on the dark card; darker than mint Income so the series differ by lightness
 }
 
+/// Category slices in Reports: emerald tones, darkest first, then a neutral
+/// grey for "Other". No saffron: it is reserved for the add button and badge.
+abstract final class PaydayReport {
+  static const light = [Color(0xff0B4537), Color(0xff1F7A62), Color(0xff3B9A7E), Color(0xff7FB39C), Color(0xffB7D6C6), Color(0xff8A9398)];
+  static const dark = [Color(0xffC4EEDC), Color(0xff8FD6BC), Color(0xff5FD3A9), Color(0xff579B82), Color(0xff3A5F51), Color(0xff7D8689)];
+}
+
+/// Records calendar: three spending steps, no per-day borders. Every step is
+/// at least 3:1 against the card; the day number on it stays at 4.5:1 or more.
+///   light (card #FFFFFF): 3.23 / 5.16 / 10.9 ; numbers ink 4.92, sand 4.78, sand 10.14
+///   dark  (card #252A2D): 4.43 / 9.8 / 12.6  ; numbers #06241B 5.03 / 9.81 / 13.02
+abstract final class PaydayCalendar {
+  static const light = [Color(0xff5F9B83), Color(0xff2F7A60), Color(0xff0B4537)];
+  static const lightOn = [PaydayColors.ink, PaydayColors.sand, PaydayColors.sand];
+  static const dark = [Color(0xff579B82), Color(0xff8FD6BC), Color(0xffC4EEDC)];
+  static const darkOn = [PaydayColors.darkOnPrimary, PaydayColors.darkOnPrimary, PaydayColors.darkOnPrimary];
+}
+
 abstract final class PaydaySpace {
   static const xs = 4.0;
   static const sm = 8.0;
@@ -112,28 +140,81 @@ abstract final class PaydaySpace {
   static const xl = 24.0;
 }
 
-/// Type sizes. `caption` is the smallest size text should use.
+/// The five text sizes of the app. Nothing else should set a font size.
+///   display 56 · hero amounts, the add-sheet amount
+///   title   24 · page and sheet titles, hero decimals and currency
+///   section 19 · section headings, summary sub-figures
+///   body    15 · rows, buttons, list amounts
+///   caption 13 · secondary lines; the smallest size text may use
 abstract final class PaydayType {
+  static const display = 56.0;
+  static const title = 24.0;
+  static const section = 19.0;
+  static const body = 15.0;
   static const caption = 13.0;
-  static const small = 14.0;
-  static const body = 14.0;
-  static const title = 16.0;
-  static const section = 23.0;
-  static const sectionTitle = 19.0;
-  static const amount = 16.0;
-  static const figure = 20.0;
-  static const display = 40.0;
-  static const heroCurrency = 20.0;
-  static const heroDecimals = 24.0;
-  static const hero = 56.0;
+  /// The one summary figure on a planning page ("Not assigned"). Sits between
+  /// title and display on purpose: bigger than any row, far below the hero.
+  static const figure = 28.0;
+
+  // Older names, kept so call sites read the same; each is one of the five.
+  static const small = body;
+  static const sectionTitle = section;
+  static const amount = body;
+  static const hero = display;
+  static const heroDecimals = title;
+  static const heroCurrency = title;
 }
 
 /// Shared amount styles: tabular figures so columns of money line up.
 abstract final class PaydayText {
   static const tabular = [FontFeature.tabularFigures()];
-  static const amount = TextStyle(fontSize: PaydayType.amount,
+  static const amount = TextStyle(fontSize: PaydayType.body,
     fontWeight: FontWeight.w600, fontFeatures: tabular);
-  /// Summary figures above a list ("Still to pay", "Total saved" sub-figures).
-  static const figure = TextStyle(fontSize: PaydayType.figure,
+  /// Sub-figures in a summary ("Still to pay", Cash and Bank).
+  static const figure = TextStyle(fontSize: PaydayType.section,
     fontWeight: FontWeight.w700, fontFeatures: tabular, letterSpacing: -.3);
+  /// Row titles in every list.
+  static const rowTitle = TextStyle(fontSize: PaydayType.body, fontWeight: FontWeight.w700);
+}
+
+/// The full colour scheme, built from tokens only (no seed, no generated tints).
+ColorScheme paydayColorScheme(Brightness brightness) {
+  final dark = brightness == Brightness.dark;
+  return ColorScheme(
+    brightness: brightness,
+    primary: dark ? PaydayColors.darkPrimary : PaydayColors.emerald,
+    onPrimary: dark ? PaydayColors.darkOnPrimary : const Color(0xffFFFFFF),
+    primaryContainer: dark ? PaydayColors.emerald : PaydayColors.mintTint,
+    onPrimaryContainer: dark ? PaydayColors.sand : PaydayColors.emerald,
+    secondary: dark ? PaydayColors.darkPrimary : PaydayColors.emerald,
+    onSecondary: dark ? PaydayColors.darkOnPrimary : const Color(0xffFFFFFF),
+    secondaryContainer: dark ? PaydayColors.darkIconDisc : PaydayColors.mintTint,
+    onSecondaryContainer: dark ? PaydayColors.darkText : PaydayColors.emerald,
+    tertiary: dark ? PaydayColors.darkSaffron : PaydayColors.saffronText,
+    onTertiary: dark ? PaydayColors.ink : const Color(0xffFFFFFF),
+    tertiaryContainer: dark ? PaydayColors.nearTintDark : PaydayColors.nearTintLight,
+    onTertiaryContainer: dark ? PaydayColors.darkSaffronText : PaydayColors.saffronText,
+    error: dark ? PaydayColors.darkStatusOver : PaydayColors.statusOver,
+    onError: dark ? PaydayColors.ink : const Color(0xffFFFFFF),
+    errorContainer: dark ? PaydayColors.darkStatusOverTrack : PaydayColors.statusOverTrack,
+    onErrorContainer: dark ? PaydayColors.darkStatusOver : PaydayColors.statusOver,
+    surface: dark ? PaydayColors.darkSurface : PaydayCard.surfaceLight,
+    onSurface: dark ? PaydayColors.darkText : PaydayColors.ink,
+    onSurfaceVariant: dark ? PaydayColors.darkMuted : PaydayColors.muted,
+    surfaceDim: dark ? PaydayColors.darkBackground : PaydayColors.surfaceHigh,
+    surfaceBright: dark ? PaydayColors.darkSurfaceHigh : PaydayCard.surfaceLight,
+    surfaceContainerLowest: dark ? PaydayColors.darkBackground : PaydayCard.surfaceLight,
+    surfaceContainerLow: dark ? PaydayColors.darkSurfaceLow : PaydayColors.surfaceLow,
+    surfaceContainer: dark ? PaydayColors.darkSurfaceLow : PaydayColors.surfaceLow,
+    surfaceContainerHigh: dark ? PaydayColors.darkSurfaceHigh : PaydayColors.surfaceHigh,
+    surfaceContainerHighest: dark ? PaydayColors.darkLine : PaydayColors.line,
+    outline: dark ? PaydayCard.borderDark : PaydayCard.borderLight,
+    outlineVariant: dark ? PaydayColors.darkLine : PaydayColors.line,
+    shadow: const Color(0xff000000),
+    scrim: const Color(0xff000000),
+    inverseSurface: dark ? PaydayColors.darkText : PaydayColors.ink,
+    onInverseSurface: dark ? PaydayColors.ink : PaydayColors.sand,
+    inversePrimary: dark ? PaydayColors.emerald : PaydayColors.darkPrimary,
+    surfaceTint: const Color(0x00000000),
+  );
 }

@@ -159,6 +159,7 @@ String? canvasGlyphForIcon(IconData icon){
   Icons.check:'check',Icons.autorenew:'cycle',Icons.star_outline:'star',Icons.download_outlined:'download',Icons.remove:'minus',
   Icons.description_outlined:'file',Icons.calculate_outlined:'calc',Icons.content_paste:'paste',Icons.call_split:'split',
   Icons.local_atm_outlined:'atm',Icons.toll_outlined:'coins',Icons.handshake_outlined:'users',
+  Icons.nightlight_outlined:'crescent',
  };
  return m[icon];
 }

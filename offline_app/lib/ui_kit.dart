@@ -56,50 +56,84 @@ class PaydayProgress extends StatelessWidget {
   }
 }
 
-/// Filter or quick-choice pill. Selected pills are filled so the choice is obvious.
+/// Horizontal inset for list rows. Rows inside a bordered card sit 14 in from
+/// its edge; rows directly on the page line up with the section headings.
+class PaydayRowInset extends InheritedWidget {
+  const PaydayRowInset({super.key, required this.horizontal, required super.child});
+  final double horizontal;
+  static const card = PaydaySpace.md + 2;
+  static double of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PaydayRowInset>()?.horizontal ?? card;
+  @override
+  bool updateShouldNotify(PaydayRowInset oldWidget) => oldWidget.horizontal != horizontal;
+}
+
+/// Filter or quick-choice pill. Selected: mint fill, emerald text and a 1.5px
+/// emerald edge. A solid fill is kept for the one primary action (Save).
 class PaydayPill extends StatelessWidget {
-  const PaydayPill({super.key, required this.label, required this.selected, required this.onTap, this.icon});
+  const PaydayPill({super.key, required this.label, required this.selected, required this.onTap, this.icon, this.raw = false});
   final String label;
   final IconData? icon;
   final bool selected;
   final VoidCallback onTap;
+  /// Show [label] as written (a language name in its own script), never translated.
+  final bool raw;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final fill = selected ? (dark ? PaydayColors.darkIconDisc : PaydayColors.mintTint) : (dark ? PaydayControl.fillDark : PaydayControl.fillLight);
+    final text = selected ? (dark ? PaydayColors.darkText : PaydayColors.emerald) : scheme.onSurface;
+    final style = TextStyle(color: text, fontWeight: FontWeight.w700, fontSize: PaydayType.body);
     return Semantics(button: true, selected: selected, child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap,
      child: Padding(padding: const EdgeInsets.symmetric(vertical: (PaydayControl.target - PaydayControl.chipHeight) / 2), child: Material(
-      color: selected ? scheme.primary : (dark ? PaydayControl.fillDark : PaydayControl.fillLight),
-      shape: const StadiumBorder(),
+      color: fill,
+      shape: StadiumBorder(side: BorderSide(color: selected ? scheme.primary : Colors.transparent, width: 1.5)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(onTap: onTap, child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: PaydayControl.chipHeight),
-        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: PaydaySpace.md + 2, vertical: PaydaySpace.sm),
           child: Center(widthFactor: 1, heightFactor: 1, child: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (icon != null) ...[PaydayAppIcon(icon!, size: 17, color: selected ? scheme.onPrimary : scheme.onSurface), const SizedBox(width: 6)],
-            Flexible(child: LText(label, style: TextStyle(color: selected ? scheme.onPrimary : scheme.onSurface,
-              fontWeight: FontWeight.w700, fontSize: PaydayType.small))),
+            if (icon != null) ...[PaydayAppIcon(icon!, size: 17, color: text), const SizedBox(width: 6)],
+            Flexible(child: raw ? Text(label, style: style) : LText(label, style: style)),
           ])))))))));
   }
 }
 
-/// Friendly placeholder for a list with nothing in it yet.
+/// Placeholder for a list with nothing in it yet. With [title] and [action] it
+/// becomes a page-level empty state: a headline, one sentence and one button,
+/// left-aligned like the rest of the page.
 class PaydayEmpty extends StatelessWidget {
-  const PaydayEmpty({super.key, required this.icon, required this.message});
+  const PaydayEmpty({super.key, required this.icon, required this.message, this.title, this.action});
   final IconData icon;
   final String message;
+  final String? title;
+  final Widget? action;
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final disc = Container(width: 48, height: 48,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: scheme.primary.withValues(alpha: .12)),
+      child: Center(child: PaydayAppIcon(icon, size: 24, color: scheme.primary)));
+    if (title != null) {
+      return Padding(padding: const EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs, PaydaySpace.xl, PaydaySpace.xs, PaydaySpace.sm),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+          disc,
+          const SizedBox(height: PaydaySpace.lg),
+          LText(title!, style: TextStyle(fontFamily: 'Bricolage', fontSize: PaydayType.title, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+          const SizedBox(height: PaydaySpace.xs),
+          LText(message, style: TextStyle(color: scheme.onSurfaceVariant)),
+          if (action != null) ...[const SizedBox(height: PaydaySpace.lg), action!],
+        ]));
+    }
     // Empty states sit on the page; a box around "nothing here" adds weight without content.
     return SizedBox(width: double.infinity, child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: PaydaySpace.xl, vertical: PaydaySpace.xl),
       child: Column(crossAxisAlignment: CrossAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: [
-        Container(width: 48, height: 48,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: scheme.primary.withValues(alpha: .12)),
-          child: Center(child: PaydayAppIcon(icon, size: 24, color: scheme.primary))),
+        disc,
         const SizedBox(height: 12),
         LText(message, textAlign: TextAlign.center, style: TextStyle(color: scheme.onSurfaceVariant)),
+        if (action != null) ...[const SizedBox(height: PaydaySpace.lg), action!],
       ])));
   }
 }
@@ -113,7 +147,7 @@ class PaydayTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final tone = color ?? Theme.of(context).colorScheme.primary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: PaydaySpace.sm + 2, vertical: PaydaySpace.xs),
       decoration: BoxDecoration(color: tone.withValues(alpha: .12), borderRadius: BorderRadius.circular(PaydayRadius.md)),
       child: LText(label, style: TextStyle(color: tone, fontSize: PaydayType.caption, fontWeight: FontWeight.w700)));
   }
