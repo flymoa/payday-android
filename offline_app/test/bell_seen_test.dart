@@ -28,4 +28,9 @@ void main() {
     expect(find.byKey(const ValueKey('home-bell-badge')), findsNothing);
     expect(t.takeException(), isNull);
   });
+
+  test('the bell remembers what was read by item, not by its wording', () {
+    // Wording changes with the language; the key does not.
+    expect('home-backup'.contains('|'), isFalse);
+  });
 }

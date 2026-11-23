@@ -110,7 +110,8 @@ extension _AlertsScreen on _FinanceState {
  });
 
  static const alertsSeenKey='alerts_seen';
- String alertSignature(PaydayAlert a)=>'${a.key}|${a.title}';
+ // The key only: it does not change with the language, so switching language keeps the bell read.
+ String alertSignature(PaydayAlert a)=>a.key;
  int unseenAlerts(Map<String,List<RowData>> d){
   final raw=Ledger(d).setting(alertsSeenKey);
   Set<String> seen;

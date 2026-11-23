@@ -117,6 +117,28 @@ extension _RecordsBudgetsSavings on _FinanceState {
      figure('Budgeted',plain(assigned)),SizedBox(width:8),
      figure(left<0?'Over-assigned':'Not assigned',plain(left.abs()),color:left<0?danger:jade),
     ]),
+    // What is still unspent across the category budgets this month.
+    Builder(builder:(_){
+     var budgeted=0,left=0;
+     for(final c in categories){
+      final name=st(c,'name'),b=budgetFor(d,month,name);
+      if(b<=0)continue;
+      final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
+      budgeted+=b;left+=(b-spent).clamp(0,b);
+     }
+     if(budgeted<=0)return const SizedBox.shrink();
+     return Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('budget-left'),padding:EdgeInsets.all(PaydaySpace.md),
+      child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+       Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
+        Expanded(child:LText('Left to spend in your budgets',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),
+        LText('{0}% used'.replaceAll('{0}','${((budgeted-left)*100/budgeted).round()}'),style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
+       ]),
+       SizedBox(height:4),
+       LText('{0} of {1}'.replaceAll('{0}',money(left)).replaceAll('{1}',money(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:left>0?jade:danger)),
+       SizedBox(height:8),
+       PaydayProgress(value:((budgeted-left)/budgeted).clamp(0,1).toDouble(),color:left>0?jade:danger),
+      ]))));
+    }),
     if(inc==0&&assigned==0||assigned>inc)...[SizedBox(height:10),LText(
      inc==0&&assigned==0?'Set planned income to start assigning your budget.':
      'Over-assigned by ${money(assigned-inc)}. Reduce budgets or increase planned income.',

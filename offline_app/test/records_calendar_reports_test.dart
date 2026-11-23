@@ -91,4 +91,23 @@ void main() {
     }
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('Budgets shows what is left to spend across the budgets', (t) async {
+    final withBudgets = {
+      ...data,
+      'budgets': [
+        {'month': m, 'category': 'Groceries', 'amount': 100000},
+        {'month': m, 'category': 'Transport', 'amount': 10000},
+      ],
+    };
+    await t.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    await t.pumpWidget(PaydayLocal(initialData: Future.value(withBudgets), preferencesWriter: (_) async {}, initialPreferences: const AppPreferences()));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const ValueKey('bottom-2')));
+    await t.pumpAndSettle();
+    // 1 000 - 300 + 100 - 25 = 775 left of 1 100.
+    expect(find.text('775,00 DH of 1\u00a0100,00 DH'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
 }
