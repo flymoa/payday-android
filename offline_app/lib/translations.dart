@@ -171,6 +171,8 @@ const paydayTranslations=<String,List<String>>{
  "Edit":["Modifier","تعديل"],
  "Less":["Moins","أقل"],
  "Wallets":["Comptes","المحافظ"],
+ "Left to spend in your budgets":["Reste à dépenser dans vos budgets","المتبقّي في ميزانياتك"],
+ "{0} of {1}":["{0} sur {1}","{0} من {1}"],
  "About Payday":["À propos de Payday","عن Payday"],
  "Backup & restore":["Sauvegarde et restauration","النسخ والاسترجاع"],
  "Bills, reserves and backups":["Factures, réserves et sauvegardes","الفواتير والاحتياطات والنسخ"],
