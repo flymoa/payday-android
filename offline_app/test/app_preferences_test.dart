@@ -141,10 +141,11 @@ void main(){
   final saved=await store.loadAppPreferences();
   await tester.pumpWidget(const SizedBox.shrink());await tester.pumpAndSettle();
   await tester.pumpWidget(PaydayLocal(store:store,initialPreferences:saved));await tester.pumpAndSettle();
-  expect(find.textContaining(' USD'),findsWidgets);
+  // A fresh phone opens on the empty Home (no amounts yet); the currency shows in the add sheet.
+  expect(find.byKey(const ValueKey('home-empty')),findsOneWidget);
   final semantics=tester.ensureSemantics();
   await tester.tap(find.bySemanticsLabel('Add transaction'));await tester.pumpAndSettle();
-  expect(find.text('Amount (USD)'),findsOneWidget);
+  expect(find.descendant(of:find.byKey(const ValueKey('transaction-amount')),matching:find.text('USD')),findsOneWidget);
   semantics.dispose();
   expect(tester.takeException(),isNull);
  });

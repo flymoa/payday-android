@@ -73,7 +73,7 @@ void main() {
 
     await t.tap(find.byType(PaydayAddButton));
     await settle(t, seconds: 2);
-    await t.enterText(find.widgetWithText(TextField, 'Amount (DH)'), '12.50');
+    await t.enterText(find.widgetWithText(TextField, 'Amount'), '12.50');
     FocusManager.instance.primaryFocus?.unfocus();
     await settle(t, seconds: 1);
     await t.ensureVisible(find.text('Groceries').last);

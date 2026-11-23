@@ -60,9 +60,9 @@ extension _Forms on _FinanceState {
       mainAxisSize:MainAxisSize.min,children:[
        Padding(padding:EdgeInsets.only(bottom:12),
         child:Align(alignment:AlignmentDirectional.centerStart,
-         child:Row(children:[Expanded(child:LText(liveTitle?.call()??title,style:TextStyle(fontFamily:'Bricolage',fontSize:23,color:ink,fontWeight:FontWeight.w800))),
+         child:Row(children:[Expanded(child:LText(liveTitle?.call()??title,style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.title,color:ink,fontWeight:FontWeight.w800))),
          if(fullScreen)IconButton(key:ValueKey('close-transaction'),tooltip:tr(context,'Close transaction'),onPressed:()=>Navigator.pop(c),
-          style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),icon:PaydayAppIcon(Icons.close,size:20))]))),
+          style:IconButton.styleFrom(minimumSize:const Size(PaydayControl.target,PaydayControl.target),tapTargetSize:MaterialTapTargetSize.padded),icon:PaydayAppIcon(Icons.close,size:22,color:ink))]))),
        Flexible(child:SingleChildScrollView(
         keyboardDismissBehavior:ScrollViewKeyboardDismissBehavior.onDrag,
         padding:EdgeInsets.only(bottom:footer==null?24:12),
@@ -137,13 +137,14 @@ extension _Forms on _FinanceState {
     color:isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,borderRadius:BorderRadius.circular(PaydayRadius.pill)),
     child:Row(children:['Expense','Income','Savings'].map((entry){
      final selected=entry=='Savings'?type.startsWith('Savings'):type==entry;
+     // Selected segment: a flat lifted surface with a hairline, no shadow.
      return Expanded(child:TextButton(style:TextButton.styleFrom(
       padding:EdgeInsets.symmetric(vertical:12,horizontal:2),backgroundColor:selected?surface:Colors.transparent,
-      foregroundColor:selected?ink:muted,elevation:selected?1:0,shadowColor:Colors.black26,shape:StadiumBorder()),
+      foregroundColor:selected?ink:muted,elevation:0,shape:StadiumBorder(side:BorderSide(color:selected?line:Colors.transparent))),
       onPressed:submitting?null:()=>rebuild((){
        type=entry=='Savings'?'Savings out':entry;cats=categoriesFor(type);category=entry=='Expense'?'':cats.contains(entry=='Income'?'Salary':'Savings')?
         (entry=='Income'?'Salary':'Savings'):cats.first;allCategories=false;
-      }),child:LText(entry,style:TextStyle(fontSize:14,fontWeight:FontWeight.w700))));
+      }),child:LText(entry,style:TextStyle(fontSize:PaydayType.body,fontWeight:FontWeight.w700))));
     }).toList())),
    if(type.startsWith('Savings'))...[
     SizedBox(height:14),
@@ -158,23 +159,31 @@ extension _Forms on _FinanceState {
     ]),SizedBox(height:6),LText(type=='Savings out'?'Moves available money into savings.':'Returns saved money to your available balance.',
      style:TextStyle(fontSize:PaydayType.caption,color:muted),textAlign:TextAlign.center),
    ],
-   SizedBox(height:18),
-   TextField(controller:amt,autofocus:fresh,onChanged:(_)=>rebuild((){}),textAlign:TextAlign.center,keyboardType:TextInputType.numberWithOptions(decimal:true),
-    style:TextStyle(fontFamily:'Bricolage',fontSize:34,fontWeight:FontWeight.w800,color:ink),
-    decoration:InputDecoration(labelText:tr(context,'Amount (${currencyLabel(currency,language)})'),floatingLabelBehavior:FloatingLabelBehavior.always,
-     labelStyle:TextStyle(fontWeight:FontWeight.w700,color:muted),hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.45)),
-     filled:true,fillColor:surface,contentPadding:EdgeInsets.symmetric(horizontal:16,vertical:18),
-     border:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
-     enabledBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)),
-     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),borderSide:BorderSide(color:jade,width:2)))),
-   SizedBox(height:8),
+   SizedBox(height:PaydaySpace.lg+2),
+   // The amount is the hero of the sheet: no box, no fill. A caption label above,
+   // the figure at display size on the start edge, the currency small and muted.
+   TextField(key:ValueKey('transaction-amount'),controller:amt,autofocus:fresh,onChanged:(_)=>rebuild((){}),textAlign:TextAlign.start,keyboardType:TextInputType.numberWithOptions(decimal:true),
+    style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.display,height:1.1,fontWeight:FontWeight.w800,letterSpacing:-1.5,color:ink,fontFeatures:PaydayText.tabular),
+    cursorColor:jade,
+    decoration:InputDecoration(isDense:true,filled:false,contentPadding:EdgeInsets.only(top:PaydaySpace.sm,bottom:PaydaySpace.xs),
+     labelText:tr(context,'Amount'),floatingLabelBehavior:FloatingLabelBehavior.always,
+     labelStyle:TextStyle(fontFamily:language=='ar'?'PlexArabic':'DMSans',fontSize:PaydayType.caption*(16/12),fontWeight:FontWeight.w700,color:muted,letterSpacing:0),
+     floatingLabelStyle:TextStyle(fontFamily:language=='ar'?'PlexArabic':'DMSans',fontSize:PaydayType.caption*(16/12),fontWeight:FontWeight.w700,color:muted,letterSpacing:0),
+     hintText:inputNumber(0),hintStyle:TextStyle(color:muted.withValues(alpha:.7)),
+     suffixText:currencyLabel(currency,language),
+     suffixStyle:TextStyle(fontFamily:language=='ar'?'PlexArabic':'DMSans',fontSize:PaydayType.title,fontWeight:FontWeight.w600,color:muted,letterSpacing:0),
+     border:InputBorder.none,enabledBorder:InputBorder.none,focusedBorder:InputBorder.none)),
+   Divider(height:1,thickness:1,color:line),
+   SizedBox(height:PaydaySpace.sm),
    // Sums like 85+40: the keyboard has no + key, so these add the sign.
-   Wrap(spacing:6,runSpacing:6,crossAxisAlignment:WrapCrossAlignment.center,children:[
-    for(final op in const ['+','−','×','÷'])SizedBox(width:44,height:40,child:OutlinedButton(
-     key:ValueKey('amount-op-$op'),style:OutlinedButton.styleFrom(padding:EdgeInsets.zero,backgroundColor:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,side:BorderSide.none,
-      shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12))),
+   // Keys look 44×40 but take a 48dp tap.
+   Wrap(spacing:PaydaySpace.xs,runSpacing:0,crossAxisAlignment:WrapCrossAlignment.center,children:[
+    for(final op in const ['+','−','×','÷'])SizedBox(width:PaydayControl.target,height:PaydayControl.target,child:Center(child:SizedBox(width:44,height:PaydayControl.chipHeight,child:OutlinedButton(
+     key:ValueKey('amount-op-$op'),style:OutlinedButton.styleFrom(padding:EdgeInsets.zero,minimumSize:const Size(44,PaydayControl.chipHeight),tapTargetSize:MaterialTapTargetSize.padded,
+      backgroundColor:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,side:BorderSide.none,
+      shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg))),
      onPressed:(){final t=amt.text.trimRight();if(t.isEmpty)return;rebuild((){amt.text=t+op;amt.selection=TextSelection.collapsed(offset:amt.text.length);});},
-     child:Text(op,style:TextStyle(fontFamily:'Bricolage',fontSize:20,fontWeight:FontWeight.w800,color:jade)))),
+     child:Text(op,style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.section,fontWeight:FontWeight.w800,color:jade)))))),
     if(isAmountExpression(amt.text))Text('= ${evalAmountCents(amt.text)==null?'…':money(evalAmountCents(amt.text)!)}',key:ValueKey('amount-result'),
      style:TextStyle(fontWeight:FontWeight.w800,color:jade)),
     if(existing==null)TextButton.icon(key:ValueKey('transaction-paste'),onPressed:()async{
@@ -192,7 +201,7 @@ extension _Forms on _FinanceState {
      left<0?'$name would be ${money(-left)} over':'${money(left)} left in $name after this';
     return Padding(padding:EdgeInsets.only(top:4,bottom:14),child:PaydayTag(label,color:left<0&&limit>0?danger:null));
    }),
-   Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
+   Align(alignment:AlignmentDirectional.centerStart,child:LText('Category',style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,color:muted))),
    if(categoryMissing&&category.isEmpty)Align(alignment:AlignmentDirectional.centerStart,child:Padding(padding:EdgeInsets.only(top:4),
     child:LText('Choose a category.',key:ValueKey('transaction-category-missing'),style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,color:danger)))),
    SizedBox(height:12),
@@ -229,7 +238,7 @@ extension _Forms on _FinanceState {
      }
     })),
    if(walletSetup!=null)Padding(padding:EdgeInsets.only(top:16),child:Row(children:[
-    Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted))),
+    Expanded(child:LText(type=='Income'||type=='Savings in'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,color:muted))),
     for(final w in walletNames)Padding(padding:EdgeInsetsDirectional.only(start:8),child:PaydayPill(key:ValueKey('wallet-$w'),label:w,
      icon:w=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,selected:wallet==w,onTap:()=>rebuild(()=>wallet=w))),
    ])),
@@ -238,11 +247,11 @@ extension _Forms on _FinanceState {
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Expanded(child:Wrap(spacing:8,runSpacing:8,crossAxisAlignment:WrapCrossAlignment.center,children:[
     PaydayPill(key:ValueKey('transaction-date-today'),label:'Today',selected:sameDay(date,dayOffset(0)),onTap:()=>rebuild(()=>date=dayOffset(0))),
     PaydayPill(key:ValueKey('transaction-date-yesterday'),label:'Yesterday',selected:sameDay(date,dayOffset(-1)),onTap:()=>rebuild(()=>date=dayOffset(-1))),
-    OutlinedButton.icon(key:ValueKey('transaction-date-pick'),style:OutlinedButton.styleFrom(backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),shape:StadiumBorder(),minimumSize:Size(0,40),padding:EdgeInsets.symmetric(horizontal:12)),
+    OutlinedButton.icon(key:ValueKey('transaction-date-pick'),style:OutlinedButton.styleFrom(backgroundColor:surface,foregroundColor:ink,side:BorderSide(color:line),shape:StadiumBorder(),minimumSize:Size(0,PaydayControl.chipHeight),tapTargetSize:MaterialTapTargetSize.padded,padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md)),
      icon:PaydayAppIcon(Icons.calendar_today_outlined,size:16),onPressed:()async{final today=dayOffset(0);final p=await showDatePicker(context:c,initialDate:date,firstDate:DateTime(2000),lastDate:date.isAfter(today)?date:today);if(p!=null)rebuild(()=>date=p);},
      label:Text(localizedShortDay(date,language),style:TextStyle(fontWeight:FontWeight.w700))),
     ])),
-    TextButton(key:ValueKey('transaction-more-details'),style:TextButton.styleFrom(padding:EdgeInsets.symmetric(horizontal:6),minimumSize:Size(44,40)),onPressed:()=>rebuild(()=>details=!details),
+    TextButton(key:ValueKey('transaction-more-details'),style:TextButton.styleFrom(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.sm),minimumSize:Size(PaydayControl.target,PaydayControl.target),tapTargetSize:MaterialTapTargetSize.padded),onPressed:()=>rebuild(()=>details=!details),
      child:LText(details?'Hide note':'+ Note',style:TextStyle(fontWeight:FontWeight.w700))),
    ]),
    if(details)...[SizedBox(height:12),field(desc,'Description'),field(note,'Note (optional)'),field(bill,'Bill ID (optional)')],
@@ -416,13 +425,14 @@ extension _Forms on _FinanceState {
   var data=await store.snapshot();if(!mounted)return;
   await sheet('Income categories',(c,rebuild)=>Column(children:[
    LText('Add income sources or remove categories you no longer use. Existing records keep their category.'),
-   ...categoryChoices(data,'Income').where((name)=>name!='Uncategorized').map((name)=>ListTile(
-    leading:PaydayCategoryIcon(name),title:LText(name,category:true),trailing:IconButton(
+   SizedBox(height:PaydaySpace.sm),
+   groupedRows([...categoryChoices(data,'Income').where((name)=>name!='Uncategorized').map((name)=>listRow(
+    leading:PaydayCategoryIcon(name,size:36),title:rowTitle(name,category:true),trailing:IconButton(
      tooltip:tr(context,'Delete $name'),icon:PaydayAppIcon(Icons.delete_outline),onPressed:()async{
       if(await deleteCategoryPrompt(name,month)){
        final fresh=await store.snapshot();if(c.mounted)rebuild(()=>data=fresh);
       }
-     }))),
+     })))]),
   ]),footer:(c,rebuild)=>FilledButton.icon(icon:PaydayAppIcon(Icons.add),label:LText('Add income category'),
    onPressed:()async{
     await categoryForm(income:true);
@@ -472,7 +482,7 @@ extension _Forms on _FinanceState {
   String? error;
   await sheet('Repeat next month',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(st(bill,'name'),style:TextStyle(fontWeight:FontWeight.bold,fontSize:18)),
+    Text(st(bill,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:PaydayType.section)),
     SizedBox(height:12),LText('Due: ${uiDay(due)}'),
     LText('Amount: ${money(val(bill,'amount'))}'),LText('Category: ${categoryLabel(context,st(bill,'category'))}'),
     SizedBox(height:12),LText('Creates one unpaid bill using the saved details above. Payments stay with the original bill. You can edit the new bill afterward. Repeat it again next month when needed; this does not schedule automatic payments.'),
@@ -538,7 +548,7 @@ extension _Forms on _FinanceState {
   var date=DateTime.now();
   await sheet(adding?'Put money aside':'Take money out',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
+    Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:PaydayType.section,color:ink)),
     SizedBox(height:7),
     LText('Currently set aside: ${money(balance)}',
       style:TextStyle(color:jade,fontWeight:FontWeight.bold)),
@@ -582,22 +592,18 @@ extension _Forms on _FinanceState {
   final history=reserveHistory(d,val(reserve,'id'));
   await sheet('Reserve transfer history',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:17,color:ink)),
+    Text(st(reserve,'name'),style:TextStyle(fontWeight:FontWeight.w800,fontSize:PaydayType.section,color:ink)),
     SizedBox(height:7),
     LText('Opening funds: ${money(val(reserve,'funded'))}',
       style:TextStyle(color:muted)),
     SizedBox(height:10),
     if(history.isEmpty)LText('No deposits or withdrawals recorded yet.'),
-    ...history.map((m)=>ListTile(
-     contentPadding:EdgeInsets.zero,
-     leading:PaydayAppIcon(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,
-       color:st(m,'kind')=='add'?jade:amber),
-     title:LText(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
-     subtitle:Text('${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · ${st(m,'note')}'}'),
-     trailing:LText('${st(m,'kind')=='add'?'+':'−'}${money(val(m,'amount'))}',
-       style:TextStyle(fontWeight:FontWeight.w800,
-         color:st(m,'kind')=='add'?jade:amber)),
-    )),
+    if(history.isNotEmpty)groupedRows([for(final m in history)listRow(
+     leading:iconTile(st(m,'kind')=='add'?Icons.arrow_downward:Icons.arrow_upward,size:36,color:st(m,'kind')=='add'?jade:ink),
+     title:rowTitle(st(m,'kind')=='add'?'Added to reserve':'Taken out of reserve'),
+     subtitle:'${displayDay(context,st(m,'date'))}${st(m,'note').isEmpty?'':' · ${st(m,'note')}'}',
+     amount:'${st(m,'kind')=='add'?'+':'−'}${listMoney(val(m,'amount'))}',
+     amountColor:st(m,'kind')=='add'?jade:ink)]),
     SizedBox(height:10),
     LText('To correct a previous transfer, record an opposite transfer. '
       'This keeps a dated history of money moving in and out.',
@@ -607,7 +613,8 @@ extension _Forms on _FinanceState {
  /// Approximate Hijri date for planning, e.g. "≈ 29 Shaʿban 1448".
  String hijriLabel(DateTime date){
   final h=HijriDate.fromGregorian(date);
-  return '≈ ${h.day} ${tr(context,hijriMonthNames[h.month-1])} ${h.year}';
+  // Non-breaking hyphens (U+2011): "Rabiʿ al-awwal" never splits across lines.
+  return '≈ ${h.day} ${tr(context,hijriMonthNames[h.month-1]).replaceAll('-','‑')} ${h.year}';
  }
  Future<void> reserveForm(RowData? existing)async{
   final name=TextEditingController(text:existing==null?'':st(existing,'name'));
@@ -618,7 +625,7 @@ extension _Forms on _FinanceState {
   await sheet(existing==null?'Create a reserve':'Edit reserve target',(c,rebuild)=>Column(
    crossAxisAlignment:CrossAxisAlignment.start,children:[
    if(existing==null)...[
-    LText('Quick start',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:16)),SizedBox(height:8),
+    LText('Quick start',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:PaydayType.body)),SizedBox(height:8),
     Wrap(spacing:8,runSpacing:8,children:[for(final p in SeasonPreset.values)PaydayPill(key:ValueKey('season-${p.name}'),label:seasonPresetNames[p]!,
      selected:name.text==tr(context,seasonPresetNames[p]!),onTap:()=>rebuild((){
       name.text=tr(context,seasonPresetNames[p]!);due=seasonDueDate(p,DateTime.now());
@@ -677,7 +684,7 @@ extension _Forms on _FinanceState {
   final ts=monthTransactions(d);
   final inc=sumType(ts,'Income'),spent=sumType(ts,'Expense'),saved=sumType(ts,'Savings out')-sumType(ts,'Savings in');
   final currentMonth=DateTime(DateTime.now().year,DateTime.now().month);
-  final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-buffer(d)).clamp(0,100000000000).toInt();
+  final available=(inc-spent-saved-reserveNetForMonth(d,month)-unpaidBills(d)-monthlyReserves(d)-Ledger(d).bufferFor(month)).clamp(0,100000000000).toInt();
   final closedNow=val(current,'entries_ok')==1&&val(current,'balance_ok')==1;
   final unspent=Ledger(d).unspentBudgets(month);
   final unspentTotal=unspent.values.fold<int>(0,(a,b)=>a+b);

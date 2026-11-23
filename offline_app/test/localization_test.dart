@@ -80,7 +80,7 @@ void main(){
     expect(find.text(translateMessage('Settings',code)),findsOneWidget);expect(find.byKey(const ValueKey('payday-opening-overlay')),findsNothing);
     await t.tap(find.byTooltip(translateMessage('Close settings',code)));await t.pumpAndSettle();
     final semantics=t.ensureSemantics();await t.tap(find.bySemanticsLabel(translateMessage('Add transaction',code)));await t.pumpAndSettle();
-    expect(find.widgetWithText(TextField,code=='ar'?'المبلغ (درهم)':translateMessage('Amount (DH)',code)),findsOneWidget);semantics.dispose();
+    expect(find.widgetWithText(TextField,translateMessage('Amount',code)),findsOneWidget);semantics.dispose();
     expect(t.takeException(),isNull);
    });
   }

@@ -5,23 +5,27 @@ part of '../main.dart';
 
 extension _RecordsBudgetsSavings on _FinanceState {
  /// One record row. Money coming in is green with a plus; money going out is ink with a minus.
+ /// The day is the section header, so the second line never repeats it; without a
+ /// description the category is already the title, so only the wallet (or a savings
+ /// direction) is left to say.
  Widget recordTile(RowData t,{bool showWallet=false,int afterId=0}){
   final type=st(t,'type'),category=st(t,'category');
   final incoming=type=='Income'||type=='Savings in';
+  final detail=rowDetail(t);
+  final subtitle=detail.isNotEmpty?detail:type.startsWith('Savings')?tr(context,type):'';
   return Material(color:Colors.transparent,child:InkWell(onTap:()=>transactionForm(t),
    // The amount may use up to 40% of the row itself (not of the screen), then shrinks.
    child:Padding(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),child:LayoutBuilder(builder:(context,box)=>Row(children:[
     PaydayCategoryIcon(category,size:40),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      Text(st(t,'description').isEmpty?categoryLabel(context,category):st(t,'description'),
-      maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
-     SizedBox(height:3),
-     LText('${categoryLabel(context,category)}${walletOf(t).isEmpty?' · ${tr(context,type)}':walletOf(t)}',maxLines:2,overflow:TextOverflow.ellipsis,
-      style:TextStyle(fontSize:PaydayType.caption,color:muted)),
+      maxLines:2,overflow:TextOverflow.ellipsis,style:PaydayText.rowTitle.copyWith(color:ink)),
+     if(subtitle.isNotEmpty)...[SizedBox(height:3),
+      LText(subtitle,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:PaydayType.caption,color:muted))],
     ])),SizedBox(width:8),
     ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.4),
      child:FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerEnd,
-      child:LText('${incoming?'+':'−'}${plain(val(t,'amount'))}',
+      child:LText('${incoming?'+':'−'}${listMoney(val(t,'amount'))}',
        style:PaydayText.amount.copyWith(color:incoming?jade:ink)))),
    ])))));
  }
@@ -36,7 +40,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
     if(showHeaders)Padding(padding:EdgeInsetsDirectional.fromSTEB(6,12,6,6),child:Text(
      (entry.key==today?'${tr(context,'Today')} · ${shortDay(entry.key)}':entry.key==yesterday?'${tr(context,'Yesterday')} · ${shortDay(entry.key)}':shortDay(entry.key)).toUpperCase(),
      style:TextStyle(color:muted,fontWeight:FontWeight.w700,fontSize:PaydayType.caption,letterSpacing:language=='ar'?0:.4))),
-    groupedRows([for(final t in entry.value)recordTile(t,showWallet:wallets!=null,afterId:wallets?.afterId??0)]),
+    groupedRows(card:true,[for(final t in entry.value)recordTile(t,showWallet:wallets!=null,afterId:wallets?.afterId??0)]),
    ],
   ];
  }
@@ -45,14 +49,14 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final ts=all.where((t)=>(matchesRecord(t,recordQuery,recordType)||(recordType=='All'||st(t,'type')==recordType)&&categoryLabel(context,st(t,'category')).toLowerCase().contains(recordQuery.trim().toLowerCase()))).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    TextField(controller:search,onChanged:(v)=>setState(()=>recordQuery=v),
-    style:TextStyle(fontSize:15),
+    style:TextStyle(fontSize:PaydayType.body),
     decoration:InputDecoration(hintText:tr(context,'Search records'),isDense:true,
      contentPadding:EdgeInsets.symmetric(horizontal:14,vertical:12),
      prefixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
-     suffixIconConstraints:BoxConstraints(minWidth:36,minHeight:36),
+     suffixIconConstraints:BoxConstraints(minWidth:PaydayControl.target,minHeight:PaydayControl.target),
      prefixIcon:Padding(padding:EdgeInsets.all(9),child:PaydayAppIcon(Icons.search,size:18,color:muted)),
      suffixIcon:recordQuery.isEmpty?null:IconButton(
-      tooltip:tr(context,'Clear search'),visualDensity:VisualDensity.compact,icon:PaydayAppIcon(Icons.close,size:16),
+      tooltip:tr(context,'Clear search'),style:IconButton.styleFrom(minimumSize:const Size(PaydayControl.target,PaydayControl.target)),icon:PaydayAppIcon(Icons.close,size:16),
       onPressed:(){search.clear();setState(()=>recordQuery='');}))),
    SizedBox(height:10),
    SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:
@@ -103,19 +107,19 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
-  Widget figure(String label,String value,{Color? color})=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(label,maxLines:1,softWrap:false,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),SizedBox(height:4),
-   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(value,maxLines:1,style:PaydayText.figure.copyWith(color:color??ink))),
-  ]));
+  final quiet=TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w600,fontFeatures:PaydayText.tabular);
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   // How much of the planned income already has a job.
+   // How much of the planned income already has a job. One figure leads ("Not
+   // assigned"); the two inputs that produce it sit under it as a quiet line.
    Padding(key:ValueKey('budget-summary'),padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,PaydaySpace.xs,PaydaySpace.lg),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     figure('Planned income',plain(inc)),SizedBox(width:8),
-     figure('Budgeted',plain(assigned)),SizedBox(width:8),
-     figure(left<0?'Over-assigned':'Not assigned',plain(left.abs()),color:left<0?danger:jade),
+    LText(left<0?'Over-assigned':'Not assigned',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
+    SizedBox(height:PaydaySpace.xs),
+    FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(summaryMoney(left.abs()),key:ValueKey('budget-not-assigned'),maxLines:1,
+     style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.figure,fontWeight:FontWeight.w800,letterSpacing:-.5,fontFeatures:PaydayText.tabular,color:left<0?danger:jade))),
+    SizedBox(height:PaydaySpace.xs),
+    Wrap(spacing:PaydaySpace.md,runSpacing:PaydaySpace.xs,children:[
+     LText('{0} {1}'.replaceAll('{0}',tr(context,'Planned income')).replaceAll('{1}',summaryMoney(inc)),style:quiet),
+     LText('{0} {1}'.replaceAll('{0}',tr(context,'Budgeted')).replaceAll('{1}',summaryMoney(assigned)),style:quiet),
     ]),
     // What is still unspent across the category budgets this month.
     Builder(builder:(_){
@@ -127,14 +131,16 @@ extension _RecordsBudgetsSavings on _FinanceState {
       budgeted+=b;left+=(b-spent).clamp(0,b);
      }
      if(budgeted<=0)return const SizedBox.shrink();
-     return Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('budget-left'),padding:EdgeInsets.all(PaydaySpace.md),
+     // On the page, under a hairline: a summary, not a separate object.
+     return Padding(padding:EdgeInsets.only(top:PaydaySpace.lg),child:DecoratedBox(decoration:BoxDecoration(border:Border(top:BorderSide(color:line))),
+      child:Padding(key:ValueKey('budget-left'),padding:EdgeInsets.only(top:PaydaySpace.md),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
        Wrap(alignment:WrapAlignment.spaceBetween,spacing:8,children:[
         LText('Left to spend in your budgets',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
         LText('{0}% used'.replaceAll('{0}','${((budgeted-left)*100/budgeted).round()}'),style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
        ]),
        SizedBox(height:4),
-       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('{0} of {1}'.replaceAll('{0}',money(left)).replaceAll('{1}',money(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:left>0?jade:danger))),
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('{0} of {1}'.replaceAll('{0}',summaryMoney(left)).replaceAll('{1}',summaryMoney(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.amount.copyWith(color:left>0?ink:danger))),
        SizedBox(height:8),
        PaydayProgress(value:((budgeted-left)/budgeted).clamp(0,1).toDouble(),color:left>0?jade:danger),
       ]))));
@@ -146,7 +152,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
    ])),
    budgetAlertBanner(d),
    if(categories.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending or category budgets for this month.')
-   else groupedRows(separate:true,[for(final c in categories)Builder(builder:(_){
+   else groupedRows([for(final c in categories)Builder(builder:(_){
     final name=st(c,'name');
     final spent=ts.where((x)=>st(x,'type')=='Expense'&&st(x,'category')==name).fold(0,(n,x)=>n+val(x,'amount'));
     return homeCategory(name,spent,budgetFor(d,month,name),onTap:()=>budgetForm(d,name));
@@ -156,8 +162,8 @@ extension _RecordsBudgetsSavings on _FinanceState {
     icon:PaydayAppIcon(Icons.copy_outlined,size:18),label:LText('Copy last month’s budget'))),
    header('Income & savings plan'),
    groupedRows([
-    planRow('Income plan','Expected monthly income',money(inc),()=>budgetForm(d,'Income plan')),
-    planRow('Savings goal','Monthly savings target',money(goal),()=>budgetForm(d,'Savings goal')),
+    planRow('Income plan','expected monthly income',listMoney(inc),()=>budgetForm(d,'Income plan')),
+    planRow('Savings goal','Monthly savings target',listMoney(goal),()=>budgetForm(d,'Savings goal')),
    ]),
   ]);
  }
@@ -175,11 +181,11 @@ extension _RecordsBudgetsSavings on _FinanceState {
     child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText('Total saved',style:TextStyle(color:PaydayColors.heroMuted,fontWeight:FontWeight.w700)),
      SizedBox(height:6),
-     FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-      child:LText(money(pool),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.display,fontWeight:FontWeight.w800,color:paydaySand,letterSpacing:-1,fontFeatures:PaydayText.tabular))),
+     // Same split amount as the Home hero: integer large, decimals and currency small.
+     heroAmount(pool,color:paydaySand,quiet:PaydayColors.heroMuted,key:ValueKey('savings-total')),
      SizedBox(height:4),
-     LText('${thisMonth>=0?'+':'−'}${money(thisMonth.abs())} this month',style:TextStyle(color:PaydayColors.heroMuted)),
-     if(pool-used>0)LText('Unassigned: ${money(pool-used)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption)),
+     LText('${thisMonth>=0?'+':'−'}${summaryMoney(thisMonth.abs())} this month',style:TextStyle(color:PaydayColors.heroMuted)),
+     if(pool-used>0)LText('Unassigned: ${summaryMoney(pool-used)}',style:TextStyle(color:PaydayColors.heroMuted,fontSize:PaydayType.caption)),
     ])),
    SizedBox(height:12),
    Row(children:[
@@ -195,12 +201,14 @@ extension _RecordsBudgetsSavings on _FinanceState {
     final sum=allocations.where((x)=>val(x,'goal_id')==val(g,'id')).fold(0,(n,x)=>n+val(x,'amount'));
     final target=val(g,'target');
     return listRow(key:ValueKey('goal-${val(g,'id')}'),onTap:()=>goalActions(d,g),leading:iconTile(Icons.savings_outlined),
-     title:rowTitle(st(g,'name'),raw:true),subtitle:'${money(sum)} / ${money(target)}',
+     title:rowTitle(st(g,'name'),raw:true),subtitle:'${summaryMoney(sum)} / ${summaryMoney(target)}',
      amount:'${target<=0?0:(sum*100/target).clamp(0,100).round()}%',progress:target<=0?0.0:sum/target);
    })]),
    SizedBox(height:8),
    header('Allocations for ${monthLabel(now)}'),
-   if(allocations.any((x)=>st(x,'month')==current))groupedRows([...allocations.where((x)=>st(x,'month')==current).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;return tile(divider:false,g==null?tr(context,'Goal deleted'):st(g,'name'),monthLabel(now),money(val(a,'amount')),rawTitle:true,onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))),icon:Icons.check_circle_outline);})]),
+   if(allocations.any((x)=>st(x,'month')==current))groupedRows([...allocations.where((x)=>st(x,'month')==current).map((a){final g=goals.where((x)=>val(x,'id')==val(a,'goal_id')).firstOrNull;
+    return listRow(leading:iconTile(Icons.check_circle_outline,size:36),title:rowTitle(g==null?tr(context,'Goal deleted'):st(g,'name'),raw:true),
+     subtitle:monthLabel(now),amount:listMoney(val(a,'amount')),onTap:()=>confirmDelete('Delete allocation?',()=>store.deleteAllocation(val(a,'id'))));})]),
    if(allocations.where((x)=>st(x,'month')==current).isEmpty)Padding(padding:EdgeInsets.all(10),child:LText('After closing the month, allocate confirmed savings to your goals.')),
    SizedBox(height:10),FilledButton.tonalIcon(onPressed:(){setState(()=>selected=DateTime(now.year,now.month));openTool(4);},icon:PaydayAppIcon(Icons.fact_check_outlined),label:LText('Review ${monthLabel(now)}'))
   ]);

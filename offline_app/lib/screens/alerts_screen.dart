@@ -66,27 +66,27 @@ extension _AlertsScreen on _FinanceState {
   return out;
  }
 
- Widget alertRow(PaydayAlert a)=>Material(key:ValueKey(a.key),color:Colors.transparent,child:InkWell(onTap:a.onTap,child:Padding(
-  padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),
+ Widget alertRow(PaydayAlert a)=>Material(key:ValueKey(a.key),color:Colors.transparent,child:InkWell(onTap:a.onTap,child:Builder(builder:(context)=>Padding(
+  padding:EdgeInsets.symmetric(horizontal:PaydayRowInset.of(context),vertical:PaydaySpace.md),
   child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
     iconTile(a.icon,size:36,color:a.urgent?danger:null),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     LText(a.title,maxLines:2,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink)),
+     LText(a.title,maxLines:2,overflow:TextOverflow.ellipsis,style:PaydayText.rowTitle.copyWith(color:ink)),
      SizedBox(height:2),
      LText(a.subtitle,maxLines:3,style:TextStyle(fontSize:PaydayType.caption,color:a.urgent?danger:muted,fontWeight:a.urgent?FontWeight.w700:FontWeight.w400)),
     ])),
     if(a.onTap!=null)...[SizedBox(width:4),PaydayAppIcon(Icons.chevron_right,size:18,color:muted)],
    ]),
    if(a.actions!=null)Padding(padding:EdgeInsetsDirectional.only(start:48,top:PaydaySpace.sm),child:SizedBox(width:double.infinity,child:a.actions!)),
-  ]))));
+  ])))));
 
  Widget alertsBody(Map<String,List<RowData>> d){
   final alerts=alertsFor(d);
   if(alerts.isEmpty){
    return Padding(padding:EdgeInsets.only(top:PaydaySpace.xl*2),child:Column(children:[
     iconTile(Icons.check_circle_outline,size:56),SizedBox(height:PaydaySpace.md),
-    LText('You are all caught up',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:18,color:ink)),
+    LText('You are all caught up',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,fontSize:PaydayType.section,color:ink)),
     SizedBox(height:PaydaySpace.xs),
     LText('Bills, reserves and backups that need you will show here.',textAlign:TextAlign.center,style:TextStyle(color:muted)),
    ]));
@@ -98,15 +98,18 @@ extension _AlertsScreen on _FinanceState {
  Widget alertsButton()=>FutureBuilder<Map<String,List<RowData>>>(future:data,builder:(context,snap){
   // Only what appeared since the bell was last opened is counted.
   final count=snap.hasData?unseenAlerts(snap.data!):0;
-  return Stack(clipBehavior:Clip.none,children:[
+  // The count is read out with the button; the badge itself is decoration.
+  return Semantics(label:count>0?tr(context,'{0} new notifications'.replaceAll('{0}','$count')):null,child:Stack(clipBehavior:Clip.none,children:[
    IconButton(key:ValueKey('home-bell-button'),tooltip:tr(context,'Notifications'),onPressed:openAlerts,
-    style:IconButton.styleFrom(backgroundColor:surface,side:BorderSide(color:line),fixedSize:Size(44,44)),
-    icon:PaydayAppIcon(Icons.notifications_none,size:22)),
-   if(count>0)PositionedDirectional(top:2,end:2,child:IgnorePointer(child:Container(key:ValueKey('home-bell-badge'),
-    constraints:BoxConstraints(minWidth:18),height:18,padding:EdgeInsets.symmetric(horizontal:5),
-    decoration:BoxDecoration(color:paydaySaffron,borderRadius:BorderRadius.circular(9),border:Border.all(color:Theme.of(context).scaffoldBackgroundColor,width:1.5)),
-    child:Center(child:Text(count>9?'9+':'$count',style:TextStyle(fontSize:10,fontWeight:FontWeight.w800,color:PaydayColors.ink,height:1)))))),
-  ]);
+    style:IconButton.styleFrom(minimumSize:const Size(PaydayControl.target,PaydayControl.target),tapTargetSize:MaterialTapTargetSize.padded),
+    icon:PaydayAppIcon(Icons.notifications_none,size:22,color:ink)),
+   // Saffron badge: one of the two places saffron is allowed. 11sp, never smaller.
+   if(count>0)PositionedDirectional(top:4,end:4,child:IgnorePointer(child:ExcludeSemantics(child:Container(key:ValueKey('home-bell-badge'),
+    constraints:BoxConstraints(minWidth:20),height:20,padding:EdgeInsets.symmetric(horizontal:5),
+    decoration:ShapeDecoration(color:isDark?PaydayColors.darkSaffron:paydaySaffron,
+     shape:StadiumBorder(side:BorderSide(color:Theme.of(context).scaffoldBackgroundColor,width:1.5))),
+    child:Center(child:Text(count>9?'9+':'$count',style:TextStyle(fontSize:11,fontWeight:FontWeight.w800,color:PaydayColors.ink,height:1,fontFeatures:PaydayText.tabular))))))),
+  ]));
  });
 
  static const alertsSeenKey='alerts_seen';

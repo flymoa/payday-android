@@ -42,9 +42,7 @@ class _DonutPainter extends CustomPainter{
 }
 
 extension _ReportsScreen on _FinanceState {
- List<Color> get reportPalette=>isDark
-  ?const [Color(0xFF5FD3A9),Color(0xFF2C8979),Color(0xFFE5B56E),Color(0xFFF4A62A),Color(0xFF7FA99B),Color(0xFF6B7377)]
-  :const [Color(0xFF0E5A47),Color(0xFF2C8979),Color(0xFFD2A15A),Color(0xFFF4A62A),Color(0xFF7FA99B),Color(0xFFA9B0B3)];
+ List<Color> get reportPalette=>isDark?PaydayReport.dark:PaydayReport.light;
 
  /// Spending per category for one month, largest first.
  List<MapEntry<String,int>> spendingByCategory(Map<String,List<RowData>> d,String key){
@@ -75,31 +73,38 @@ extension _ReportsScreen on _FinanceState {
    (now.year==first.year&&now.month==first.month?now.day:null);
   final blanks=(first.weekday+6)%7; // Monday first
   final letters=localizedWeekdayLetters(language);
-  Color shade(int v){
-   if(v<=0||top<=0)return surface;
+  // No spend: no fill, the number sits on the card. Then three steps, each 3:1 on the card.
+  int? step(int v){
+   if(v<=0||top<=0)return null;
    final level=v/top;
-   if(level>.66)return jade;
-   if(level>.33)return isDark?const Color(0xFF2D5446):const Color(0xFFB7D6C6);
-   return isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint;
+   return level>.66?2:level>.33?1:0;
   }
+  final steps=isDark?PaydayCalendar.dark:PaydayCalendar.light,stepInk=isDark?PaydayCalendar.darkOn:PaydayCalendar.lightOn;
   final rows=day==null?<RowData>[]:monthTransactions(d).where((t)=>st(t,'date')==dayKey(DateTime(first.year,first.month,day))).toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    contentCard(Padding(padding:EdgeInsets.all(PaydaySpace.md),child:Column(children:[
-    Row(children:[for(final l in letters)Expanded(child:Center(child:Text(l,style:TextStyle(fontSize:12,fontWeight:FontWeight.w800,color:muted))))]),
+    Row(children:[for(final l in letters)Expanded(child:Center(child:Text(l,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w800,color:muted))))]),
     SizedBox(height:PaydaySpace.sm),
     GridView.count(key:ValueKey('records-calendar'),crossAxisCount:7,shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),
-     mainAxisSpacing:5,crossAxisSpacing:5,children:[
+     mainAxisSpacing:PaydaySpace.xs,crossAxisSpacing:PaydaySpace.xs,children:[
       for(var i=0;i<blanks;i++)const SizedBox.shrink(),
       for(var n=1;n<=days;n++)Builder(builder:(_){
-       final v=spent[n]??0,bg=shade(v),strong=bg==jade;
-       return Material(key:ValueKey('calendar-day-$n'),color:bg,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12),
-         side:BorderSide(color:paydays.contains(n)?paydaySaffron:(n==day?ink:line),width:paydays.contains(n)||n==day?2:1)),
-        child:InkWell(borderRadius:BorderRadius.circular(12),onTap:()=>setState(()=>calendarDay=DateTime(first.year,first.month,n)),
-         child:Center(child:Text('$n',style:TextStyle(fontWeight:FontWeight.w700,fontSize:13,color:strong?(isDark?PaydayColors.ink:paydaySand):ink)))));
+       final s=step(spent[n]??0);
+       // Rings sit outside the fill with a 2px gap, so they read on any step:
+       // emerald for payday, ink for the picked day.
+       final ring=n==day?ink:paydays.contains(n)?jade:null;
+       return DecoratedBox(key:ValueKey('calendar-day-$n'),
+        decoration:ShapeDecoration(shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg),
+         side:ring==null?BorderSide.none:BorderSide(color:ring,width:2))),
+        child:Padding(padding:const EdgeInsets.all(3),child:Material(color:s==null?Colors.transparent:steps[s],
+         borderRadius:BorderRadius.circular(PaydayRadius.sm),clipBehavior:Clip.antiAlias,
+         child:InkWell(onTap:()=>setState(()=>calendarDay=DateTime(first.year,first.month,n)),
+          child:Center(child:Text('$n',style:TextStyle(fontWeight:FontWeight.w700,fontSize:PaydayType.caption,fontFeatures:PaydayText.tabular,
+           color:s==null?ink:stepInk[s])))))));
       }),
      ]),
     SizedBox(height:PaydaySpace.sm),
-    LText('Darker day = more spent · ring = payday',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
+    LText('Deeper colour = more spent · ring = payday',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
    ]))),
    if(day!=null)...[
     Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),
@@ -140,14 +145,15 @@ extension _ReportsScreen on _FinanceState {
    ..sort((a,b)=>b.value.compareTo(a.value));
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    toggle,SizedBox(height:12),
-   contentCard(Padding(padding:EdgeInsets.all(PaydaySpace.lg),child:Column(children:[
+   // The ring sits on the page: one object, no frame around it.
+   Padding(padding:EdgeInsets.symmetric(vertical:PaydaySpace.sm),child:Column(children:[
     Builder(builder:(_){
      final sliceNames=[...shown.map((e)=>e.key),if(rest>0)'Other'];
      final sel=reportSlice!=null&&reportSlice!<slices.length?reportSlice:null;
      return GestureDetector(key:ValueKey('reports-donut-tap'),behavior:HitTestBehavior.opaque,
       onTapUp:(e){final i=_DonutPainter.hit(e.localPosition,const Size(200,200),slices);setState(()=>reportSlice=i==null||i==sel?null:i);},
       child:SizedBox(width:200,height:200,child:TweenAnimationBuilder<double>(key:ValueKey('donut-$sel'),tween:Tween(begin:0,end:1),
-       duration:MediaQuery.disableAnimationsOf(context)?Duration.zero:const Duration(milliseconds:320),curve:Curves.easeOutBack,
+       duration:MediaQuery.disableAnimationsOf(context)?Duration.zero:const Duration(milliseconds:220),curve:Curves.easeOutCubic,
        builder:(_,t,__)=>Stack(alignment:Alignment.center,children:[
         CustomPaint(key:ValueKey('reports-donut'),size:const Size(200,200),
          painter:_DonutPainter(slices,palette,isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh,selected:sel,t:t.clamp(0,1).toDouble())),
@@ -155,36 +161,36 @@ extension _ReportsScreen on _FinanceState {
         AnimatedSwitcher(duration:const Duration(milliseconds:220),
          transitionBuilder:(w,a)=>FadeTransition(opacity:a,child:ScaleTransition(scale:Tween(begin:.85,end:1.0).animate(a),child:w)),
          child:SizedBox(key:ValueKey('centre-$sel'),width:120,child:sel==null?Column(mainAxisSize:MainAxisSize.min,children:[
-          FittedBox(child:Text(localizedWhole(total,language),style:TextStyle(fontFamily:'Bricolage',fontSize:26,fontWeight:FontWeight.w800,color:ink))),
-          LText('{0} spent'.replaceAll('{0}',currencyLabel(currency,language)),textAlign:TextAlign.center,style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:muted)),
+          FittedBox(child:Text(displayMoney(total,currency,language,style:MoneyStyle.summary,unit:false),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.title,fontFeatures:PaydayText.tabular,fontWeight:FontWeight.w800,color:ink))),
+          LText('{0} spent'.replaceAll('{0}',currencyLabel(currency,language)),textAlign:TextAlign.center,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:muted)),
          ]):Column(key:ValueKey('reports-slice-detail'),mainAxisSize:MainAxisSize.min,children:[
           Container(width:10,height:10,decoration:BoxDecoration(color:palette[sel%palette.length],shape:BoxShape.circle)),SizedBox(height:4),
-          LText(sliceNames[sel],category:true,maxLines:2,textAlign:TextAlign.center,style:TextStyle(fontSize:13,fontWeight:FontWeight.w800,color:ink)),
-          FittedBox(child:Text(localizedWhole(slices[sel],language),style:TextStyle(fontFamily:'Bricolage',fontSize:22,fontWeight:FontWeight.w800,color:ink))),
-          Text('${currencyLabel(currency,language)} · ${total==0?0:slices[sel]*100~/total}%',style:TextStyle(fontSize:12,fontWeight:FontWeight.w700,color:muted)),
+          LText(sliceNames[sel],category:true,maxLines:2,textAlign:TextAlign.center,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w800,color:ink)),
+          FittedBox(child:Text(displayMoney(slices[sel],currency,language,style:MoneyStyle.summary,unit:false),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.title,fontFeatures:PaydayText.tabular,fontWeight:FontWeight.w800,color:ink))),
+          Text('${currencyLabel(currency,language)} · ${total==0?0:slices[sel]*100~/total}%',style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:muted)),
          ]))),
        ]))));
     }),
     SizedBox(height:PaydaySpace.md),
     Row(children:[
-     Expanded(child:LText(income>0?'Spent {0} of {1}'.replaceAll('{0}',money(total)).replaceAll('{1}',money(income)):'Spent {0}'.replaceAll('{0}',money(total)),
+     Expanded(child:LText(income>0?'Spent {0} of {1}'.replaceAll('{0}',summaryMoney(total)).replaceAll('{1}',summaryMoney(income)):'Spent {0}'.replaceAll('{0}',summaryMoney(total)),
       style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:muted))),
-     if(saved>0)LText('Saved {0}'.replaceAll('{0}',money(saved)),style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w800,color:jade)),
+     if(saved>0)LText('Saved {0}'.replaceAll('{0}',summaryMoney(saved)),style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w800,color:jade)),
     ]),
-   ]))),
+   ])),
    if(biggestRise.isNotEmpty)Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:Container(key:ValueKey('reports-insight'),
-    padding:EdgeInsets.all(PaydaySpace.md),decoration:BoxDecoration(color:isDark?const Color(0xFF3A2E1C):const Color(0xFFFCEBD0),borderRadius:BorderRadius.circular(18)),
-    child:Row(children:[PaydayAppIcon(Icons.trending_up,color:saffronText),SizedBox(width:12),
+    padding:EdgeInsets.all(PaydaySpace.md),decoration:BoxDecoration(color:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
+    child:Row(children:[PaydayAppIcon(Icons.trending_up,color:isDark?PaydayColors.darkText:PaydayColors.emerald),SizedBox(width:12),
      Expanded(child:LText('{0} up {1}% on last month'.replaceAll('{0}',categoryLabel(context,biggestRise.first.key)).replaceAll('{1}','${biggestRise.first.value}'),
-      style:TextStyle(fontWeight:FontWeight.w800,color:saffronText)))]))),
+      style:TextStyle(fontWeight:FontWeight.w800,color:isDark?PaydayColors.darkText:PaydayColors.emerald)))]))),
    SizedBox(height:PaydaySpace.md),
    if(cats.isEmpty)PaydayEmpty(icon:Icons.pie_chart_outline,message:'No spending this month yet.')
    else groupedRows([
     for(var i=0;i<cats.length;i++)listRow(key:ValueKey('report-${cats[i].key}'),
-     leading:Container(width:12,height:12,decoration:BoxDecoration(color:i<5?palette[i]:palette[5],borderRadius:BorderRadius.circular(4))),
+     leading:Container(width:12,height:12,decoration:BoxDecoration(color:i<5?palette[i]:palette[5],borderRadius:BorderRadius.circular(PaydayRadius.sm))),
      title:rowTitle(cats[i].key,category:true),
      subtitle:'${total==0?0:cats[i].value*100~/total}% · ${tr(context,change(cats[i].key,cats[i].value))}',
-     amount:money(cats[i].value),onTap:()=>categoryHistory(d,cats[i].key),
+     amount:listMoney(cats[i].value),onTap:()=>categoryHistory(d,cats[i].key),
      trailing:Padding(padding:EdgeInsetsDirectional.only(start:4),child:PaydayAppIcon(Icons.chevron_right,size:18,color:muted))),
    ]),
   ]);

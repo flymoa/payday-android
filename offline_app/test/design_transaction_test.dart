@@ -35,7 +35,7 @@ void main(){
     final field=find.widgetWithText(TextField,label);
     await tester.ensureVisible(field);await tester.pumpAndSettle();await tester.enterText(field,value);
    }
-   await enter('Amount (DH)','312.40');
+   await enter('Amount','312.40');
    await pickCategory(tester,'Groceries');
    // The description and note stay folded behind "+ Note" until asked for.
    expect(find.widgetWithText(TextField,'Description'),findsNothing);
@@ -57,7 +57,7 @@ void main(){
   await tester.tap(find.bySemanticsLabel('Add transaction'));
   await tester.pumpAndSettle();
   semantics.dispose();
-  final amount=find.widgetWithText(TextField,'Amount (DH)');
+  final amount=find.widgetWithText(TextField,'Amount');
   expect(tester.widget<TextField>(amount).autofocus,isTrue);
   await tester.enterText(amount,'45');
   final yesterday=find.byKey(const ValueKey('transaction-date-yesterday'));
@@ -81,7 +81,7 @@ void main(){
   await tester.tap(find.bySemanticsLabel('Add transaction'));
   await tester.pumpAndSettle();
   semantics.dispose();
-  await tester.enterText(find.widgetWithText(TextField,'Amount (DH)'),'15');await tester.pumpAndSettle();
+  await tester.enterText(find.widgetWithText(TextField,'Amount'),'15');await tester.pumpAndSettle();
   expect(find.textContaining('No budget set for'),findsNothing,reason:'no budget tag until a category is chosen');
   await tester.tap(find.byKey(const ValueKey('save-transaction')));await tester.pumpAndSettle();
   expect(store.saved,isNull,reason:'an expense is never filed under a category the user did not choose');

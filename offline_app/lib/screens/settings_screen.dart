@@ -35,8 +35,8 @@ extension _SettingsScreen on _FinanceState {
   leading:iconTile(icon,size:36),title:rowTitle(title),subtitle:subtitle,
   trailing:toggle??Row(mainAxisSize:MainAxisSize.min,children:[
    if(value!=null)ConstrainedBox(constraints:BoxConstraints(maxWidth:140),child:Padding(padding:EdgeInsetsDirectional.only(start:8),
-    child:rawValue?Text(value,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:14,fontWeight:FontWeight.w600,color:muted))
-     :LText(value,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:14,fontWeight:FontWeight.w600,color:muted)))),
+    child:rawValue?Text(value,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:PaydayType.body,fontWeight:FontWeight.w600,color:muted))
+     :LText(value,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontSize:PaydayType.body,fontWeight:FontWeight.w600,color:muted)))),
    SizedBox(width:4),PaydayAppIcon(Icons.chevron_right,size:18,color:muted)]));
  /// Settings grouped like a normal app: General first, then reminders,
  /// privacy, money and data, and help.
@@ -66,7 +66,7 @@ extension _SettingsScreen on _FinanceState {
       await store.setSetting(PaydayRule.dayKey,rule.encodedDay);
       await store.setSetting(PaydayRule.weekendKey,rule.weekend.name);
      },saved:'Payday saved.')))),
-    settingRow(key:ValueKey('salary-early'),icon:Icons.event_outlined,title:'Salary came early',subtitle:'Add it now: the new cycle starts today',
+    settingRow(key:ValueKey('salary-early'),icon:Icons.bolt_outlined,title:'Salary came early',subtitle:'Add it now: the new cycle starts today',
      onTap:()=>transactionForm(null,initialType:'Income')),
    ]),
    settingsGroup('Reminders',[

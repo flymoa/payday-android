@@ -20,7 +20,7 @@ extension _V3Screens on _FinanceState {
       child:Padding(padding:EdgeInsetsDirectional.fromSTEB(6,6,14,6),child:Row(mainAxisSize:MainAxisSize.min,children:[
        PaydayCategoryIcon(qs[i].category,size:30),SizedBox(width:8),
        Text(qs[i].name,style:TextStyle(fontWeight:FontWeight.w700,color:ink)),SizedBox(width:6),
-       Text(localizedWhole(qs[i].amount,language),style:TextStyle(fontWeight:FontWeight.w600,color:muted)),
+       Text(localizedWhole(qs[i].amount,language),style:TextStyle(fontWeight:FontWeight.w600,color:muted,fontFeatures:PaydayText.tabular)),
       ]))))),
    ])),
   ]));
@@ -52,7 +52,7 @@ extension _V3Screens on _FinanceState {
    SizedBox(height:12),
    if(qs.isEmpty)PaydayEmpty(icon:Icons.bolt_outlined,message:'No quick adds yet. Save an expense as a quick add from its More details.')
    else groupedRows([for(var i=0;i<qs.length;i++)listRow(key:ValueKey('quick-add-row-$i'),leading:PaydayCategoryIcon(qs[i].category,size:38),
-    title:rowTitle(qs[i].name,raw:true),subtitle:categoryLabel(context,qs[i].category),amount:plain(qs[i].amount),
+    title:rowTitle(qs[i].name,raw:true),subtitle:categoryLabel(context,qs[i].category),amount:listMoney(qs[i].amount),
     trailing:IconButton(tooltip:tr(context,'Delete'),icon:PaydayAppIcon(Icons.delete_outline,size:20,color:danger),onPressed:()async{
      qs=[...qs]..removeAt(i);await saveQuickAdds(qs);rebuild((){});}))]),
   ]),footer:(c,rebuild)=>FilledButton(onPressed:()=>Navigator.pop(c),child:LText('Done')));
@@ -118,9 +118,9 @@ extension _V3Screens on _FinanceState {
   final owed=open.where((k)=>!k.iOwe).fold<int>(0,(n,k)=>n+k.balance);
   final income=budgetFor(d,month,'Income plan')>0?budgetFor(d,month,'Income plan'):sumType(monthTransactions(d),'Income');
   final share=repaymentShare(all,income);
-  Widget total(String label,int v,Color color,String sub)=>Expanded(child:contentCard(Padding(padding:EdgeInsets.all(PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  Widget total(String label,int v,Color color,String sub)=>Expanded(child:(Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,0,PaydaySpace.sm),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LText(label,style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w700,color:muted)),SizedBox(height:4),
-   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(v),style:PaydayText.figure.copyWith(color:color))),
+   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(summaryMoney(v),style:PaydayText.figure.copyWith(color:color))),
    SizedBox(height:2),LText(sub,style:TextStyle(fontSize:PaydayType.caption,color:muted)),
   ]))));
   final people=open.where((k)=>k.kind!='loan').toList(),loans=open.where((k)=>k.kind=='loan').toList();
@@ -129,12 +129,12 @@ extension _V3Screens on _FinanceState {
     total('I owe',owe,danger,'{0} open'.replaceAll('{0}','${open.where((k)=>k.iOwe).length}')),SizedBox(width:10),
     total('Owed to me',owed,jade,'{0} open'.replaceAll('{0}','${open.where((k)=>!k.iOwe).length}')),
    ]),
-   if(loans.isNotEmpty)Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('kridi-gauge'),padding:EdgeInsets.all(PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   if(loans.isNotEmpty)Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:(Padding(key:ValueKey('kridi-gauge'),padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,PaydaySpace.xs,PaydaySpace.sm),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:LText('Repayments vs income',style:TextStyle(fontWeight:FontWeight.w700))),
      Text('$share%',style:PaydayText.figure.copyWith(color:share>=40?danger:share>=30?saffronText:jade))]),
     SizedBox(height:8),
     LayoutBuilder(builder:(_,b)=>Stack(clipBehavior:Clip.none,children:[
-     PaydayProgress(value:(share/60).clamp(0,1).toDouble(),color:share>=40?danger:share>=30?paydaySaffron:jade),
+     PaydayProgress(value:(share/60).clamp(0,1).toDouble(),color:share>=40?danger:share>=30?warn:jade),
      PositionedDirectional(start:b.maxWidth*40/60-1,top:-4,child:Container(width:2,height:16,color:danger)),
     ])),
     SizedBox(height:6),
@@ -143,13 +143,13 @@ extension _V3Screens on _FinanceState {
    Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),child:LText('People & shops',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),
    if(people.isEmpty)PaydayEmpty(icon:Icons.people_outline,message:'No kridi yet. Note money you borrowed, lent, or bought on carnet at the hanout.')
    else groupedRows([for(final k in people)listRow(key:ValueKey('kridi-${k.id}'),leading:iconTile(kridiIcon(k)),title:rowTitle(k.name,raw:true),
-    subtitle:k.kind=='shop'?'Carnet':k.kind=='lent'?'I lent':'I borrowed',amount:'${k.iOwe?'−':'+'}${plain(k.balance)}',amountColor:k.iOwe?danger:jade,
+    subtitle:k.kind=='shop'?'Carnet':k.kind=='lent'?'I lent':'I borrowed',amount:'${k.iOwe?'−':'+'}${listMoney(k.balance)}',amountColor:k.iOwe?danger:jade,
     onTap:()=>kridiDetails(k.id))]),
    if(loans.isNotEmpty)...[
     Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),child:LText('Instalments',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),
     groupedRows([for(final k in loans)listRow(key:ValueKey('kridi-${k.id}'),leading:iconTile(kridiIcon(k)),title:rowTitle(k.name,raw:true),
      subtitle:'{0} of {1} paid · {2} a month'.replaceAll('{0}','${k.paidCount}').replaceAll('{1}','${k.months}').replaceAll('{2}',money(k.monthly)),
-     amount:'−${plain(k.balance)}',amountColor:danger,onTap:()=>kridiDetails(k.id))]),
+     amount:'−${listMoney(k.balance)}',amountColor:danger,onTap:()=>kridiDetails(k.id))]),
    ],
    listAction('Add kridi',Icons.add,()=>kridiForm(),key:ValueKey('kridi-add')),
    Padding(padding:EdgeInsets.only(top:10),child:LText('Kridi keeps track of who owes what. Record the spending itself as a normal expense.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
@@ -191,7 +191,7 @@ extension _V3Screens on _FinanceState {
    Center(child:Column(children:[
     iconTile(kridiIcon(k),size:52),SizedBox(height:8),
     LText(k.iOwe?'You owe':'Owed to you',style:TextStyle(color:muted,fontWeight:FontWeight.w700)),
-    Text(money(k.balance),key:ValueKey('kridi-balance'),style:TextStyle(fontFamily:'Bricolage',fontSize:30,fontWeight:FontWeight.w800,color:k.iOwe?danger:jade)),
+    Text(money(k.balance),key:ValueKey('kridi-balance'),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.figure,fontWeight:FontWeight.w800,fontFeatures:PaydayText.tabular,color:k.iOwe?danger:jade)),
    ])),
    SizedBox(height:14),
    field(value,'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
@@ -213,7 +213,7 @@ extension _V3Screens on _FinanceState {
    SizedBox(height:8),
    groupedRows([for(final m in k.moves.reversed)listRow(leading:iconTile((m['amount'] as int)<0?Icons.check:Icons.add,size:36),
     title:rowTitle((m['amount'] as int)<0?(k.iOwe?'Paid back':'Received'):(k.kind=='shop'?'Bought on carnet':'Added')),
-    subtitle:shortDay(m['date'] as String),amount:'${(m['amount'] as int)<0?'−':'+'}${plain((m['amount'] as int).abs())}')]),
+    subtitle:shortDay(m['date'] as String),amount:'${(m['amount'] as int)<0?'−':'+'}${listMoney((m['amount'] as int).abs())}')]),
    TextButton(onPressed:()async{Navigator.pop(c);await confirmDelete('Delete this kridi?',()async{
     final rest=list_.where((x)=>x.id!=id).toList();await store.setSetting(kridiKey,encodeKridi(rest));});},
     child:LText('Delete',style:TextStyle(color:danger))),
@@ -223,26 +223,39 @@ extension _V3Screens on _FinanceState {
  // ------------------------------------------------------------------ daret
  List<Daret> daretsOf(Map<String,List<RowData>> d)=>decodeDarets(Ledger(d).setting(daretKey));
 
+ /// Money · Owed & Daret: what people owe (kridi), then the rotating savings circles.
+ /// One tab because both are money moving between you and people you know.
+ Widget owedAndDaret(Map<String,List<RowData>> d)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+  moreKridi(d),
+  Padding(padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.xl,0,PaydaySpace.sm),
+   child:LText('Daret',key:ValueKey('daret-section'),style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.section,fontWeight:FontWeight.w800,color:ink))),
+  moreDaret(d),
+ ]);
+
  Widget moreDaret(Map<String,List<RowData>> d){
   final all=daretsOf(d);
   final now=monthKey(DateTime.now());
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    if(all.isEmpty)PaydayEmpty(icon:Icons.autorenew,message:'No daret yet. Add one to track your payments and your turn.'),
-   for(final r in all)Padding(padding:EdgeInsets.only(bottom:12),child:contentCard(Padding(key:ValueKey('daret-${r.id}'),padding:EdgeInsets.all(PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[iconTile(Icons.autorenew,size:44),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-     Text(r.name,style:TextStyle(fontWeight:FontWeight.w800,fontSize:16,color:ink)),
+   // Each daret sits on the page between hairlines; the round of turns is its own visual.
+   for(final r in all)DecoratedBox(decoration:BoxDecoration(border:Border(bottom:BorderSide(color:line))),child:Padding(key:ValueKey('daret-${r.id}'),padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.md,0,PaydaySpace.lg),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    Row(children:[iconTile(Icons.autorenew,size:40),SizedBox(width:12),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+     Text(r.name,style:PaydayText.rowTitle.copyWith(color:ink)),
      LText('{0} people · {1} each month'.replaceAll('{0}','${r.members}').replaceAll('{1}',money(r.amount)),style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     ])),IconButton(tooltip:tr(context,'Delete'),icon:PaydayAppIcon(Icons.delete_outline,size:20,color:muted),onPressed:()=>confirmDelete('Delete this daret?',
      ()async{await store.setSetting(daretKey,encodeDarets(all.where((x)=>x.id!=r.id).toList()));}))]),
     SizedBox(height:12),
     SingleChildScrollView(scrollDirection:Axis.horizontal,child:Row(children:[for(var i=1;i<=r.members;i++)Padding(padding:EdgeInsetsDirectional.only(end:6),child:Column(children:[
+     // Paid turns: solid emerald. Your turn: a 2px emerald ring on mint. Saffron stays on the add button.
      Container(width:34,height:34,alignment:Alignment.center,decoration:BoxDecoration(shape:BoxShape.circle,
-      color:i==r.myTurn?paydaySaffron:r.paid.contains(r.monthOf(i))?jade:surface,border:Border.all(color:line)),
-      child:Text('$i',style:TextStyle(fontWeight:FontWeight.w800,fontSize:13,color:i==r.myTurn?PaydayColors.ink:r.paid.contains(r.monthOf(i))?(isDark?PaydayColors.ink:paydaySand):ink))),
-     SizedBox(height:3),Text(localizedShortMonth(r.monthOf(i),language),style:TextStyle(fontSize:10,fontWeight:FontWeight.w700,color:muted)),
+      color:r.paid.contains(r.monthOf(i))?jade:i==r.myTurn?(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint):surface,
+      border:Border.all(color:i==r.myTurn?jade:line,width:i==r.myTurn?2:1)),
+      child:Text('$i',style:TextStyle(fontWeight:FontWeight.w800,fontSize:PaydayType.caption,fontFeatures:PaydayText.tabular,
+       color:r.paid.contains(r.monthOf(i))?Theme.of(context).colorScheme.onPrimary:i==r.myTurn?jade:ink))),
+     SizedBox(height:3),Text(localizedShortMonth(r.monthOf(i),language),style:TextStyle(fontSize:PaydayType.caption,fontWeight:FontWeight.w600,color:muted)),
     ]))])),
     SizedBox(height:12),
-    Container(padding:EdgeInsets.all(PaydaySpace.md),decoration:BoxDecoration(color:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,borderRadius:BorderRadius.circular(16)),
+    Container(padding:EdgeInsets.all(PaydaySpace.md),decoration:BoxDecoration(color:isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
      child:Row(children:[PaydayAppIcon(Icons.star_outline,color:jade),SizedBox(width:10),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
       LText('Your turn: {0}'.replaceAll('{0}',localizedMonth(DateTime.parse('${r.monthOf(r.myTurn)}-01'),language)),style:TextStyle(fontWeight:FontWeight.w800,color:jade)),
       LText('You receive {0}. Paid in so far: {1}.'.replaceAll('{0}',money(r.pot)).replaceAll('{1}',money(r.paidIn)),style:TextStyle(fontSize:PaydayType.caption,color:ink)),
@@ -252,7 +265,7 @@ extension _V3Screens on _FinanceState {
      onPressed:()=>daretPay(r.id),icon:PaydayAppIcon(Icons.check),label:LText('Pay {0} for {1}'.replaceAll('{0}',money(r.amount)).replaceAll('{1}',localizedMonth(DateTime.now(),language))))),
     if(!r.received&&now.compareTo(r.monthOf(r.myTurn))>=0)Padding(padding:EdgeInsets.only(top:8),child:SizedBox(width:double.infinity,child:OutlinedButton.icon(key:ValueKey('daret-receive-${r.id}'),
      onPressed:()=>daretReceive(r.id),icon:PaydayAppIcon(Icons.download_outlined),label:LText('Receive {0}'.replaceAll('{0}',money(r.pot)))))),
-   ])))),
+   ]))),
    listAction('New daret',Icons.add,()=>daretForm(),key:ValueKey('daret-add')),
    Padding(padding:EdgeInsets.only(top:10),child:LText('Payments and the pot are recorded under Daret, so over a full round they balance out.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
   ]);
@@ -311,7 +324,7 @@ extension _V3Screens on _FinanceState {
     ]),
     SizedBox(height:12),
     groupedRows([for(final v in cashDenominations)Padding(padding:EdgeInsets.symmetric(horizontal:12,vertical:4),child:Row(children:[
-     Container(width:64,height:34,alignment:Alignment.center,decoration:BoxDecoration(color:v>=2000?(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint):(isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh),borderRadius:BorderRadius.circular(8)),
+     Container(width:64,height:34,alignment:Alignment.center,decoration:BoxDecoration(color:v>=2000?(isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint):(isDark?PaydayColors.darkSurfaceHigh:PaydayColors.surfaceHigh),borderRadius:BorderRadius.circular(PaydayRadius.sm)),
       child:Text(v%100==0?'${v~/100}':'0,${(v%100).toString().padLeft(2,'0')}',style:TextStyle(fontFamily:'Bricolage',fontWeight:FontWeight.w800,color:ink))),
      SizedBox(width:10),Expanded(child:LText(v>=2000?'note':'coin',style:TextStyle(color:muted,fontSize:PaydayType.caption))),
      IconButton(key:ValueKey('cash-less-$v'),tooltip:tr(context,'Less'),onPressed:counts[v]!>0?()=>rebuild(()=>counts[v]=counts[v]!-1):null,icon:PaydayAppIcon(Icons.remove,size:18)),
@@ -347,7 +360,7 @@ extension _V3Screens on _FinanceState {
   if(near.isEmpty)return const SizedBox.shrink();
   final n=near.first,left=n.$3-n.$2;
   return Padding(padding:EdgeInsets.only(bottom:PaydaySpace.md),child:Container(key:ValueKey('budget-80-banner'),
-   padding:EdgeInsetsDirectional.fromSTEB(14,10,6,10),decoration:BoxDecoration(color:isDark?const Color(0xFF3A2E1C):const Color(0xFFFCEBD0),borderRadius:BorderRadius.circular(18)),
+   padding:EdgeInsetsDirectional.fromSTEB(14,10,6,10),decoration:BoxDecoration(color:isDark?PaydayColors.nearTintDark:PaydayColors.nearTintLight,borderRadius:BorderRadius.circular(PaydayRadius.lg)),
    child:Row(children:[PaydayAppIcon(Icons.notifications_none,color:saffronText),SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
      LText('{0} reached 80%'.replaceAll('{0}',categoryLabel(context,n.$1)),style:TextStyle(fontWeight:FontWeight.w800,color:saffronText)),

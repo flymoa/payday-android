@@ -84,9 +84,9 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('bottom-3')));
     await t.pumpAndSettle();
-    for (final label in ['Objectifs', 'Réserves', 'Kridi', 'Daret', 'Comptes']) {
-      final text = t.widget<Text>(find.descendant(of: find.byKey(ValueKey('subtab-3-${['Objectifs', 'Réserves', 'Kridi', 'Daret', 'Comptes'].indexOf(label)}')), matching: find.byType(Text)));
-      expect(text.style?.fontSize, 14, reason: label);
+    for (final label in ['Objectifs', 'Réserves', 'Dettes et daret', 'Comptes']) {
+      final text = t.widget<Text>(find.descendant(of: find.byKey(ValueKey('subtab-3-${['Objectifs', 'Réserves', 'Dettes et daret', 'Comptes'].indexOf(label)}')), matching: find.byType(Text)));
+      expect(text.style?.fontSize, 15, reason: label);
       expect(text.overflow, isNot(TextOverflow.ellipsis), reason: label);
     }
     expect(t.takeException(), isNull);
@@ -107,7 +107,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('bottom-2')));
     await t.pumpAndSettle();
     // 1 000 - 300 + 100 - 25 = 775 left of 1 100.
-    expect(find.text('775,00 DH of 1\u00a0100,00 DH'), findsOneWidget);
+    expect(find.text('775 DH of 1\u00a0100 DH'), findsOneWidget, reason: 'a summary: whole dirhams');
     expect(t.takeException(), isNull);
   });
 }

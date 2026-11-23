@@ -133,8 +133,8 @@ void main() {
     await t.pumpWidget(MaterialApp(home: FinanceScreen(key: UniqueKey(), initialData: Future.value(data))));
     await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-wallets')), findsOneWidget);
-    expect(find.text('300,00 DH'), findsOneWidget);
-    expect(find.text('15\u00a0000,00 DH'), findsWidgets);
+    expect(find.text('300 DH'), findsOneWidget);
+    expect(find.text('15\u00a0000 DH'), findsWidgets);
     expect(t.takeException(), isNull);
   });
 }
