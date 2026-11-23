@@ -129,12 +129,12 @@ extension _RecordsBudgetsSavings on _FinanceState {
      if(budgeted<=0)return const SizedBox.shrink();
      return Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('budget-left'),padding:EdgeInsets.all(PaydaySpace.md),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
-        Expanded(child:LText('Left to spend in your budgets',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),
+       Wrap(alignment:WrapAlignment.spaceBetween,spacing:8,children:[
+        LText('Left to spend in your budgets',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
         LText('{0}% used'.replaceAll('{0}','${((budgeted-left)*100/budgeted).round()}'),style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
        ]),
        SizedBox(height:4),
-       LText('{0} of {1}'.replaceAll('{0}',money(left)).replaceAll('{1}',money(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:left>0?jade:danger)),
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('{0} of {1}'.replaceAll('{0}',money(left)).replaceAll('{1}',money(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:left>0?jade:danger))),
        SizedBox(height:8),
        PaydayProgress(value:((budgeted-left)/budgeted).clamp(0,1).toDouble(),color:left>0?jade:danger),
       ]))));
