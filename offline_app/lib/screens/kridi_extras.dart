@@ -65,7 +65,7 @@ extension _KridiExtras on _FinanceState {
       Text(money(total),style:TextStyle(fontFamily:'Bricolage',fontSize:20,fontWeight:FontWeight.w800,color:jade))])),
     SizedBox(width:double.infinity,height:48,child:FilledButton(key:ValueKey('instalment-popup-ok'),onPressed:()=>Navigator.pop(c),child:LText('Got it'))),
     SizedBox(width:double.infinity,child:TextButton(onPressed:(){Navigator.pop(c);openTool(7);},child:LText('Open Kridi'))),
-   ])))));
+   ]))));
  }
 
  /// Centred, calm message after a carnet purchase goes past the shop's limit.
