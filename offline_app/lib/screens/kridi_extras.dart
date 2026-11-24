@@ -6,7 +6,7 @@ part of '../main.dart';
 extension _KridiExtras on _FinanceState {
  static const instalmentPopupKey='kridi_popup_shown';
  Color get softSurface=>isDark?PaydayColors.darkSurfaceLow:PaydayColors.surfaceLow;
- Color get saffronTint=>paydaySaffron.withValues(alpha:isDark?.16:.22);
+ Color get saffronTint=>paydaySaffron.withValues(alpha:isDark?0.16:0.22);
 
  /// "In 2 days · Thursday 27 November", in the app language.
  String dueChip(DateTime date){
@@ -47,15 +47,15 @@ extension _KridiExtras on _FinanceState {
     SizedBox(height:4),
     LText('Keep this money in your account until then.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
     SizedBox(height:12),Divider(height:1,color:line),
-    for(final (k,date) in soon)...[
+    for(final x in soon)...[
      Padding(padding:EdgeInsets.symmetric(vertical:12),child:Row(children:[
-      iconTile(kridiIcon(k),size:38),SizedBox(width:12),
+      iconTile(kridiIcon(x.$1),size:38),SizedBox(width:12),
       Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Text(k.name,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink)),
-       LText(k.months>0?'Instalment {0} of {1}'.replaceAll('{0}','${(k.paidCount+1).clamp(1,k.months)}').replaceAll('{1}','${k.months}'):shortDay(dayKey(date)),
+       Text(x.$1.name,maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(fontWeight:FontWeight.w700,fontSize:15,color:ink)),
+       LText(x.$1.months>0?'Instalment {0} of {1}'.replaceAll('{0}','${(x.$1.paidCount+1).clamp(1,x.$1.months)}').replaceAll('{1}','${x.$1.months}'):shortDay(dayKey(x.$2)),
         style:TextStyle(fontSize:12,color:muted)),
       ])),
-      Text(money(k.monthly),style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
+      Text(money(x.$1.monthly),style:TextStyle(fontWeight:FontWeight.w700,color:ink)),
      ])),
      Divider(height:1,color:line),
     ],

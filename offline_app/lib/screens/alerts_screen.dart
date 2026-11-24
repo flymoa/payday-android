@@ -61,7 +61,7 @@ extension _AlertsScreen on _FinanceState {
     subtitle:language=='ar'&&days>1?'${money(k.balance)} · بعد ${arabicDays(days,after:true)}':when.replaceAll('{0}',money(k.balance)).replaceAll('{1}','$days'),
     urgent:days<=0,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
   }
-  for(final (k,date) in instalmentsDueSoon(kridiOf(d),now)){
+  for(final x in instalmentsDueSoon(kridiOf(d),now)){final k=x.$1,date=x.$2;
    out.add((key:'alert-loan-${k.id}',icon:kridiIcon(k),title:isolate(k.name),subtitle:'{0} · {1}'.replaceAll('{0}',money(k.monthly)).replaceAll('{1}',dueChip(date)),
     urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
   }
