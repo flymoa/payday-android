@@ -613,7 +613,7 @@ const paydayTranslations=<String,List<String>>{
  "Review {0}":["Bilan de {0}","حصيلة {0}"],
  "Safe to spend":["Disponible à dépenser","المتاح للصرف"],
  "Salary":["Salaire","الراتب"],
- "Save":["Épargner","ادّخر"],
+ "Save":["Enregistrer","حفظ"],
  "Save a copy somewhere you can access if you lose or reset this phone.":["Gardez une copie accessible si vous perdez ou réinitialisez ce téléphone.","احفظ نسخة في مكان تصل إليه إن ضاع الهاتف أو أُعيد ضبطه."],
  "Save bill":["Enregistrer la facture","حفظ الفاتورة"],
  "Save budget":["Enregistrer le budget","حفظ الميزانية"],
