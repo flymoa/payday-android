@@ -7,7 +7,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
  /// One record row. Money coming in is green with a plus; money going out is ink with a minus.
  Widget recordTile(RowData t,{bool showWallet=false,int afterId=0}){
   final type=st(t,'type'),category=st(t,'category');
-  final incoming=type=='Income'||type=='Savings in';
+  final incoming=type=='Income'||type=='Savings in'||type==kridiIn;
   return Material(color:Colors.transparent,child:InkWell(onTap:()=>transactionForm(t),
    // The amount may use up to 40% of the row itself (not of the screen), then shrinks.
    child:Padding(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),child:LayoutBuilder(builder:(context,box)=>Row(children:[

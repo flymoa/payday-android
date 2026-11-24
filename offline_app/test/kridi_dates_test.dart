@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/v3_logic.dart';
+import 'package:payday_local/finance.dart';
 
 Kridi loan({int day = 27}) => Kridi(id: 1, name: 'Mortgage', kind: 'loan', monthly: 320000, months: 240, payDay: day,
     moves: [{'date': '2026-01-01', 'amount': 320000 * 240, 'note': ''}]);
@@ -33,5 +34,12 @@ void main() {
     k.autoThrough = '2026-11-27';
     expect(instalmentsTaken(k, DateTime(2026, 11, 27)), isEmpty);
     expect(instalmentsTaken(loan()..autoThrough = null, DateTime(2026, 11, 27)), isEmpty);
+  });
+  test('kridi money moves the balance but is neither income nor spending', () {
+    const b = MonthlyBalance(income: 500000, expenses: 100000, savingsNet: 0, reserveNet: 0, unpaidBills: 0,
+        savingsGap: 0, reserveHold: 0, buffer: 0, kridiNet: -100000);
+    expect(b.available, 500000);
+    expect(b.income, 500000);
+    expect(b.expenses, 100000);
   });
 }
