@@ -55,6 +55,7 @@ part 'screens/welcome_screen.dart';
 part 'screens/alerts_screen.dart';
 part 'screens/reports_screen.dart';
 part 'screens/v3_screens.dart';
+part 'screens/kridi_extras.dart';
 
 void main(){
  WidgetsFlutterBinding.ensureInitialized();
@@ -325,12 +326,16 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   unawaited(updateHomeWidget());
   unawaited(syncBillReminders());
   WidgetsBinding.instance.addPostFrameCallback((_)=>unawaited(openWidgetAction()));
+  unawaited(runLoanAutopay());
+  if(widget.welcomeOnFirstRun)WidgetsBinding.instance.addPostFrameCallback((_)=>unawaited(maybeShowInstalmentPopup()));
   unawaited(syncReserveReminders());
  }
  @override void didChangeAppLifecycleState(AppLifecycleState state){
   if(state==AppLifecycleState.resumed){
    unawaited(runRecurring());
    unawaited(openWidgetAction());
+   unawaited(runLoanAutopay());
+   if(widget.welcomeOnFirstRun)unawaited(maybeShowInstalmentPopup());
    unawaited(syncBillReminders());
    unawaited(syncReserveReminders());
   }
