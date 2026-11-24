@@ -249,6 +249,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  final settingsRefresh=ValueNotifier<int>(0);
  bool settingsOpen=false,alertsOpen=false;
  Set<String>? seenAlerts; // what the bell showed when last opened
+ Set<String> alertsHidden=<String>{}; // read before this opening, so not listed again
  Future<void> openSettingsDrawer()async{
   if(settingsOpen)return;
   settingsOpen=true;

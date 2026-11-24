@@ -82,7 +82,8 @@ extension _AlertsScreen on _FinanceState {
   ]))));
 
  Widget alertsBody(Map<String,List<RowData>> d){
-  final alerts=alertsFor(d);
+  // Items already read before this opening are gone; only new ones are listed.
+  final alerts=alertsFor(d).where((a)=>!alertsHidden.contains(alertSignature(a,d))).toList();
   if(alerts.isEmpty){
    return Padding(padding:EdgeInsets.only(top:PaydaySpace.xl*2),child:Column(children:[
     iconTile(Icons.check_circle_outline,size:56),SizedBox(height:PaydaySpace.md),
@@ -110,13 +111,26 @@ extension _AlertsScreen on _FinanceState {
  });
 
  static const alertsSeenKey='alerts_seen';
- // The key only: it does not change with the language, so switching language keeps the bell read.
- String alertSignature(PaydayAlert a)=>a.key;
- int unseenAlerts(Map<String,List<RowData>> d){
+ // The key plus the period it belongs to. It does not change with the language, so switching
+ // language keeps the bell read, but a new week's backup reminder or a new month's bill counts again.
+ String alertSignature(PaydayAlert a,Map<String,List<RowData>> d){
+  final now=DateTime.now();
+  if(a.key=='home-backup'){
+   // Same rhythm as the weekly phone reminder: one new item per week a backup stays overdue.
+   final last=backupReminder(d).lastExport;
+   final weeks=last==null?now.difference(DateTime.utc(2024)).inDays~/7:now.difference(last).inDays~/7;
+   return 'home-backup@${last==null?'none':dayKey(last.toLocal())}#$weeks';
+  }
+  if(a.key.startsWith('alert-kridi-'))return '${a.key}@${dayKey(cycleOf(d,now).start)}';
+  return '${a.key}@${monthKey(now)}';
+ }
+ Set<String> readAlerts(Map<String,List<RowData>> d){
   final raw=Ledger(d).setting(alertsSeenKey);
-  Set<String> seen;
-  try{seen=seenAlerts??(raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List));}catch(_){seen=<String>{};}
-  return alertsFor(d).where((a)=>!seen.contains(alertSignature(a))).length;
+  try{return seenAlerts??(raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List));}catch(_){return <String>{};}
+ }
+ int unseenAlerts(Map<String,List<RowData>> d){
+  final seen=readAlerts(d);
+  return alertsFor(d).where((a)=>!seen.contains(alertSignature(a,d))).length;
  }
  Future<void> openAlerts()async{
   if(alertsOpen)return;
@@ -125,8 +139,10 @@ extension _AlertsScreen on _FinanceState {
   try{
    final d=await store.snapshot();
    if(!mounted)return;
-   final signatures=[for(final a in alertsFor(d))alertSignature(a)];
-   setState(()=>seenAlerts=signatures.toSet());
+   final signatures=[for(final a in alertsFor(d))alertSignature(a,d)];
+   final before=readAlerts(d);
+   // Read items keep their place in the memory so they never come back, and new ones show once.
+   setState((){alertsHidden=before;seenAlerts=signatures.toSet();});
    await store.setSetting(alertsSeenKey,jsonEncode(signatures));
   }catch(_){}
   try{
@@ -137,6 +153,6 @@ extension _AlertsScreen on _FinanceState {
      if(!snap.hasData)return SizedBox(height:200);
      return alertsBody(snap.data!);
     }))));
-  }finally{alertsOpen=false;}
+  }finally{alertsOpen=false;alertsHidden=<String>{};}
  }
 }
