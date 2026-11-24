@@ -1,5 +1,17 @@
 // Display-only French and Arabic messages. Stored financial identifiers are never translated.
 const paydayTranslations=<String,List<String>>{
+ "Not enough cash":["Pas assez d’espèces","لا يكفي النقد"],
+ "Not enough in the bank":["Pas assez sur le compte","لا يكفي رصيد البنك"],
+ "In cash":["En espèces","نقدًا معك"],
+ "This payment":["Ce paiement","هذا الأداء"],
+ "Missing":["Il manque","الناقص"],
+ "Move money from {0} to {1}, then the payment is saved.":["Transférez de l’argent de {0} vers {1}, puis le paiement est enregistré.","انقل مالًا من {0} إلى {1}، ثم يُحفظ الأداء."],
+ "Amount to move ({0})":["Montant à transférer ({0})","المبلغ المنقول ({0})"],
+ "{0} has {1}.":["{0} : {1} disponibles.","في {0}: {1}."],
+ "Move at least {0}.":["Transférez au moins {0}.","انقل {0} على الأقل."],
+ "{0} only has {1}.":["{0} n’a que {1}.","لا يوجد في {0} إلا {1}."],
+ "Could not move the money. Try again.":["Transfert impossible. Réessayez.","تعذّر نقل المال. حاول مجددًا."],
+ "Move and save":["Transférer et enregistrer","انقل واحفظ"],
  "Kridi out":["Kridi versé","كريدي صادر"],
  "Kridi in":["Kridi reçu","كريدي وارد"],
  "Today · {0}":["Aujourd’hui · {0}","اليوم · {0}"],

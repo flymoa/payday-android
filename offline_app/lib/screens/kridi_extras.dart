@@ -169,10 +169,19 @@ extension _KridiExtras on _FinanceState {
    amount:cents,description:k.name,note:'Kridi',billId:'',account:account);
  }
  /// Saves a kridi change together with its transaction, so the balance moves.
- Future<bool> kridiPayment(List<Kridi> all,Kridi k,int cents,String? account,{bool added=false,String? saved})=>execute(()async{
+ Future<bool> kridiPayment(List<Kridi> all,Kridi k,int cents,String? account,{bool added=false,String? saved})async{
+  final m=kridiMove(k,added:added);
+  if(m!=null&&m.type!=kridiIn&&!await ensureWalletHas(account,cents)){
+   // Not saved: undo the change the caller made, so trying again does not count it twice.
+   if(k.moves.isNotEmpty)k.moves.removeLast();
+   if(k.moves.isEmpty)all.remove(k);
+   return false;
+  }
+  return execute(()async{
   await recordKridiMove(k,cents,account,added:added);
   await store.setSetting(kridiKey,encodeKridi(all));
  },saved:saved??(k.iOwe?'Paid back.':'Received.'));
+ }
 
  /// On the instalment day the bank takes the money: record it from Bank, once per instalment.
  Future<void> runLoanAutopay()async{
@@ -190,5 +199,54 @@ extension _KridiExtras on _FinanceState {
    }
    if(changed){await store.setSetting(kridiKey,encodeKridi(all));if(mounted)refresh();}
   }catch(_){}
+ }
+}
+
+extension _WalletCheck on _FinanceState {
+ /// Before money leaves [wallet]: if it holds less than [cents], explain and offer to move the
+ /// missing amount from the other wallet. Returns true when the payment can be saved.
+ /// [replacing] is what an edited record already took from the same wallet.
+ Future<bool> ensureWalletHas(String? wallet,int cents,{int replacing=0})async{
+  if(wallet==null)return true;
+  final d=await store.snapshot();if(!mounted)return false;
+  if(walletSetupOf(d)==null)return true;
+  final b=walletBalancesOf(d);
+  final have=(b[wallet]??0)+replacing;
+  if(have>=cents)return true;
+  final other=wallet=='Cash'?'Bank':'Cash',otherHas=b[other]??0,missing=cents-(have<0?0:have);
+  final move=TextEditingController(text:inputNumber(missing));
+  final moved=await showDialog<bool>(context:context,builder:(c)=>StatefulBuilder(builder:(c,rebuild)=>Dialog(key:ValueKey('wallet-short-dialog'),
+   backgroundColor:Theme.of(context).scaffoldBackgroundColor,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(22)),
+   child:SingleChildScrollView(padding:EdgeInsets.fromLTRB(20,22,20,12),child:Column(mainAxisSize:MainAxisSize.min,children:[
+    Container(width:52,height:52,decoration:BoxDecoration(color:saffronTint,borderRadius:BorderRadius.circular(16)),
+     child:Center(child:PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:26,color:saffronText))),
+    SizedBox(height:12),
+    LText(wallet=='Cash'?'Not enough cash':'Not enough in the bank',textAlign:TextAlign.center,
+     style:TextStyle(fontFamily:'Bricolage',fontSize:19,fontWeight:FontWeight.w800,color:ink)),
+    SizedBox(height:12),
+    Container(padding:EdgeInsets.symmetric(horizontal:14,vertical:10),decoration:BoxDecoration(color:softSurface,borderRadius:BorderRadius.circular(14)),
+     child:Column(children:[
+      for(final r in [(wallet=='Cash'?'In cash':'In the bank',money(have<0?0:have)),('This payment',money(cents)),('Missing',money(missing))])
+       Padding(padding:EdgeInsets.symmetric(vertical:3),child:Row(children:[Expanded(child:LText(r.$1,style:TextStyle(fontSize:PaydayType.caption,color:muted))),
+        Text(r.$2,style:TextStyle(fontWeight:FontWeight.w700,color:r.$1=='Missing'?saffronText:ink))])),
+     ])),
+    SizedBox(height:12),
+    LText('Move money from {0} to {1}, then the payment is saved.'.replaceAll('{0}',tr(context,other)).replaceAll('{1}',tr(context,wallet)),
+     textAlign:TextAlign.center,style:TextStyle(fontSize:PaydayType.caption,color:ink)),
+    SizedBox(height:10),
+    field(move,'Amount to move ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
+    LText('{0} has {1}.'.replaceAll('{0}',tr(context,other)).replaceAll('{1}',money(otherHas)),style:TextStyle(fontSize:12,color:muted)),
+    SizedBox(height:12),
+    SizedBox(width:double.infinity,height:46,child:FilledButton(key:ValueKey('wallet-short-move'),onPressed:()async{
+     final n=amount(move);
+     if(n==null||n<missing){inputError('Move at least {0}.'.replaceAll('{0}',money(missing)));return;}
+     if(n>otherHas){inputError('{0} only has {1}.'.replaceAll('{0}',tr(context,other)).replaceAll('{1}',money(otherHas)));return;}
+     try{await store.addWalletTransfer(from:other,amount:n,date:dayKey(DateTime.now()));if(c.mounted)Navigator.pop(c,true);}
+     catch(_){inputError('Could not move the money. Try again.');}
+    },child:LText('Move and save'))),
+    TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),
+   ])))));
+  if(moved==true){refresh();return true;}
+  return false;
  }
 }
