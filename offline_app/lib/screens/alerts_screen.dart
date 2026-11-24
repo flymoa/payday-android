@@ -83,7 +83,7 @@ extension _AlertsScreen on _FinanceState {
 
  Widget alertsBody(Map<String,List<RowData>> d){
   // Items already read before this opening are gone; only new ones are listed.
-  final alerts=alertsFor(d).where((a)=>!alertsHidden.contains(alertSignature(a,d))).toList();
+  final alerts=alertsFor(d).where((a)=>stickyAlert(a)||!alertsHidden.contains(alertSignature(a,d))).toList();
   if(alerts.isEmpty){
    return Padding(padding:EdgeInsets.only(top:PaydaySpace.xl*2),child:Column(children:[
     iconTile(Icons.check_circle_outline,size:56),SizedBox(height:PaydaySpace.md),
@@ -128,9 +128,12 @@ extension _AlertsScreen on _FinanceState {
   final raw=Ledger(d).setting(alertsSeenKey);
   try{return seenAlerts??(raw==null?<String>{}:Set<String>.from(jsonDecode(raw) as List));}catch(_){return <String>{};}
  }
+ /// A bill that is overdue or due today and still unpaid is never "read": it stays on the bell,
+ /// with its number, until it is paid. Once paid it leaves, and next month's bill is a new item.
+ bool stickyAlert(PaydayAlert a)=>a.urgent&&a.key.startsWith('alert-bill-');
  int unseenAlerts(Map<String,List<RowData>> d){
   final seen=readAlerts(d);
-  return alertsFor(d).where((a)=>!seen.contains(alertSignature(a,d))).length;
+  return alertsFor(d).where((a)=>stickyAlert(a)||!seen.contains(alertSignature(a,d))).length;
  }
  Future<void> openAlerts()async{
   if(alertsOpen)return;
