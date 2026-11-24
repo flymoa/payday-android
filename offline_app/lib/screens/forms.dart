@@ -275,6 +275,10 @@ extension _Forms on _FinanceState {
     if(cents==null){inputError('Enter a positive amount.');return;}
     // Shown inside the sheet: a snackbar would sit behind the full-height sheet.
     if(category.isEmpty){rebuild(()=>categoryMissing=true);return;}
+    if(walletSetup!=null&&(type=='Expense'||type=='Savings out')){
+     final old=existing!=null&&(st(existing,'type')=='Expense'||st(existing,'type')=='Savings out')&&(st(existing,'account').isEmpty?'Cash':st(existing,'account'))==wallet?val(existing,'amount'):0;
+     if(!await ensureWalletHas(wallet,cents,replacing:old))return;
+    }
     rebuild(()=>submitting=true);
     if(splits!=null&&splits!.fold<int>(0,(n,p)=>n+p.$2)!=cents){rebuild((){submitting=false;splits=null;});inputError('The amount changed. Split the expense again.');return;}
     final success=splits!=null?await execute(()async{

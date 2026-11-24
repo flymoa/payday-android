@@ -30,6 +30,7 @@ extension _V3Screens on _FinanceState {
   final before=await store.snapshot();
   final known=list(before,'transactions').map((t)=>val(t,'id')).toSet();
   final wallets=walletSetupOf(before);
+  if(wallets!=null&&!await ensureWalletHas(q.wallet??'Cash',q.amount))return;
   final ok=await execute(()=>store.saveTransaction(date:dayKey(DateTime.now()),type:'Expense',category:q.category,amount:q.amount,
    description:q.name,note:'',billId:'',account:wallets==null?null:(q.wallet??'Cash')),saved:'Saved · {0} {1}.'.replaceAll('{0}',money(q.amount)).replaceAll('{1}',q.name));
   if(!ok||!mounted)return;
