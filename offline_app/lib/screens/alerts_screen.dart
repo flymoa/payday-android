@@ -50,6 +50,25 @@ extension _AlertsScreen on _FinanceState {
      subtitle:'You owe {0} · payday'.replaceAll('{0}',money(k.balance)),urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
    }
   }
+  // Pay-back dates (borrowed and lent) from 3 days before; overdue ones stay until settled.
+  for(final k in kridiOf(d).where((k)=>(k.kind=='borrowed'||k.kind=='lent')&&k.balance>0&&k.dueDate!=null)){
+   final due=DateTime.tryParse(k.dueDate!);if(due==null)continue;
+   final days=DateTime(due.year,due.month,due.day).difference(today).inDays;
+   if(days>3)continue;
+   final when=days<0?'{0} · overdue':days==0?'{0} · today':days==1?'{0} · tomorrow':'{0} · in {1} days';
+   out.add((key:'alert-kridi-due-${k.id}',icon:Icons.event_outlined,
+    title:(k.iOwe?'Pay back {0}':'Ask {0} for your money').replaceAll('{0}',isolate(k.name)),
+    subtitle:language=='ar'&&days>1?'${money(k.balance)} · بعد ${arabicDays(days,after:true)}':when.replaceAll('{0}',money(k.balance)).replaceAll('{1}','$days'),
+    urgent:days<=0,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
+  }
+  for(final (k,date) in instalmentsDueSoon(kridiOf(d),now)){
+   out.add((key:'alert-loan-${k.id}',icon:kridiIcon(k),title:isolate(k.name),subtitle:'{0} · {1}'.replaceAll('{0}',money(k.monthly)).replaceAll('{1}',dueChip(date)),
+    urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
+  }
+  for(final k in kridiOf(d).where((k)=>k.overLimit)){
+   out.add((key:'alert-carnet-${k.id}',icon:Icons.storefront_outlined,title:isolate(k.name),
+    subtitle:'{0} over the carnet limit'.replaceAll('{0}',money(k.balance-k.limit)),urgent:false,onTap:(){Navigator.of(context).maybePop();openTool(7);},actions:null));
+  }
   final backup=backupReminder(d);
   if(backup.visible){
    out.add((key:'home-backup',icon:Icons.ios_share,
@@ -121,6 +140,7 @@ extension _AlertsScreen on _FinanceState {
    final weeks=last==null?now.difference(DateTime.utc(2024)).inDays~/7:now.difference(last).inDays~/7;
    return 'home-backup@${last==null?'none':dayKey(last.toLocal())}#$weeks';
   }
+  if(a.key.startsWith('alert-loan-'))return '${a.key}@${dayKey(nextInstalmentDate(kridiOf(d).firstWhere((k)=>'alert-loan-${k.id}'==a.key),DateTime.now())??DateTime.now())}';
   if(a.key.startsWith('alert-kridi-'))return '${a.key}@${dayKey(cycleOf(d,now).start)}';
   return '${a.key}@${monthKey(now)}';
  }
@@ -130,7 +150,7 @@ extension _AlertsScreen on _FinanceState {
  }
  /// A bill that is overdue or due today and still unpaid is never "read": it stays on the bell,
  /// with its number, until it is paid. Once paid it leaves, and next month's bill is a new item.
- bool stickyAlert(PaydayAlert a)=>a.urgent&&a.key.startsWith('alert-bill-');
+ bool stickyAlert(PaydayAlert a)=>a.urgent&&(a.key.startsWith('alert-bill-')||a.key.startsWith('alert-kridi-due-'));
  int unseenAlerts(Map<String,List<RowData>> d){
   final seen=readAlerts(d);
   return alertsFor(d).where((a)=>stickyAlert(a)||!seen.contains(alertSignature(a,d))).length;

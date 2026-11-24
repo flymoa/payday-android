@@ -201,7 +201,7 @@ List<CsvEntry> parseBankCsv(String text) {
 /// Kridi: money owed between the user and a person, a shop's carnet, or an instalment loan.
 /// Stored in settings as JSON. It tracks who owes what; spending itself is recorded as usual.
 class Kridi {
-  Kridi({required this.id, required this.name, required this.kind, required this.moves, this.monthly = 0, this.months = 0, this.remind = true});
+  Kridi({required this.id, required this.name, required this.kind, required this.moves, this.monthly = 0, this.months = 0, this.remind = true, this.dueDate, this.limit = 0, this.payDay = 0});
   final int id;
   String name;
   /// borrowed (I owe a person), lent (a person owes me), shop (carnet: I owe the shop), loan (instalments I pay).
@@ -211,14 +211,23 @@ class Kridi {
   int monthly; // loan: instalment amount
   int months; // loan: number of instalments
   bool remind;
+  /// borrowed / lent: the day the money should be paid back (YYYY-MM-DD), optional.
+  String? dueDate;
+  /// shop: carnet credit limit in cents, 0 = no limit.
+  int limit;
+  /// loan: day of the month the bank takes the instalment (1–31), 0 = not set.
+  int payDay;
+  bool get overLimit => kind == 'shop' && limit > 0 && balance > limit;
   bool get iOwe => kind != 'lent';
   int get balance => moves.fold<int>(0, (n, m) => n + (m['amount'] as int));
   int get paidCount => kind == 'loan' && monthly > 0 ? moves.where((m) => (m['amount'] as int) < 0).length : 0;
-  Map<String, Object> toJson() => {'id': id, 'name': name, 'kind': kind, 'moves': moves, 'monthly': monthly, 'months': months, 'remind': remind};
+  Map<String, Object> toJson() => {'id': id, 'name': name, 'kind': kind, 'moves': moves, 'monthly': monthly, 'months': months, 'remind': remind,
+      if (dueDate != null) 'due': dueDate!, if (limit > 0) 'limit': limit, if (payDay > 0) 'payDay': payDay};
   static Kridi fromJson(Map<String, dynamic> j) => Kridi(
       id: j['id'] as int, name: j['name'] as String, kind: j['kind'] as String,
       moves: [for (final m in (j['moves'] as List)) {'date': m['date'] as String, 'amount': m['amount'] as int, 'note': (m['note'] ?? '') as String}],
-      monthly: (j['monthly'] ?? 0) as int, months: (j['months'] ?? 0) as int, remind: (j['remind'] ?? true) as bool);
+      monthly: (j['monthly'] ?? 0) as int, months: (j['months'] ?? 0) as int, remind: (j['remind'] ?? true) as bool,
+      dueDate: j['due'] as String?, limit: (j['limit'] ?? 0) as int, payDay: (j['payDay'] ?? 0) as int);
 }
 
 const kridiKey = 'kridi_v1';
@@ -300,3 +309,27 @@ const lastExpenseCategoryKey = 'last_expense_category';
 
 /// Moroccan notes and coins for counting cash, in cents.
 const cashDenominations = [20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+
+/// Next date the bank takes a loan instalment, from today (today counts). Short months use their last day.
+DateTime? nextInstalmentDate(Kridi k, DateTime now) {
+  if (k.kind != 'loan' || k.payDay <= 0 || k.balance <= 0) return null;
+  final today = DateTime(now.year, now.month, now.day);
+  DateTime onMonth(int y, int m) {
+    final last = DateTime(y, m + 1, 0).day;
+    return DateTime(y, m, k.payDay > last ? last : k.payDay);
+  }
+  final here = onMonth(today.year, today.month);
+  return here.isBefore(today) ? onMonth(today.year, today.month + 1) : here;
+}
+
+/// Loans whose instalment is taken within [days] days (0 = today), soonest first.
+List<(Kridi, DateTime)> instalmentsDueSoon(List<Kridi> all, DateTime now, {int days = 3}) {
+  final today = DateTime(now.year, now.month, now.day);
+  final out = <(Kridi, DateTime)>[];
+  for (final k in all) {
+    final next = nextInstalmentDate(k, now);
+    if (next != null && next.difference(today).inDays <= days) out.add((k, next));
+  }
+  out.sort((a, b) => a.$2.compareTo(b.$2));
+  return out;
+}

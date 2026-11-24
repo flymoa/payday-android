@@ -143,7 +143,7 @@ extension _V3Screens on _FinanceState {
    Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),child:LText('People & shops',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),
    if(people.isEmpty)PaydayEmpty(icon:Icons.people_outline,message:'No kridi yet. Note money you borrowed, lent, or bought on carnet at the hanout.')
    else groupedRows([for(final k in people)listRow(key:ValueKey('kridi-${k.id}'),leading:iconTile(kridiIcon(k)),title:rowTitle(k.name,raw:true),
-    subtitle:k.kind=='shop'?'Carnet':k.kind=='lent'?'I lent':'I borrowed',amount:'${k.iOwe?'−':'+'}${plain(k.balance)}',amountColor:k.iOwe?danger:jade,
+    subtitle:k.kind=='shop'?(k.limit>0?'Carnet · {0} of {1}'.replaceAll('{0}',plain(k.balance)).replaceAll('{1}',money(k.limit)):'Carnet'):k.kind=='lent'?'I lent':'I borrowed',amount:'${k.iOwe?'−':'+'}${plain(k.balance)}',amountColor:k.iOwe?danger:jade,
     onTap:()=>kridiDetails(k.id))]),
    if(loans.isNotEmpty)...[
     Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),child:LText('Instalments',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),
@@ -159,6 +159,7 @@ extension _V3Screens on _FinanceState {
  Future<void> kridiForm()async{
   final d=await store.snapshot();if(!mounted)return;
   var kind='borrowed';final name=TextEditingController(),value=TextEditingController(),months=TextEditingController(text:'12');
+  DateTime? due;final limit=TextEditingController(),day=TextEditingController();
   await sheet('Add kridi',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Wrap(spacing:8,runSpacing:8,children:[
     for(final k in const [('borrowed','I borrowed'),('lent','I lent'),('shop','Carnet'),('loan','Instalments')])
@@ -168,6 +169,7 @@ extension _V3Screens on _FinanceState {
    field(name,kind=='shop'?'Shop':kind=='loan'?'Loan':'Who'),
    field(value,kind=='loan'?'Monthly instalment ({0})'.replaceAll('{0}',currencyLabel(currency,language)):'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
    if(kind=='loan')field(months,'Instalments left',number:true),
+   kridiExtraFields(c,rebuild,kind,due:due,setDue:(v)=>due=v,limit:limit,day:day),
    LText(kind=='shop'?'Each time you buy on carnet, add it here. Pay back when you settle with the shop.':
     kind=='loan'?'Each instalment you pay lowers what is left.':
     'Borrowed money is not income: it only shows here until you pay it back.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
@@ -177,9 +179,13 @@ extension _V3Screens on _FinanceState {
    final list_=kridiOf(d);final id=list_.fold<int>(0,(a,k)=>k.id>a?k.id:a)+1;
    final m=int.tryParse(months.text.trim())??0;
    if(kind=='loan'&&m<=0){inputError('Enter how many instalments are left.');return;}
-   list_.add(Kridi(id:id,name:name.text.trim(),kind:kind,monthly:kind=='loan'?n:0,months:kind=='loan'?m:0,
-    moves:[{'date':dayKey(DateTime.now()),'amount':kind=='loan'?n*m:n,'note':''}]));
-   if(await saveKridi(list_,saved:'Kridi saved.')&&c.mounted)Navigator.pop(c);
+   if(kind=='loan'&&day.text.trim().isEmpty){inputError('Enter the instalment day.');return;}
+   final extra=readKridiExtras(kind,limit,day);if(extra==null)return;
+   final k=Kridi(id:id,name:name.text.trim(),kind:kind,monthly:kind=='loan'?n:0,months:kind=='loan'?m:0,
+    moves:[{'date':dayKey(DateTime.now()),'amount':kind=='loan'?n*m:n,'note':''}],
+    dueDate:(kind=='borrowed'||kind=='lent')&&due!=null?dayKey(due!):null,limit:kind=='shop'?extra.$1:0,payDay:kind=='loan'?extra.$2:0);
+   list_.add(k);
+   if(await saveKridi(list_,saved:'Kridi saved.')&&c.mounted){Navigator.pop(c);if(k.overLimit)await carnetLimitDialog(k);}
   },child:LText('Save')));
  }
 
@@ -192,6 +198,10 @@ extension _V3Screens on _FinanceState {
     iconTile(kridiIcon(k),size:52),SizedBox(height:8),
     LText(k.iOwe?'You owe':'Owed to you',style:TextStyle(color:muted,fontWeight:FontWeight.w700)),
     Text(money(k.balance),key:ValueKey('kridi-balance'),style:TextStyle(fontFamily:'Bricolage',fontSize:30,fontWeight:FontWeight.w800,color:k.iOwe?danger:jade)),
+    TextButton.icon(key:ValueKey('kridi-edit'),onPressed:(){Navigator.pop(c);kridiEdit(k.id);},icon:PaydayAppIcon(Icons.edit_outlined,size:16),
+     label:LText(k.kind=='shop'?(k.limit>0?'Limit {0}'.replaceAll('{0}',money(k.limit)):'Set a carnet limit'):
+      k.kind=='loan'?(k.payDay>0?'Taken on day {0}'.replaceAll('{0}','${k.payDay}'):'Set the instalment day'):
+      (k.dueDate!=null?'Pay back by {0}'.replaceAll('{0}',shortDay(k.dueDate!)):'Add a pay-back date'))),
    ])),
    SizedBox(height:14),
    field(value,'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
@@ -204,8 +214,9 @@ extension _V3Screens on _FinanceState {
     },icon:PaydayAppIcon(Icons.check),label:LText(k.iOwe?'Pay back':'Received'))),
     if(k.kind!='loan')...[SizedBox(width:10),Expanded(child:OutlinedButton.icon(key:ValueKey('kridi-more'),onPressed:()async{
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
+     final wasOver=k.overLimit;
      k.moves.add({'date':dayKey(DateTime.now()),'amount':n,'note':''});
-     if(await saveKridi(list_)&&c.mounted)Navigator.pop(c);
+     if(await saveKridi(list_)&&c.mounted){Navigator.pop(c);if(k.overLimit&&!wasOver)await carnetLimitDialog(k);}
     },icon:PaydayAppIcon(Icons.add),label:LText(k.kind=='shop'?'New buy':'Add more')))],
    ]),
    SizedBox(height:14),
