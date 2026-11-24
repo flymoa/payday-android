@@ -10,7 +10,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
  /// direction) is left to say.
  Widget recordTile(RowData t,{bool showWallet=false,int afterId=0}){
   final type=st(t,'type'),category=st(t,'category');
-  final incoming=type=='Income'||type=='Savings in';
+  final incoming=type=='Income'||type=='Savings in'||type==kridiIn;
   final detail=rowDetail(t);
   final subtitle=detail.isNotEmpty?detail:type.startsWith('Savings')?tr(context,type):'';
   return Material(color:Colors.transparent,child:InkWell(onTap:()=>transactionForm(t),

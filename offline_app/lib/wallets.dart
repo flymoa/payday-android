@@ -63,10 +63,12 @@ Map<String, int> walletBalances(WalletSetup setup, Iterable<Map<String, Object?>
     switch (t['type']?.toString()) {
       case 'Income':
       case 'Savings in':
+      case 'Kridi in':
         out[wallet] = out[wallet]! + amount;
         break;
       case 'Expense':
       case 'Savings out':
+      case 'Kridi out':
         out[wallet] = out[wallet]! - amount;
         break;
     }

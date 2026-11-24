@@ -123,7 +123,7 @@ class OfflineStore {
  static Future<int> _allocatedTotal(DatabaseExecutor executor)async=>
   Sqflite.firstIntValue(await executor.rawQuery('SELECT COALESCE(SUM(amount),0) FROM allocations'))??0;
  Future<void> saveTransaction({int? id,required String date,required String type,required String category,required int amount,required String description,required String note,required String billId,String? account}) async{
-  if(!['Income','Expense','Savings out','Savings in'].contains(type) || amount<=0)throw ArgumentError('Invalid entry');
+  if(!['Income','Expense','Savings out','Savings in',kridiIn,kridiOut].contains(type) || amount<=0)throw ArgumentError('Invalid entry');
   if(account!=null&&!walletNames.contains(account))throw ArgumentError('Invalid entry');
   final parsed=DateTime.tryParse(date);
   if(parsed==null||date.length!=10||parsed.year<2000)throw ArgumentError('Choose a valid payment date, not a future date.');

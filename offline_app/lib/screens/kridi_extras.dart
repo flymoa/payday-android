@@ -154,12 +154,25 @@ extension _KridiExtras on _FinanceState {
   return (l,p);
  }
 
- /// Saves a pay-back (or money received) together with its transaction, so the balance moves.
- Future<bool> kridiPayment(List<Kridi> all,Kridi k,int cents,String? account,{String? date})=>execute(()async{
-  await store.saveTransaction(date:date??dayKey(DateTime.now()),type:k.iOwe?'Expense':'Income',category:k.iOwe?'Debt payment':'Other income',
+ /// The transaction a kridi movement makes, or null when no money moves.
+ /// [added] is true when the debt grows (borrow, lend, carnet buy), false when it shrinks (pay back, received).
+ /// People: money moves as a kridi transfer, which is neither income nor spending.
+ /// Shop and bank loan: paying is the spending itself, so it is an expense; a carnet buy moves no money yet.
+ ({String type,String category})? kridiMove(Kridi k,{required bool added}){
+  if(k.kind=='shop'||k.kind=='loan')return added?null:(type:'Expense',category:'Debt payment');
+  final moneyIn=k.kind=='borrowed'?added:!added;
+  return (type:moneyIn?kridiIn:kridiOut,category:'Kridi');
+ }
+ Future<void> recordKridiMove(Kridi k,int cents,String? account,{required bool added,String? date})async{
+  final m=kridiMove(k,added:added);if(m==null)return;
+  await store.saveTransaction(date:date??dayKey(DateTime.now()),type:m.type,category:m.category,
    amount:cents,description:k.name,note:'Kridi',billId:'',account:account);
+ }
+ /// Saves a kridi change together with its transaction, so the balance moves.
+ Future<bool> kridiPayment(List<Kridi> all,Kridi k,int cents,String? account,{bool added=false,String? saved})=>execute(()async{
+  await recordKridiMove(k,cents,account,added:added);
   await store.setSetting(kridiKey,encodeKridi(all));
- },saved:k.iOwe?'Paid back.':'Received.');
+ },saved:saved??(k.iOwe?'Paid back.':'Received.'));
 
  /// On the instalment day the bank takes the money: record it from Bank, once per instalment.
  Future<void> runLoanAutopay()async{

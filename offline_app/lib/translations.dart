@@ -1,5 +1,7 @@
 // Display-only French and Arabic messages. Stored financial identifiers are never translated.
 const paydayTranslations=<String,List<String>>{
+ "Kridi out":["Kridi versé","كريدي صادر"],
+ "Kridi in":["Kridi reçu","كريدي وارد"],
  "Today · {0}":["Aujourd’hui · {0}","اليوم · {0}"],
  "Tomorrow · {0}":["Demain · {0}","غدًا · {0}"],
  "In {0} days · {1}":["Dans {0} jours · {1}","بعد {0} أيام · {1}"],
@@ -97,7 +99,7 @@ const paydayTranslations=<String,List<String>>{
  "Add your planned income in Budgets to see this.":["Indiquez votre revenu prévu dans Budgets pour voir ceci.","أدخل دخلك المتوقع في الميزانية لترى هذا."],
  "Added":["Ajouté","أُضيف"],
  "App says":["Selon l’app","حسب التطبيق"],
- "Borrowed money is not income: it only shows here until you pay it back.":["Un emprunt n’est pas un revenu : il reste ici jusqu’au remboursement.","المال المقترَض ليس دخلًا: يبقى هنا حتى تردّه."],
+ "Borrowed money goes into your balance but is not income.":["L’argent emprunté entre dans votre solde mais n’est pas un revenu.","المال المقترَض يدخل رصيدك لكنه ليس دخلًا."],
  "Bought on carnet":["Acheté au carnet","شراء بالكريدي"],
  "Carnet":["Carnet","الكرني"],
  "Cash balance corrected.":["Solde espèces corrigé.","صُحّح رصيد الجيب."],
@@ -131,7 +133,7 @@ const paydayTranslations=<String,List<String>>{
  "Instalments":["Mensualités","الأقساط"],
  "Instalments left":["Mensualités restantes","الأقساط المتبقية"],
  "Kridi":["Kridi","الكريدي"],
- "Kridi keeps track of who owes what. Paying back is saved in your transactions and taken from your balance.":["Kridi suit qui doit quoi. Chaque remboursement est enregistré dans vos opérations et déduit de votre solde.","الكريدي يتتبّع من مدين لمن. كل تسديد يُسجَّل في عملياتك ويُخصم من رصيدك."],
+ "Borrowing, lending and paying back move your balance but are not income or spending. Carnet and instalment payments count as spending.":["Emprunter, prêter et rembourser modifient votre solde sans être un revenu ni une dépense. Les paiements du carnet et les mensualités comptent comme dépenses.","الاقتراض والإقراض والتسديد تغيّر رصيدك دون أن تُحسب دخلًا أو مصروفًا. أما دفعات الكارني والأقساط فتُحسب مصروفًا."],
  "Kridi saved.":["Kridi enregistré.","حُفظ الكريدي."],
  "Loan":["Crédit","القرض"],
  "Matches · Done":["Correct · Terminé","مطابق · تم"],

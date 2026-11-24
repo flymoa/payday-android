@@ -105,7 +105,7 @@ extension _HomeScreen on _FinanceState {
   return MonthlyBalance(income:sumType(ts,'Income'),expenses:sumType(ts,'Expense'),
    savingsNet:saved,reserveNet:l.reserveNetForMonth(key),unpaidBills:l.unpaidBills(key),
    savingsGap:(budgetFor(d,key,'Savings goal')-saved).clamp(0,1000000000).toInt(),
-   reserveHold:l.monthlyReserves(key),buffer:l.bufferFor(key));
+   reserveHold:l.monthlyReserves(key),buffer:l.bufferFor(key),kridiNet:sumType(ts,kridiOut)-sumType(ts,kridiIn));
  }
  Future<void> updateHomeWidget()async{
   if(!Platform.isAndroid)return;
@@ -297,7 +297,7 @@ extension _HomeScreen on _FinanceState {
  Widget recentActivityTile(RowData row){
   final category=st(row,'category'),type=st(row,'type');
   final title=st(row,'description').isEmpty?categoryLabel(context,category):st(row,'description');
-  final outgoing=type=='Expense'||type=='Savings out';
+  final outgoing=type=='Expense'||type=='Savings out'||type==kridiOut;
   return Material(color:Colors.transparent,child:InkWell(
    onTap:()=>transactionForm(row),
    child:Padding(padding:EdgeInsetsDirectional.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),child:LayoutBuilder(builder:(context,box)=>Row(children:[

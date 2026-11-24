@@ -1,3 +1,6 @@
+/// Money that only moves because of kridi: borrowing adds to what you hold, lending or paying back takes it away.
+/// Neither is income nor spending, so reports leave them out.
+const kridiIn='Kridi in',kridiOut='Kridi out';
 /// Pure finance calculations (amounts are integer centimes to avoid rounding drift).
 String monthKey(DateTime date) => '${date.year.toString().padLeft(4,'0')}-${date.month.toString().padLeft(2,'0')}';
 DateTime monthFromKey(String key) => DateTime(int.parse(key.substring(0,4)), int.parse(key.substring(5,7)));
@@ -213,15 +216,17 @@ class BudgetAssignmentException implements Exception {
 class MonthlyBalance {
  const MonthlyBalance({required this.income,required this.expenses,
   required this.savingsNet,required this.reserveNet,required this.unpaidBills,
-  required this.savingsGap,required this.reserveHold,required this.buffer});
+  required this.savingsGap,required this.reserveHold,required this.buffer,this.kridiNet=0});
  final int income,expenses,savingsNet,reserveNet,unpaidBills,savingsGap,reserveHold,buffer;
- int get available=>income-expenses-savingsNet-reserveNet;
+ /// Kridi money out minus in (positive: more left than came in).
+ final int kridiNet;
+ int get available=>income-expenses-savingsNet-reserveNet-kridiNet;
  /// Money released from savings/reserves is available to spend again.
- int get fundsReceived=>income+(savingsNet<0?-savingsNet:0)+(reserveNet<0?-reserveNet:0);
- int get fundsUsed=>expenses+(savingsNet>0?savingsNet:0)+(reserveNet>0?reserveNet:0);
+ int get fundsReceived=>income+(savingsNet<0?-savingsNet:0)+(reserveNet<0?-reserveNet:0)+(kridiNet<0?-kridiNet:0);
+ int get fundsUsed=>expenses+(savingsNet>0?savingsNet:0)+(reserveNet>0?reserveNet:0)+(kridiNet>0?kridiNet:0);
  double get usedFraction=>fundsUsed<=0?0:fundsReceived<=0?1:
   (fundsUsed/fundsReceived).clamp(0,1).toDouble();
- int get safe=>freeAfterPlan(income:income,expenses:expenses+reserveNet,
+ int get safe=>freeAfterPlan(income:income,expenses:expenses+reserveNet+kridiNet,
   transferredOut:savingsNet,transferredIn:0,unpaidBills:unpaidBills,
   savingsGap:savingsGap,reserves:reserveHold,buffer:buffer);
 }
