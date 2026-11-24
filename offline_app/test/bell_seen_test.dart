@@ -26,6 +26,11 @@ void main() {
     await t.tap(find.byTooltip('Close notifications'));
     await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-bell-badge')), findsNothing);
+    // Opening it again: what was already read is gone from the list.
+    await t.tap(find.byKey(const ValueKey('home-bell-button')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-backup')), findsNothing);
+    expect(find.text('You are all caught up'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
