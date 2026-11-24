@@ -1,5 +1,10 @@
 // Display-only French and Arabic messages. Stored financial identifiers are never translated.
 const paydayTranslations=<String,List<String>>{
+ "Paid off":["Remboursés","المسدَّدة"],
+ "Paid off on {0}":["Remboursé le {0}","سُدّد في {0}"],
+ "Settled on {0}":["Réglé le {0}","سُوّي في {0}"],
+ "{0} paid in total":["{0} payés au total","{0} مدفوعة في المجموع"],
+ "{0} received in total":["{0} reçus au total","{0} مستلَمة في المجموع"],
  "Not enough cash":["Pas assez d’espèces","لا يكفي النقد"],
  "Not enough in the bank":["Pas assez sur le compte","لا يكفي رصيد البنك"],
  "In cash":["En espèces","نقدًا معك"],

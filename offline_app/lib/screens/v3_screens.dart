@@ -153,6 +153,14 @@ extension _V3Screens on _FinanceState {
      amount:'−${plain(k.balance)}',amountColor:danger,onTap:()=>kridiDetails(k.id))]),
    ],
    listAction('Add kridi',Icons.add,()=>kridiForm(),key:ValueKey('kridi-add')),
+   // Settled kridi stay here as history: what was paid in total and when it was finished.
+   if(all.any((k)=>k.balance==0&&k.moves.isNotEmpty))...[
+    Padding(padding:EdgeInsets.only(top:PaydaySpace.lg,bottom:PaydaySpace.sm),child:LText('Paid off',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),
+    groupedRows([for(final k in (all.where((k)=>k.balance==0&&k.moves.isNotEmpty).toList()..sort((a,b)=>kridiSettledOn(b).compareTo(kridiSettledOn(a)))))
+     listRow(key:ValueKey('kridi-paid-${k.id}'),leading:iconTile(kridiIcon(k),color:muted),title:rowTitle(k.name,raw:true),
+      subtitle:(k.iOwe?'Paid off on {0}':'Settled on {0}').replaceAll('{0}',shortDay(kridiSettledOn(k))),
+      amount:plain(kridiPaidTotal(k)),amountColor:muted,onTap:()=>kridiDetails(k.id))]),
+   ],
    Padding(padding:EdgeInsets.only(top:10),child:LText('Borrowing, lending and paying back move your balance but are not income or spending. Carnet and instalment payments count as spending.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
   ]);
  }
@@ -196,6 +204,11 @@ extension _V3Screens on _FinanceState {
   },child:LText('Save')));
  }
 
+ /// Total paid back (or received back) over the life of a kridi.
+ int kridiPaidTotal(Kridi k)=>k.moves.where((m)=>(m['amount'] as int)<0).fold<int>(0,(n,m)=>n-(m['amount'] as int));
+ /// Date of the last movement, which is the day it was settled once the balance is zero.
+ String kridiSettledOn(Kridi k)=>k.moves.map((m)=>m['date'] as String).fold<String>('',(a,b)=>b.compareTo(a)>0?b:a);
+
  Future<void> kridiDetails(int id)async{
   final d=await store.snapshot();if(!mounted)return;
   final list_=kridiOf(d);final k=list_.firstWhere((x)=>x.id==id);
@@ -205,7 +218,8 @@ extension _V3Screens on _FinanceState {
   await sheet(k.name,(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Center(child:Column(children:[
     iconTile(kridiIcon(k),size:52),SizedBox(height:8),
-    LText(k.iOwe?'You owe':'Owed to you',style:TextStyle(color:muted,fontWeight:FontWeight.w700)),
+    LText(k.balance==0?(k.iOwe?'Paid off on {0}':'Settled on {0}').replaceAll('{0}',shortDay(kridiSettledOn(k))):k.iOwe?'You owe':'Owed to you',style:TextStyle(color:muted,fontWeight:FontWeight.w700)),
+    if(k.balance==0)Padding(padding:EdgeInsets.only(top:2),child:LText((k.iOwe?'{0} paid in total':'{0} received in total').replaceAll('{0}',money(kridiPaidTotal(k))),style:TextStyle(color:jade,fontWeight:FontWeight.w700))),
     Text(money(k.balance),key:ValueKey('kridi-balance'),style:TextStyle(fontFamily:'Bricolage',fontSize:30,fontWeight:FontWeight.w800,color:k.iOwe?danger:jade)),
     TextButton.icon(key:ValueKey('kridi-edit'),onPressed:(){Navigator.pop(c);kridiEdit(k.id);},icon:PaydayAppIcon(Icons.edit_outlined,size:16),
      label:LText(k.kind=='shop'?(k.limit>0?'Limit {0}'.replaceAll('{0}',money(k.limit)):'Set a carnet limit'):
@@ -213,23 +227,26 @@ extension _V3Screens on _FinanceState {
       (k.dueDate!=null?'Pay back by {0}'.replaceAll('{0}',shortDay(k.dueDate!)):'Add a pay-back date'))),
    ])),
    SizedBox(height:14),
+   // A finished loan is history only; a settled person or shop can start again with "Add more".
+   if(!(k.kind=='loan'&&k.balance==0))...[
    field(value,'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
    if(wallets!=null&&k.kind!='loan')Padding(padding:EdgeInsets.only(bottom:12),child:Wrap(spacing:8,children:[
     for(final w in walletNames)PaydayPill(key:ValueKey('kridi-account-$w'),label:w,selected:account==w,onTap:()=>rebuild(()=>account=w))])),
    Row(children:[
-    Expanded(child:FilledButton.icon(key:ValueKey('kridi-pay'),onPressed:()async{
+    if(k.balance>0)Expanded(child:FilledButton.icon(key:ValueKey('kridi-pay'),onPressed:()async{
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
      if(n>k.balance){inputError('That is more than what is left.');return;}
      k.moves.add({'date':dayKey(DateTime.now()),'amount':-n,'note':''});
      if(await kridiPayment(list_,k,n,wallets==null?null:account)&&c.mounted)Navigator.pop(c);
     },icon:PaydayAppIcon(Icons.check),label:LText(k.iOwe?'Pay back':'Received'))),
-    if(k.kind!='loan')...[SizedBox(width:10),Expanded(child:OutlinedButton.icon(key:ValueKey('kridi-more'),onPressed:()async{
+    if(k.kind!='loan')...[if(k.balance>0)SizedBox(width:10),Expanded(child:OutlinedButton.icon(key:ValueKey('kridi-more'),onPressed:()async{
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
      final wasOver=k.overLimit;
      k.moves.add({'date':dayKey(DateTime.now()),'amount':n,'note':''});
      if(await kridiPayment(list_,k,n,wallets==null?null:account,added:true,saved:'Saved on this phone.')&&c.mounted){Navigator.pop(c);if(k.overLimit&&!wasOver)await carnetLimitDialog(k);}
     },icon:PaydayAppIcon(Icons.add),label:LText(k.kind=='shop'?'New buy':'Add more')))],
    ]),
+   ],
    SizedBox(height:14),
    LText('History',style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink)),
    SizedBox(height:8),
