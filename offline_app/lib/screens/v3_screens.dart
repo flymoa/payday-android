@@ -152,7 +152,7 @@ extension _V3Screens on _FinanceState {
      amount:'−${plain(k.balance)}',amountColor:danger,onTap:()=>kridiDetails(k.id))]),
    ],
    listAction('Add kridi',Icons.add,()=>kridiForm(),key:ValueKey('kridi-add')),
-   Padding(padding:EdgeInsets.only(top:10),child:LText('Kridi keeps track of who owes what. Paying back is saved in your transactions and taken from your balance.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
+   Padding(padding:EdgeInsets.only(top:10),child:LText('Borrowing, lending and paying back move your balance but are not income or spending. Carnet and instalment payments count as spending.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
   ]);
  }
 
@@ -160,6 +160,7 @@ extension _V3Screens on _FinanceState {
   final d=await store.snapshot();if(!mounted)return;
   var kind='borrowed';final name=TextEditingController(),value=TextEditingController(),months=TextEditingController(text:'12');
   DateTime? due;final limit=TextEditingController(),day=TextEditingController();
+  final wallets=walletSetupOf(d);var account='Cash';
   await sheet('Add kridi',(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Wrap(spacing:8,runSpacing:8,children:[
     for(final k in const [('borrowed','I borrowed'),('lent','I lent'),('shop','Carnet'),('loan','Instalments')])
@@ -170,9 +171,13 @@ extension _V3Screens on _FinanceState {
    field(value,kind=='loan'?'Monthly instalment ({0})'.replaceAll('{0}',currencyLabel(currency,language)):'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
    if(kind=='loan')field(months,'Instalments left',number:true),
    kridiExtraFields(c,rebuild,kind,due:due,setDue:(v)=>due=v,limit:limit,day:day),
+   if(wallets!=null&&(kind=='borrowed'||kind=='lent'))Padding(padding:EdgeInsets.only(bottom:12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+    LText(kind=='borrowed'?'Received in':'Paid from',style:TextStyle(fontWeight:FontWeight.w700,fontSize:14,color:muted)),SizedBox(height:6),
+    Wrap(spacing:8,children:[for(final w in walletNames)PaydayPill(key:ValueKey('kridi-new-account-$w'),label:w,selected:account==w,onTap:()=>rebuild(()=>account=w))]),
+   ])),
    LText(kind=='shop'?'Add each carnet purchase here, not as an expense: the payment to the shop becomes the expense.':
     kind=='loan'?'Each instalment you pay lowers what is left.':
-    'Borrowed money is not income: it only shows here until you pay it back.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
+    'Borrowed money goes into your balance but is not income.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
   ]),footer:(c,rebuild)=>FilledButton(key:ValueKey('kridi-save'),onPressed:()async{
    final n=amount(value);if(name.text.trim().isEmpty){inputError('Enter a name.');return;}
    if(n==null){inputError('Enter a positive amount.');return;}
@@ -186,7 +191,7 @@ extension _V3Screens on _FinanceState {
     dueDate:(kind=='borrowed'||kind=='lent')&&due!=null?dayKey(due!):null,limit:kind=='shop'?extra.$1:0,payDay:kind=='loan'?extra.$2:0,
     autoThrough:kind=='loan'?dayKey(DateTime.now().subtract(const Duration(days:1))):null);
    list_.add(k);
-   if(await saveKridi(list_,saved:'Kridi saved.')&&c.mounted){Navigator.pop(c);if(k.overLimit)await carnetLimitDialog(k);}
+   if(await kridiPayment(list_,k,k.balance,wallets==null?null:account,added:true,saved:'Kridi saved.')&&c.mounted){Navigator.pop(c);if(k.overLimit)await carnetLimitDialog(k);}
   },child:LText('Save')));
  }
 
@@ -221,7 +226,7 @@ extension _V3Screens on _FinanceState {
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
      final wasOver=k.overLimit;
      k.moves.add({'date':dayKey(DateTime.now()),'amount':n,'note':''});
-     if(await saveKridi(list_)&&c.mounted){Navigator.pop(c);if(k.overLimit&&!wasOver)await carnetLimitDialog(k);}
+     if(await kridiPayment(list_,k,n,wallets==null?null:account,added:true,saved:'Saved on this phone.')&&c.mounted){Navigator.pop(c);if(k.overLimit&&!wasOver)await carnetLimitDialog(k);}
     },icon:PaydayAppIcon(Icons.add),label:LText(k.kind=='shop'?'New buy':'Add more')))],
    ]),
    SizedBox(height:14),

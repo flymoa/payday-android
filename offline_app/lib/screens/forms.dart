@@ -83,6 +83,9 @@ extension _Forms on _FinanceState {
  }
  void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));}
  Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType,RowData? copyFrom}) async{
+  // Kridi money moves are managed from Kridi, so its balance and history stay in step.
+  final kridiRow=existing??copyFrom;
+  if(kridiRow!=null&&(st(kridiRow,'type')==kridiIn||st(kridiRow,'type')==kridiOut)){openTool(7);return;}
   final d=await store.snapshot();if(!mounted)return;
   final prefill=payBill==null?null:prepareBillPayment(
     name:st(payBill,'name'),
