@@ -197,7 +197,13 @@ class _PaydayLocalState extends State<PaydayLocal> {
   localizationsDelegates:GlobalMaterialLocalizations.delegates,theme:palette(Brightness.light),
   darkTheme:palette(Brightness.dark),themeMode:mode,
   builder:(context,child){
-   return PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink()));
+   // The phone's own button bar follows the app theme, so dark mode stays dark to the bottom edge.
+   final theme=Theme.of(context),dark=theme.brightness==Brightness.dark;
+   return AnnotatedRegion<SystemUiOverlayStyle>(value:SystemUiOverlayStyle(
+     systemNavigationBarColor:theme.scaffoldBackgroundColor,systemNavigationBarDividerColor:theme.scaffoldBackgroundColor,
+     systemNavigationBarIconBrightness:dark?Brightness.light:Brightness.dark,systemNavigationBarContrastEnforced:false,
+     statusBarColor:Colors.transparent,statusBarIconBrightness:dark?Brightness.light:Brightness.dark,statusBarBrightness:dark?Brightness.dark:Brightness.light),
+    child:PaydayOpening(child:PaydayLockGate(controller:appLock,child:child??const SizedBox.shrink())));
   },
   home:FinanceScreen(store:localStore,initialData:widget.initialData,preferences:preferences,welcomeOnFirstRun:widget.welcomeOnFirstRun,
    onPreferencesChanged:savePreferences,onToggleTheme:(dark){
