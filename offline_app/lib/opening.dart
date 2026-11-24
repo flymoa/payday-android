@@ -50,7 +50,9 @@ class _PaydayOpeningState extends State<PaydayOpening>
             child: Opacity(opacity: reveal, child: widget.child))),
         if (!_finished) Positioned.fill(child: AbsorbPointer(
           child: AnnotatedRegion<SystemUiOverlayStyle>(
-            value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+            value: (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark).copyWith(
+              systemNavigationBarColor: Theme.of(context).scaffoldBackgroundColor,
+              systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark),
             child: Opacity(opacity: 1 - reveal,
               child: Material(key: const ValueKey('payday-opening-overlay'),
                 color: Theme.of(context).scaffoldBackgroundColor,
