@@ -25,4 +25,13 @@ void main() {
     expect(old.single.dueDate, isNull);
     expect(old.single.limit, 0);
   });
+  test('the bank takes each instalment once, never before the day was set', () {
+    final k = loan()..autoThrough = '2026-11-20';
+    expect(instalmentsTaken(k, DateTime(2026, 11, 26)), isEmpty);
+    expect(instalmentsTaken(k, DateTime(2026, 11, 27)), [DateTime(2026, 11, 27)]);
+    expect(instalmentsTaken(k, DateTime(2027, 1, 30)), [DateTime(2026, 11, 27), DateTime(2026, 12, 27), DateTime(2027, 1, 27)]);
+    k.autoThrough = '2026-11-27';
+    expect(instalmentsTaken(k, DateTime(2026, 11, 27)), isEmpty);
+    expect(instalmentsTaken(loan()..autoThrough = null, DateTime(2026, 11, 27)), isEmpty);
+  });
 }

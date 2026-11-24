@@ -105,7 +105,9 @@ extension _KridiExtras on _FinanceState {
   await sheet(k.name,(c,rebuild)=>kridiExtraFields(c,rebuild,k.kind,due:due,setDue:(v)=>due=v,limit:limit,day:day),
    footer:(c,rebuild)=>FilledButton(key:ValueKey('kridi-edit-save'),onPressed:()async{
     final r=readKridiExtras(k.kind,limit,day);if(r==null)return;
-    k.dueDate=due==null?null:dayKey(due!);k.limit=r.$1;k.payDay=r.$2;
+    k.dueDate=due==null?null:dayKey(due!);k.limit=r.$1;
+    if(r.$2!=k.payDay)k.autoThrough=r.$2>0?dayKey(DateTime.now().subtract(const Duration(days:1))):null;
+    k.payDay=r.$2;
     if(await saveKridi(list_,saved:'Kridi saved.')&&c.mounted)Navigator.pop(c);
    },child:LText('Save changes')));
  }
@@ -150,5 +152,30 @@ extension _KridiExtras on _FinanceState {
    if(p<1||p>31){inputError('Enter a day between 1 and 31.');return null;}
   }
   return (l,p);
+ }
+
+ /// Saves a pay-back (or money received) together with its transaction, so the balance moves.
+ Future<bool> kridiPayment(List<Kridi> all,Kridi k,int cents,String? account,{String? date})=>execute(()async{
+  await store.saveTransaction(date:date??dayKey(DateTime.now()),type:k.iOwe?'Expense':'Income',category:k.iOwe?'Debt payment':'Other income',
+   amount:cents,description:k.name,note:'Kridi',billId:'',account:account);
+  await store.setSetting(kridiKey,encodeKridi(all));
+ },saved:k.iOwe?'Paid back.':'Received.');
+
+ /// On the instalment day the bank takes the money: record it from Bank, once per instalment.
+ Future<void> runLoanAutopay()async{
+  try{
+   final d=await store.snapshot();if(!mounted)return;
+   final all=kridiOf(d);final bank=walletSetupOf(d)==null?null:'Bank';
+   var changed=false;
+   for(final k in all){
+    for(final day in instalmentsTaken(k,DateTime.now())){
+     final n=k.monthly<k.balance?k.monthly:k.balance;if(n<=0)break;
+     await store.saveTransaction(date:dayKey(day),type:'Expense',category:'Debt payment',amount:n,description:k.name,note:'Kridi',billId:'',account:bank);
+     k.moves.add({'date':dayKey(day),'amount':-n,'note':'auto'});changed=true;
+    }
+    if(k.kind=='loan'&&k.payDay>0){final t=dayKey(DateTime.now());if(k.autoThrough!=t){k.autoThrough=t;changed=true;}}
+   }
+   if(changed){await store.setSetting(kridiKey,encodeKridi(all));if(mounted)refresh();}
+  }catch(_){}
  }
 }

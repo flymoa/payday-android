@@ -326,6 +326,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   unawaited(updateHomeWidget());
   unawaited(syncBillReminders());
   WidgetsBinding.instance.addPostFrameCallback((_)=>unawaited(openWidgetAction()));
+  unawaited(runLoanAutopay());
   if(widget.welcomeOnFirstRun)WidgetsBinding.instance.addPostFrameCallback((_)=>unawaited(maybeShowInstalmentPopup()));
   unawaited(syncReserveReminders());
  }
@@ -333,6 +334,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   if(state==AppLifecycleState.resumed){
    unawaited(runRecurring());
    unawaited(openWidgetAction());
+   unawaited(runLoanAutopay());
    if(widget.welcomeOnFirstRun)unawaited(maybeShowInstalmentPopup());
    unawaited(syncBillReminders());
    unawaited(syncReserveReminders());

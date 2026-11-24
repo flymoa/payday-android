@@ -152,7 +152,7 @@ extension _V3Screens on _FinanceState {
      amount:'−${plain(k.balance)}',amountColor:danger,onTap:()=>kridiDetails(k.id))]),
    ],
    listAction('Add kridi',Icons.add,()=>kridiForm(),key:ValueKey('kridi-add')),
-   Padding(padding:EdgeInsets.only(top:10),child:LText('Kridi keeps track of who owes what. Record the spending itself as a normal expense.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
+   Padding(padding:EdgeInsets.only(top:10),child:LText('Kridi keeps track of who owes what. Paying back is saved in your transactions and taken from your balance.',style:TextStyle(fontSize:PaydayType.caption,color:muted))),
   ]);
  }
 
@@ -170,7 +170,7 @@ extension _V3Screens on _FinanceState {
    field(value,kind=='loan'?'Monthly instalment ({0})'.replaceAll('{0}',currencyLabel(currency,language)):'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
    if(kind=='loan')field(months,'Instalments left',number:true),
    kridiExtraFields(c,rebuild,kind,due:due,setDue:(v)=>due=v,limit:limit,day:day),
-   LText(kind=='shop'?'Each time you buy on carnet, add it here. Pay back when you settle with the shop.':
+   LText(kind=='shop'?'Add each carnet purchase here, not as an expense: the payment to the shop becomes the expense.':
     kind=='loan'?'Each instalment you pay lowers what is left.':
     'Borrowed money is not income: it only shows here until you pay it back.',style:TextStyle(fontSize:PaydayType.caption,color:muted)),
   ]),footer:(c,rebuild)=>FilledButton(key:ValueKey('kridi-save'),onPressed:()async{
@@ -183,7 +183,8 @@ extension _V3Screens on _FinanceState {
    final extra=readKridiExtras(kind,limit,day);if(extra==null)return;
    final k=Kridi(id:id,name:name.text.trim(),kind:kind,monthly:kind=='loan'?n:0,months:kind=='loan'?m:0,
     moves:[{'date':dayKey(DateTime.now()),'amount':kind=='loan'?n*m:n,'note':''}],
-    dueDate:(kind=='borrowed'||kind=='lent')&&due!=null?dayKey(due!):null,limit:kind=='shop'?extra.$1:0,payDay:kind=='loan'?extra.$2:0);
+    dueDate:(kind=='borrowed'||kind=='lent')&&due!=null?dayKey(due!):null,limit:kind=='shop'?extra.$1:0,payDay:kind=='loan'?extra.$2:0,
+    autoThrough:kind=='loan'?dayKey(DateTime.now().subtract(const Duration(days:1))):null);
    list_.add(k);
    if(await saveKridi(list_,saved:'Kridi saved.')&&c.mounted){Navigator.pop(c);if(k.overLimit)await carnetLimitDialog(k);}
   },child:LText('Save')));
@@ -193,6 +194,8 @@ extension _V3Screens on _FinanceState {
   final d=await store.snapshot();if(!mounted)return;
   final list_=kridiOf(d);final k=list_.firstWhere((x)=>x.id==id);
   final value=TextEditingController(text:k.kind=='loan'?inputNumber(k.monthly):'');
+  // Loans are always taken from the bank; other kridi let you choose.
+  final wallets=walletSetupOf(d);var account=k.kind=='loan'?'Bank':'Cash';
   await sheet(k.name,(c,rebuild)=>Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Center(child:Column(children:[
     iconTile(kridiIcon(k),size:52),SizedBox(height:8),
@@ -205,12 +208,14 @@ extension _V3Screens on _FinanceState {
    ])),
    SizedBox(height:14),
    field(value,'Amount ({0})'.replaceAll('{0}',currencyLabel(currency,language)),number:true),
+   if(wallets!=null&&k.kind!='loan')Padding(padding:EdgeInsets.only(bottom:12),child:Wrap(spacing:8,children:[
+    for(final w in walletNames)PaydayPill(key:ValueKey('kridi-account-$w'),label:w,selected:account==w,onTap:()=>rebuild(()=>account=w))])),
    Row(children:[
     Expanded(child:FilledButton.icon(key:ValueKey('kridi-pay'),onPressed:()async{
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
      if(n>k.balance){inputError('That is more than what is left.');return;}
      k.moves.add({'date':dayKey(DateTime.now()),'amount':-n,'note':''});
-     if(await saveKridi(list_,saved:k.iOwe?'Paid back.':'Received.')&&c.mounted)Navigator.pop(c);
+     if(await kridiPayment(list_,k,n,wallets==null?null:account)&&c.mounted)Navigator.pop(c);
     },icon:PaydayAppIcon(Icons.check),label:LText(k.iOwe?'Pay back':'Received'))),
     if(k.kind!='loan')...[SizedBox(width:10),Expanded(child:OutlinedButton.icon(key:ValueKey('kridi-more'),onPressed:()async{
      final n=amount(value);if(n==null){inputError('Enter a positive amount.');return;}
