@@ -245,7 +245,7 @@ extension _WalletCheck on _FinanceState {
      catch(_){inputError('Could not move the money. Try again.');}
     },child:LText('Move and save'))),
     TextButton(onPressed:()=>Navigator.pop(c,false),child:LText('Cancel')),
-   ]))))));
+   ])))));
   if(moved==true){refresh();return true;}
   return false;
  }
