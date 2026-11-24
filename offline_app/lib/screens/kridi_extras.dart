@@ -219,7 +219,7 @@ extension _WalletCheck on _FinanceState {
    backgroundColor:Theme.of(context).scaffoldBackgroundColor,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(22)),
    child:SingleChildScrollView(padding:EdgeInsets.fromLTRB(20,22,20,12),child:Column(mainAxisSize:MainAxisSize.min,children:[
     Container(width:52,height:52,decoration:BoxDecoration(color:saffronTint,borderRadius:BorderRadius.circular(16)),
-     child:Center(child:PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_outlined,size:26,color:saffronText))),
+     child:Center(child:PaydayAppIcon(wallet=='Cash'?Icons.payments_outlined:Icons.account_balance_wallet_outlined,size:26,color:saffronText))),
     SizedBox(height:12),
     LText(wallet=='Cash'?'Not enough cash':'Not enough in the bank',textAlign:TextAlign.center,
      style:TextStyle(fontFamily:'Bricolage',fontSize:19,fontWeight:FontWeight.w800,color:ink)),
