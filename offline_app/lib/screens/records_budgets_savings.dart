@@ -103,19 +103,24 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final categories=spendingCategories(d),ts=monthTransactions(d);
   final assigned=assignedBudgetCents(list(d,'budgets'),month);
   final inc=budgetFor(d,month,'Income plan'),goal=budgetFor(d,month,'Savings goal'),left=inc-assigned;
-  Widget figure(String label,String value,{Color? color})=>Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(label,maxLines:1,softWrap:false,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),SizedBox(height:4),
-   FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,
-    child:LText(value,maxLines:1,style:PaydayText.figure.copyWith(color:color??ink))),
-  ]));
+  // Three figures spread across the full line: first at the start edge, middle centred, last at the end edge.
+  Widget figure(String label,String value,{Color? color,int edge=-1}){
+   final cross=edge<0?CrossAxisAlignment.start:edge>0?CrossAxisAlignment.end:CrossAxisAlignment.center;
+   final align=edge<0?AlignmentDirectional.centerStart:edge>0?AlignmentDirectional.centerEnd:AlignmentDirectional.center;
+   return Expanded(child:Column(crossAxisAlignment:cross,children:[
+    FittedBox(fit:BoxFit.scaleDown,alignment:align,
+     child:LText(label,maxLines:1,softWrap:false,style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),SizedBox(height:4),
+    FittedBox(fit:BoxFit.scaleDown,alignment:align,
+     child:LText(value,maxLines:1,style:PaydayText.figure.copyWith(color:color??ink))),
+   ]));
+  }
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // How much of the planned income already has a job.
-   Padding(key:ValueKey('budget-summary'),padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.xs,PaydaySpace.sm,PaydaySpace.xs,PaydaySpace.lg),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+   Padding(key:ValueKey('budget-summary'),padding:EdgeInsetsDirectional.fromSTEB(0,PaydaySpace.sm,0,PaydaySpace.lg),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
      figure('Planned income',plain(inc)),SizedBox(width:8),
-     figure('Budgeted',plain(assigned)),SizedBox(width:8),
-     figure(left<0?'Over-assigned':'Not assigned',plain(left.abs()),color:left<0?danger:jade),
+     figure('Budgeted',plain(assigned),edge:0),SizedBox(width:8),
+     figure(left<0?'Over-assigned':'Not assigned',plain(left.abs()),color:left<0?danger:jade,edge:1),
     ]),
     // What is still unspent across the category budgets this month.
     Builder(builder:(_){
@@ -127,17 +132,34 @@ extension _RecordsBudgetsSavings on _FinanceState {
       budgeted+=b;left+=(b-spent).clamp(0,b);
      }
      if(budgeted<=0)return const SizedBox.shrink();
-     return Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('budget-left'),padding:EdgeInsets.all(PaydaySpace.md),
+     // Three states: enough (green), under 100 DH a day until payday (amber), nothing left (red).
+     // Never negative: once the budgets are spent there is simply nothing left.
+     final now=DateTime.now();
+     final current=selected.year==now.year&&selected.month==now.month;
+     final days=current?cycleOf(d,now).daysToPayday(now).clamp(1,62).toInt():0;
+     final perDay=days>0?left~/days:0;
+     final empty=left<=0,low=!empty&&current&&perDay<10000;
+     final tone=empty?danger:low?saffronText:jade;
+     final title=empty?"You've spent all your budgets":low?'Not much left':'Left to spend in your budgets';
+     final String? note;
+     if(!current){note=null;}
+     else if(empty){note=days==1?'Payday tomorrow':language=='ar'?'الراتب بعد ${arabicDays(days,after:true)}':'$days days to payday';}
+     else{note='About ${localizedWhole(perDay,language)} ${currencyLabel(currency,language)} a day until payday';}
+     return Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:Container(key:ValueKey('budget-left'),width:double.infinity,
+      padding:EdgeInsets.all(PaydaySpace.md+2),
+      decoration:BoxDecoration(color:tone.withValues(alpha:isDark?0.18:0.13),borderRadius:BorderRadius.circular(PaydayRadius.lg)),
       child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-       Wrap(alignment:WrapAlignment.spaceBetween,spacing:8,children:[
-        LText('Left to spend in your budgets',style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
-        LText('{0}% used'.replaceAll('{0}','${((budgeted-left)*100/budgeted).round()}'),style:TextStyle(color:muted,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)),
+       Row(children:[
+        PaydayAppIcon(empty?Icons.close:low?Icons.info_outline:Icons.payments_outlined,size:18,color:tone),SizedBox(width:PaydaySpace.sm),
+        Flexible(child:LText(title,key:ValueKey('budget-left-title'),maxLines:2,style:TextStyle(color:tone,fontSize:PaydayType.caption,fontWeight:FontWeight.w700))),
        ]),
-       SizedBox(height:4),
-       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText('{0} of {1}'.replaceAll('{0}',money(left)).replaceAll('{1}',money(budgeted)),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:left>0?jade:danger))),
-       SizedBox(height:8),
-       PaydayProgress(value:((budgeted-left)/budgeted).clamp(0,1).toDouble(),color:left>0?jade:danger),
-      ]))));
+       SizedBox(height:PaydaySpace.xs),
+       FittedBox(fit:BoxFit.scaleDown,alignment:AlignmentDirectional.centerStart,child:LText(money(left),key:ValueKey('budget-left-amount'),style:PaydayText.figure.copyWith(color:tone,fontSize:PaydayType.figure+4))),
+       if(note!=null)Padding(padding:EdgeInsets.only(top:PaydaySpace.sm),child:Container(
+        padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.sm+2,3,PaydaySpace.sm+2,3),
+        decoration:BoxDecoration(color:surface,borderRadius:BorderRadius.circular(PaydayRadius.sm)),
+        child:LText(note,key:ValueKey('budget-left-note'),style:TextStyle(color:tone,fontSize:PaydayType.caption,fontWeight:FontWeight.w700)))),
+      ])));
     }),
     if(inc==0&&assigned==0||assigned>inc)...[SizedBox(height:10),LText(
      inc==0&&assigned==0?'Set planned income to start assigning your budget.':

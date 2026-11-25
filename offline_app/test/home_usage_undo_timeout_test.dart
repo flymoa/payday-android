@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payday_local/main.dart';
-import 'package:payday_local/ui_kit.dart';
 import 'package:payday_local/finance.dart';
 import 'package:payday_local/offline_store.dart';
 
@@ -50,7 +49,7 @@ void main(){
    await tester.pumpWidget(MaterialApp(home:FinanceScreen(key:UniqueKey(),
     initialData:Future.value({'transactions':example.$1}))));
    await tester.pumpAndSettle();
-   expect(tester.widget<PaydayProgress>(find.byKey(const ValueKey('home-usage-bar'))).value,example.$2);
+   expect(tester.widget<TweenAnimationBuilder<double>>(find.byKey(const ValueKey('home-usage-bar'))).tween.end,example.$2);
    expect(tester.takeException(),isNull);
   }
  });

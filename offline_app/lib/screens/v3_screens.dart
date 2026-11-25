@@ -127,8 +127,8 @@ extension _V3Screens on _FinanceState {
   final people=open.where((k)=>k.kind!='loan').toList(),loans=open.where((k)=>k.kind=='loan').toList();
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    Row(children:[
-    total('I owe',owe,danger,'{0} open'.replaceAll('{0}','${open.where((k)=>k.iOwe).length}')),SizedBox(width:10),
-    total('Owed to me',owed,jade,'{0} open'.replaceAll('{0}','${open.where((k)=>!k.iOwe).length}')),
+    total('I owe',owe,owe>0?danger:ink,'{0} open'.replaceAll('{0}','${open.where((k)=>k.iOwe).length}')),SizedBox(width:10),
+    total('Owed to me',owed,owed>0?jade:ink,'{0} open'.replaceAll('{0}','${open.where((k)=>!k.iOwe).length}')),
    ]),
    if(loans.isNotEmpty)Padding(padding:EdgeInsets.only(top:PaydaySpace.md),child:contentCard(Padding(key:ValueKey('kridi-gauge'),padding:EdgeInsets.all(PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
     Row(children:[Expanded(child:LText('Repayments vs income',style:TextStyle(fontWeight:FontWeight.w700))),

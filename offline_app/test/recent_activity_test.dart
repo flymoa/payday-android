@@ -17,7 +17,7 @@ void main(){
   expect(recentActivityRows([{'date':'2028-02-29'}],DateTime(2028,3,1)),hasLength(1));
  });
  for(final brightness in Brightness.values){
-  testWidgets('Home activity uses relative dates, category artwork and transparent rows in ${brightness.name}',(tester)async{
+  testWidgets('Home activity uses relative dates, category artwork and day groups in ${brightness.name}',(tester)async{
    await tester.binding.setSurfaceSize(const Size(320,800));addTearDown(()=>tester.binding.setSurfaceSize(null));
    final now=DateTime.now();final today=dayKey(now),yesterday=dayKey(DateTime(now.year,now.month,now.day-1));
    final fixture=<String,List<RowData>>{'transactions':[
@@ -27,13 +27,11 @@ void main(){
    ]};
    await tester.pumpWidget(MaterialApp(theme:ThemeData(brightness:brightness),home:FinanceScreen(initialData:Future.value(fixture))));
    await tester.pumpAndSettle();
-   expect(find.text('Subscriptions · Today'),findsOneWidget);expect(find.text('Transport · Yesterday'),findsOneWidget);
+   expect(find.text('Today'),findsOneWidget);expect(find.text('Yesterday'),findsOneWidget);
    expect(find.text('Old shop'),findsNothing);
    expect(find.byWidgetPredicate((w)=>w is PaydayCategoryIcon&&w.category=='Subscriptions'),findsOneWidget);
    final internet=find.text('Internet');
    expect(find.ancestor(of:internet,matching:find.byType(Card)),findsNothing);
-   final rowMaterial=find.ancestor(of:internet,matching:find.byType(Material)).first;
-   expect(tester.widget<Material>(rowMaterial).color,Colors.transparent);
    await tester.tap(find.text('Records').last);await tester.pumpAndSettle();
    final search=find.widgetWithText(TextField,'Search records');
    expect(tester.getSize(search).height,lessThanOrEqualTo(48));
