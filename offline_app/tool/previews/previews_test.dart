@@ -172,4 +172,48 @@ void main() {
       }
     });
   }
+
+  // Whole home screen in one tall image, in all three languages.
+  for (final mode in [ThemeMode.light, ThemeMode.dark])
+  for (final language in ['en', 'fr', 'ar']) {
+    testWidgets('render full home ${mode.name} $language', (t) async {
+      t.view.physicalSize = const Size(780, 2560);
+      t.view.devicePixelRatio = 2;
+      addTearDown(t.view.reset);
+      await t.pumpWidget(PaydayLocal(
+          initialData: Future.value(sample()),
+          store: PreviewStore(),
+          preferencesWriter: (_) async {},
+          initialPreferences: AppPreferences(appearance: mode, language: language)));
+      await t.pumpAndSettle();
+      final dark = mode == ThemeMode.dark ? '_dark' : '';
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('shots/home_full_$language$dark.png'));
+    });
+  }
+
+  // Budgets "left to spend" card: plenty, not much left (< 100 DH a day), all spent — in all three languages.
+  for (final mode in [ThemeMode.light, ThemeMode.dark])
+  for (final language in ['en', 'fr', 'ar']) {
+    for (final (state, groceries, transport) in [('plenty', 0, 0), ('low', 115950, 50000), ('empty', 115950, 56000)]) {
+      testWidgets('render budget card ${mode.name} $state $language', (t) async {
+        t.view.physicalSize = const Size(780, 1688);
+        t.view.devicePixelRatio = 2;
+        addTearDown(t.view.reset);
+        final data = sample();
+        final m = monthKey(DateTime.now());
+        if (groceries > 0) data['transactions']!.add({'id': 20, 'date': '$m-03', 'type': 'Expense', 'category': 'Groceries', 'description': '', 'amount': groceries, 'note': '', 'bill_id': ''});
+        if (transport > 0) data['transactions']!.add({'id': 21, 'date': '$m-03', 'type': 'Expense', 'category': 'Transport', 'description': '', 'amount': transport, 'note': '', 'bill_id': ''});
+        await t.pumpWidget(PaydayLocal(
+            initialData: Future.value(data),
+            store: PreviewStore(),
+            preferencesWriter: (_) async {},
+            initialPreferences: AppPreferences(appearance: mode, language: language)));
+        await t.pumpAndSettle();
+        await t.tap(find.byKey(const ValueKey('bottom-2')));
+        await t.pumpAndSettle();
+        final dark = mode == ThemeMode.dark ? '_dark' : '';
+        await expectLater(find.byType(MaterialApp), matchesGoldenFile('shots/budget_card_${language}_$state$dark.png'));
+      });
+    }
+  }
 }

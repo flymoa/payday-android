@@ -461,12 +461,20 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   return raw?Text(text,maxLines:1,overflow:TextOverflow.ellipsis,style:style):LText(text,category:category,maxLines:1,overflow:TextOverflow.ellipsis,style:style);
  }
  /// Icon, title with a line under it, an amount with an optional status, and an optional bar.
- Widget listRow({Key? key,required Widget leading,required Widget title,String? subtitle,Color? subtitleColor,String? amount,Color? amountColor,
+ Widget listRow({Key? key,required Widget leading,required Widget title,String? subtitle,Color? subtitleColor,bool subtitleBadge=false,String? amount,Color? amountColor,
   String? status,Color? statusColor,double? progress,Color? progressColor,Color? trackColor,VoidCallback? onTap,Widget? trailing})=>
   InkWell(key:key,onTap:onTap,child:Padding(padding:EdgeInsets.symmetric(horizontal:PaydaySpace.md+2,vertical:PaydaySpace.md),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    LayoutBuilder(builder:(context,box)=>Row(children:[leading,SizedBox(width:12),
     Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[title,
-     if(subtitle!=null)Padding(padding:EdgeInsets.only(top:2),child:LText(subtitle,maxLines:2,
+     if(subtitle!=null&&subtitleBadge)Padding(padding:EdgeInsets.only(top:4),child:Container(
+      // A tinted pill so a warning (e.g. "Over by 35 DH") stands out from ordinary notes.
+      padding:EdgeInsetsDirectional.fromSTEB(PaydaySpace.sm,2,PaydaySpace.sm,2),
+      decoration:BoxDecoration(color:(subtitleColor??muted).withValues(alpha:.14),borderRadius:BorderRadius.circular(PaydayRadius.sm)),
+      child:Row(mainAxisSize:MainAxisSize.min,children:[
+       PaydayAppIcon(Icons.info_outline,size:14,color:subtitleColor??muted),SizedBox(width:PaydaySpace.xs),
+       Flexible(child:LText(subtitle,maxLines:2,style:TextStyle(fontSize:PaydayType.caption,color:subtitleColor??muted,fontWeight:FontWeight.w700))),
+      ])))
+     else if(subtitle!=null)Padding(padding:EdgeInsets.only(top:2),child:LText(subtitle,maxLines:2,
       style:TextStyle(fontSize:PaydayType.caption,color:subtitleColor??muted,fontWeight:subtitleColor==null?FontWeight.w400:FontWeight.w600)))])),
     if(amount!=null||status!=null)...[SizedBox(width:8),ConstrainedBox(constraints:BoxConstraints(maxWidth:box.maxWidth*.45),
      child:Column(crossAxisAlignment:CrossAxisAlignment.end,children:[

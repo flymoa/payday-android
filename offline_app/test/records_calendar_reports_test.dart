@@ -106,8 +106,8 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('bottom-2')));
     await t.pumpAndSettle();
-    // 1 000 - 300 + 100 - 25 = 775 left of 1 100.
-    expect(find.text('775,00 DH of 1\u00a0100,00 DH'), findsOneWidget);
+    // 1 000 - 300 + 100 - 25 = 775 left; the card shows only what is left.
+    expect(find.text('775,00 DH'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 }
