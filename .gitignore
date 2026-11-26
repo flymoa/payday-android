@@ -17,3 +17,7 @@ google-services.json
 
 __pycache__/
 *.pyc
+
+# Personal notes, never published
+reports/
+research_notes/
