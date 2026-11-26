@@ -82,7 +82,7 @@ void main() {
     await loadFont('PlexArabic', 'assets/fonts/IBMPlexSansArabic-Regular.ttf');
     await loadFont('Bricolage', 'assets/fonts/Bricolage.ttf');
   });
-  for (final (mode, language) in [(ThemeMode.light, 'en'), (ThemeMode.dark, 'en'), (ThemeMode.light, 'ar'), (ThemeMode.dark, 'ar')]) {
+  for (final (mode, language) in [(ThemeMode.light, 'en'), (ThemeMode.dark, 'en'), (ThemeMode.light, 'fr'), (ThemeMode.dark, 'fr'), (ThemeMode.light, 'ar'), (ThemeMode.dark, 'ar')]) {
     testWidgets('render ${mode.name} $language previews', (t) async {
       t.view.physicalSize = const Size(780, 1688);
       t.view.devicePixelRatio = 2;

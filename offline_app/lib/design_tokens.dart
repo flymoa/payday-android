@@ -7,53 +7,59 @@ import 'package:flutter/material.dart';
 /// Values were extracted from the existing UI without change, so adopting the
 /// tokens is visually neutral. Adjust a token here to restyle the whole app.
 abstract final class PaydayColors {
-  // Brand ("Pay Slot" direction).
-  static const emerald = Color(0xff0E5A47);
-  static const saffron = Color(0xffF4A62A);
-  static const saffronPressed = Color(0xffE99A1D);
-  static const sand = Color(0xffFBF6EA);
-  static const ink = Color(0xff12261F);
+  // Brand: palette from the Bank Al-Maghrib 200 DH note.
+  static const emerald = Color(0xff2A47A8);
+  static const saffron = Color(0xffF5A02B);
+  static const saffronPressed = Color(0xffE98F1C);
+  static const sand = Color(0xffEAF6FB);
+  static const ink = Color(0xff0F1E4A);
 
   // Light neutrals.
-  static const textSecondary = Color(0xff344B45);
-  static const muted = Color(0xff50695E);
-  static const line = Color(0xffE6DDC6);
-  static const surfaceLow = Color(0xffF5F1E7);
-  static const surfaceHigh = Color(0xffEEE8DA);
-  static const mintTint = Color(0xffDDEBE2); // icon discs, light
-  static const trackLight = Color(0xffE9F0EB); // progress track, light
+  static const textSecondary = Color(0xff2A3D6B);
+  static const muted = Color(0xff4A5F8C);
+  static const line = Color(0xffC5DCEA);
+  static const surfaceLow = Color(0xffE1F0F7);
+  static const surfaceHigh = Color(0xffD4E8F2);
+  static const mintTint = Color(0xffCFE0F7); // icon discs, light
+  static const trackLight = Color(0xffDCE9F5); // progress track, light
 
-  // Dark palette: neutral charcoal, with emerald and saffron as accents.
-  static const darkBackground = Color(0xff131516);
-  static const darkSurface = Color(0xff1D2022);
-  static const darkSurfaceLow = Color(0xff25292B);
-  static const darkSurfaceHigh = Color(0xff2E3336);
-  static const darkLine = Color(0xff353A3D);
-  static const darkText = Color(0xffF3F2ED);
-  static const darkMuted = Color(0xffA9B0B3);
-  static const darkPrimary = Color(0xff5FD3A9); // bright emerald, readable on charcoal
-  static const darkOnPrimary = Color(0xff06241B);
-  static const darkIcon = Color(0xffE6E9E7);
-  static const darkIconDisc = Color(0xff3A5F51); // 2.03:1 on the dark card; icon E6E9E7 on it 5.85:1
+  // Note: the names `emerald` (royal blue), `sand` (pale sky) and `mintTint` are
+  // kept from the old palette so call sites don't churn; the values are the 200 DH note.
+
+  // Dark palette: deep navy, with periwinkle blue and orange as accents.
+  static const darkBackground = Color(0xff0E1428);
+  static const darkSurface = Color(0xff151C36);
+  static const darkSurfaceLow = Color(0xff1C2442);
+  static const darkSurfaceHigh = Color(0xff252E50);
+  static const darkLine = Color(0xff2E3860);
+  static const darkText = Color(0xffF1F4FA);
+  static const darkMuted = Color(0xffA9B3CC);
+  static const darkPrimary = Color(0xff8FB0FF); // periwinkle: 8.55:1 on darkBackground, 7.29:1 on the dark card
+  static const darkOnPrimary = Color(0xff0A1840); // 8.07:1 on darkPrimary
+  static const darkIcon = Color(0xffE4E9F5);
+  static const darkIconDisc = Color(0xff34467F); // 1.73:1 on the dark card; darkIcon on it 7.42:1, darkPrimary 4.22:1 (icons/bold glyphs only)
   static const darkBudgetDisc = darkIconDisc;
-  static const darkOpeningMark = Color(0xff8CC8AD);
+  static const darkOpeningMark = Color(0xff9DB6EE);
   static const darkCopper = Color(0xffF6B95A);
-  static const darkStatusOver = Color(0xffF08A7C); // readable red on charcoal
+  static const darkStatusOver = Color(0xffF08A7C); // 6.41:1 on the dark card. Not for the hero: only 3.36:1 on royal blue
   static const darkStatusOverBorder = Color(0xff6B3A35);
   static const darkStatusOverTrack = Color(0xff4A2B28);
   static const darkStatusNear = Color(0xffE5B56E);
 
-  // Hero card (emerald background).
-  // Flat emerald, no gradient. heroMuted on emerald = 6.6:1.
+  // Hero card (royal blue background, same in both themes).
+  // sand on hero 7.44:1, white 8.19:1, heroMuted 6.16:1.
   static const hero = emerald;
-  static const heroMuted = Color(0xffCFE2D5);
+  static const heroMuted = Color(0xffD3E0FA);
+  // Overspent number, icon and bar on the hero: 4.94:1 on royal blue, so the
+  // 24px decimals and the 18px icon read too (darkStatusOver was 3.36:1).
+  static const heroOver = Color(0xffFFB8A8);
 
-  // Budget status.
-  static const statusGood = Color(0xff2C8979);
-  static const statusNear = Color(0xffD2A15A);
-  // Saffron-coloured text and thin strokes. Raw saffron (1.88:1 on sand) is fills only.
-  static const saffronText = Color(0xff8A5A12); // 5.48:1 on sand, 5.91:1 on white
-  static const darkSaffronText = Color(0xffF6B95A); // 10.47:1 on darkBackground, 9.37:1 on darkSurface
+  // Budget status. statusGood (teal) is 3.56:1 on sand: fills and chart slices only, not text.
+  static const statusGood = Color(0xff1F8F8A);
+  static const statusNear = Color(0xffD2A15A); // fills only (2.34:1 on white)
+  // Orange-coloured text and thin strokes. Raw saffron (~1.9:1 on sand) is fills only.
+  static const saffronText = Color(0xff8A5A12); // 5.37:1 on sand, 5.91:1 on white
+  static const darkSaffronText = Color(0xffF6B95A); // 10.45:1 on darkBackground, 9.59:1 on darkSurface
   static const statusNearText = saffronText;
   static const statusOver = Color(0xffA63A30);
   static const statusOverBorder = Color(0xffE9BEB8);
@@ -79,7 +85,7 @@ abstract final class PaydayRadius {
 
 /// Spacing scale (4-pt grid).
 /// Secondary controls (search, chips, month switcher, secondary buttons) sit on a
-/// flat tonal fill with no border; only the primary action is filled emerald.
+/// flat tonal fill with no border; only the primary action is filled royal blue.
 abstract final class PaydayControl {
   static const fillLight = PaydayColors.surfaceHigh;
   static const fillDark = PaydayColors.darkSurfaceHigh;
@@ -91,17 +97,17 @@ abstract final class PaydayControl {
 /// that is clearly not the page colour, a 1px border, radius 14, no shadow.
 abstract final class PaydayCard {
   static const surfaceLight = Color(0xffFFFFFF);
-  static const borderLight = Color(0xffAE9F7C); // 2.42:1 on sand, 2.61:1 on the white card
-  static const surfaceDark = Color(0xff252A2D);
-  static const borderDark = Color(0xff646D70); // 3.46:1 on darkBackground, 2.74:1 on the dark card
+  static const borderLight = Color(0xff7F9BB8); // 2.62:1 on sand, 2.88:1 on the white card
+  static const surfaceDark = Color(0xff1A2240);
+  static const borderDark = Color(0xff5E6C96); // 3.53:1 on darkBackground, 3.02:1 on the dark card
   static const gap = 8.0;
 }
 
 /// Year chart series. Income is the brand primary; spending is a neutral slate,
 /// never saffron (saffron is reserved for the add button).
 abstract final class PaydayChart {
-  static const spentLight = Color(0xff6B7F86); // 4.2:1 on the white card
-  static const spentDark = Color(0xff7D8689); // ~3.9:1 on the dark card; darker than mint Income so the series differ by lightness
+  static const spentLight = Color(0xff6B7FA3); // 4.05:1 on the white card
+  static const spentDark = Color(0xff8590AD); // 4.89:1 on the dark card; darker than periwinkle Income so the series differ by lightness
 }
 
 abstract final class PaydaySpace {

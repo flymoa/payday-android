@@ -43,8 +43,8 @@ class _DonutPainter extends CustomPainter{
 
 extension _ReportsScreen on _FinanceState {
  List<Color> get reportPalette=>isDark
-  ?const [Color(0xFF5FD3A9),Color(0xFF2C8979),Color(0xFFE5B56E),Color(0xFFF4A62A),Color(0xFF7FA99B),Color(0xFF6B7377)]
-  :const [Color(0xFF0E5A47),Color(0xFF2C8979),Color(0xFFD2A15A),Color(0xFFF4A62A),Color(0xFF7FA99B),Color(0xFFA9B0B3)];
+  ?const [Color(0xff8FB0FF),Color(0xff1F8F8A),Color(0xFFE5B56E),Color(0xffF5A02B),Color(0xff7FA6D9),Color(0xff7C88AA)]
+  :const [Color(0xff2A47A8),Color(0xff1F8F8A),Color(0xFFD2A15A),Color(0xffF5A02B),Color(0xff7FA6D9),Color(0xffA9B3CC)];
 
  /// Spending per category for one month, largest first.
  List<MapEntry<String,int>> spendingByCategory(Map<String,List<RowData>> d,String key){
@@ -79,7 +79,7 @@ extension _ReportsScreen on _FinanceState {
    if(v<=0||top<=0)return surface;
    final level=v/top;
    if(level>.66)return jade;
-   if(level>.33)return isDark?const Color(0xFF2D5446):const Color(0xFFB7D6C6);
+   if(level>.33)return isDark?const Color(0xff2B3F6E):const Color(0xffB7D0F0);
    return isDark?PaydayColors.darkIconDisc:PaydayColors.mintTint;
   }
   final rows=day==null?<RowData>[]:monthTransactions(d).where((t)=>st(t,'date')==dayKey(DateTime(first.year,first.month,day))).toList();
