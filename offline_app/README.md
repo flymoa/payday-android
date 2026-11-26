@@ -1,6 +1,6 @@
 # Payday Local — Android (offline-only)
 
-This is a **separate Android application** with application ID `ma.payday.payday_local`. It does not alter or replace the existing Google Sheets app (`ma.payday.payday_mobile`).
+This is a **separate Android application** with application ID `ma.payday.payday_local`.
 
 ## Features copied from the Payday spreadsheet logic
 
