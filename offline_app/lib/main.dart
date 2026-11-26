@@ -395,7 +395,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
    }
   }
  }
- @override void dispose(){settingsRefresh.dispose();WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
+ @override void dispose(){_problemTimer?.cancel();_problemEntry?.remove();_problemEntry=null;settingsRefresh.dispose();WidgetsBinding.instance.removeObserver(this);purchase.dispose();search.dispose();store.close();super.dispose();}
  void refresh(){
   if(!mounted)return;
   final next=store.snapshot();
@@ -416,8 +416,33 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
   if(writing)return false;
   writing=true;
   try{await fn();refresh();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(saved)));return true;}
-  catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText('Could not save: ${currencyMessage(e.toString())}')));return false;}
+  catch(e){if(mounted)showProblem('Could not save: ${currencyMessage(e.toString())}');return false;}
   finally{writing=false;}
+ }
+ OverlayEntry? _problemEntry;
+ Timer? _problemTimer;
+ /// Shows why something was refused. A snackbar would sit behind an open sheet or dialog,
+ /// so while one is open the message floats on the root overlay above it instead.
+ void showProblem(String message){
+  if(!mounted)return;
+  if(!Navigator.of(context).canPop()){
+   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));
+   return;
+  }
+  _problemTimer?.cancel();
+  _problemEntry?.remove();
+  final entry=OverlayEntry(builder:(c){
+   final scheme=Theme.of(c).colorScheme;
+   // Top of the screen: sheets keep their Save button at the bottom, and the message must not cover it.
+   return Positioned(left:16,right:16,top:MediaQuery.of(c).padding.top+12,
+    child:IgnorePointer(child:Semantics(liveRegion:true,child:Material(key:const ValueKey('problem-message'),elevation:6,borderRadius:BorderRadius.circular(12),
+     color:scheme.inverseSurface,
+     child:Padding(padding:const EdgeInsets.symmetric(horizontal:16,vertical:14),
+      child:LText(message,style:TextStyle(color:scheme.onInverseSurface,fontSize:15)))))));
+  });
+  _problemEntry=entry;
+  Overlay.of(context,rootOverlay:true).insert(entry);
+  _problemTimer=Timer(const Duration(seconds:4),(){if(_problemEntry==entry){entry.remove();_problemEntry=null;}});
  }
  List<RowData> list(Map<String,List<RowData>> d,String table)=>d[table]??[];
  List<RowData> monthTransactionsFor(Map<String,List<RowData>> d,String key)=>list(d,'transactions').where((t)=>st(t,'date').startsWith(key)).toList();
