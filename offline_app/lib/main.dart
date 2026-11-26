@@ -135,7 +135,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
    return false;
   }finally{savingPreferences=false;}
  }
- /// Light: sand, emerald and saffron. Dark: neutral charcoal with the same accents.
+ /// Light: pale sky, royal blue and orange. Dark: deep navy with the same accents.
  ThemeData palette(Brightness brightness){
   final dark=brightness==Brightness.dark;
   final scheme=ColorScheme.fromSeed(seedColor:kJade,brightness:brightness,
@@ -178,7 +178,7 @@ class _PaydayLocalState extends State<PaydayLocal> {
     focusedBorder:OutlineInputBorder(borderRadius:BorderRadius.circular(PaydayRadius.md),borderSide:BorderSide(color:scheme.primary,width:2))),
    filledButtonTheme:FilledButtonThemeData(style:FilledButton.styleFrom(
     minimumSize:const Size(48,52),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(PaydayRadius.lg)),textStyle:TextStyle(fontWeight:FontWeight.w800,fontFamily:'DMSans',fontFamilyFallback:const ['PlexArabic','sans-serif']))),
-   // Secondary buttons: tonal fill, ink text, no outline. Filled emerald stays the one primary.
+   // Secondary buttons: tonal fill, ink text, no outline. Filled royal blue stays the one primary.
    outlinedButtonTheme:OutlinedButtonThemeData(style:OutlinedButton.styleFrom(
     minimumSize:const Size(PaydayControl.target,PaydayControl.target),
     backgroundColor:dark?PaydayControl.fillDark:PaydayControl.fillLight,foregroundColor:scheme.onSurface,
@@ -234,7 +234,7 @@ class _FinanceState extends State<FinanceScreen> with WidgetsBindingObserver{
  Color get homeText=>muted;
  Color get homeGreen=>jade;
  Color get line=>Theme.of(context).colorScheme.outlineVariant;
- /// Status colours that stay readable on both sand and charcoal.
+ /// Status colours that stay readable on both the light sky and dark navy pages.
  Color get danger=>isDark?PaydayColors.darkStatusOver:PaydayColors.statusOver;
  Color get saffronText=>isDark?PaydayColors.darkSaffronText:PaydayColors.saffronText;
  Color get warn=>isDark?PaydayColors.darkStatusNear:PaydayColors.statusNear;
