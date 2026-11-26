@@ -15,6 +15,7 @@ const defaultCategories = <String,String>{
  'Subscriptions':'Essential','Debt payment':'Essential','Other':'Essential'
 };
 const deviceLocalSettingKeys=['app_lock_enabled','home_widget_show_amount','backup_notifications_enabled','bill_notifications_enabled','bill_notifications_lead_days','reserve_notifications_enabled','reserve_notifications_day'];
+const notEnoughSavingsMessage='Not enough free savings for this. Money assigned to goals stays put.';
 const localTables = ['transactions','budgets','categories','goals','allocations','bills','month_closes','reserves','reserve_movements','settings'];
 
 class OfflineStore {
@@ -133,15 +134,25 @@ class OfflineStore {
   final d=await db;
   await d.transaction((txn)async{
    final dates=<Object?>[date];
-   Object? oldDate;
+   Object? oldDate,oldType;
    if(id!=null){
-    final old=await txn.query('transactions',columns:['date'],where:'id=?',whereArgs:[id]);
-    if(old.isNotEmpty){oldDate=old.first['date'];dates.add(oldDate);}
+    final old=await txn.query('transactions',columns:['date','type'],where:'id=?',whereArgs:[id]);
+    if(old.isNotEmpty){oldDate=old.first['date'];oldType=old.first['type'];dates.add(oldDate);}
    }
    // A typo must not file money in a later month. Older future-dated records can still be edited.
    if(future&&oldDate!=date)throw ArgumentError('Choose a valid payment date, not a future date.');
    await _requireOpenMonths(txn,dates);
+   // Taking money out of savings (or shrinking a deposit) must not leave savings below zero,
+   // nor below what is already allocated to goals.
+   final touchesSavings=type=='Savings in'||oldType=='Savings out';
+   final poolBefore=touchesSavings?await _savingsPool(txn):0;
    if(id==null){await txn.insert('transactions',values);}else{await txn.update('transactions',values,where:'id=?',whereArgs:[id]);}
+   if(touchesSavings){
+    final pool=await _savingsPool(txn);
+    if(pool<poolBefore&&(pool<0||await _allocatedTotal(txn)>pool)){
+     throw StateError(notEnoughSavingsMessage);
+    }
+   }
   });
  }
  Future<void> removeTransaction(int id) async {

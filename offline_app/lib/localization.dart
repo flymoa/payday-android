@@ -13,15 +13,16 @@ final _patterns=<String,RegExp>{for(final template in _messageRules)template:Reg
 /// Only app-authored display text calls this function. Names and ledger keys remain raw.
 String translateMessage(String message,String language){
  final code=supportedLanguage(language);
+ // Dart error prefixes are for developers; users only see the sentence after them.
+ for(final prefix in ['Bad state: ','Invalid argument(s): ','FormatException: ']){
+  if(message.startsWith(prefix))return translateMessage(message.substring(prefix.length),code);
+ }
  if(code=='en')return message;
  final index=code=='fr'?0:1;
  final direct=paydayTranslations[message];
  if(direct!=null)return direct[index];
  // Several on-demand explanations are joined using blank lines.
  if(message.contains('\n\n'))return message.split('\n\n').map((s)=>translateMessage(s,code)).join('\n\n');
- for(final prefix in ['Bad state: ','Invalid argument(s): ','FormatException: ']){
-  if(message.startsWith(prefix))return translateMessage(message.substring(prefix.length),code);
- }
  for(final template in _messageRules){
   final match=_patterns[template]!.firstMatch(message);
   if(match==null)continue;

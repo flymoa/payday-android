@@ -81,7 +81,7 @@ extension _Forms on _FinanceState {
  int? amount(TextEditingController c,{bool allowZero=false}){
   return allowZero?parseMoneyCents(c.text,allowZero:true):evalAmountCents(c.text);
  }
- void inputError(String message){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:LText(message)));}
+ void inputError(String message)=>showProblem(message);
  Future<void> transactionForm(RowData? existing,{RowData? payBill,String? initialType,RowData? copyFrom}) async{
   // Kridi money moves are managed from Kridi, so its balance and history stay in step.
   final kridiRow=existing??copyFrom;

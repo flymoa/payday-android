@@ -839,6 +839,7 @@ const paydayTranslations=<String,List<String>>{
  "{0} of {1} paid":["{0} payés sur {1}","أدّيت {0} من {1}"],
  "Coming up":["À venir","قريبًا"],
  "Save expense":["Enregistrer la dépense","حفظ المصروف"],
+ "Not enough free savings for this. Money assigned to goals stays put.":["Épargne libre insuffisante. L’argent affecté aux objectifs reste en place.","لا يكفي الادخار الحر لهذا. المال المخصّص للأهداف يبقى في مكانه."],
  "Save income":["Enregistrer le revenu","حفظ الدخل"],
  "Save changes":["Enregistrer les modifications","حفظ التغييرات"],
  "Move to savings":["Mettre de côté","ضعه في الادخار"],
