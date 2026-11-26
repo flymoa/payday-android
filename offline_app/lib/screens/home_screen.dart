@@ -193,7 +193,7 @@ extension _HomeScreen on _FinanceState {
   final categories=spendingCategories(d).where((c)=>budgetFor(d,month,st(c,'name'))>0||ts.any((t)=>st(t,'type')=='Expense'&&st(t,'category')==st(c,'name'))).toList();
   // Section headers sit on the page, not in boxes; a loose gap above separates groups.
   Widget section(String title,String action,VoidCallback tap)=>Padding(padding:EdgeInsetsDirectional.fromSTEB(0,PaydaySpace.lg,0,0),child:Row(children:[
-   // Short green bar marks the start of each section.
+   // Short primary-colour bar marks the start of each section.
    Container(width:3,height:18,decoration:BoxDecoration(color:jade,borderRadius:BorderRadius.circular(2))),SizedBox(width:PaydaySpace.sm),
    Expanded(child:LText(title,style:TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.sectionTitle,fontWeight:FontWeight.w800,color:ink))),TextButton(onPressed:tap,child:LText(action,style:TextStyle(fontWeight:FontWeight.w700)))]));
   const heroInk=paydaySand;
@@ -217,12 +217,12 @@ extension _HomeScreen on _FinanceState {
   final lifted=TextStyle(fontFamily:'Bricolage',fontSize:PaydayType.heroDecimals,fontWeight:FontWeight.w600,color:PaydayColors.heroMuted,letterSpacing:0,fontFeatures:PaydayText.tabular);
   final overspent=balance.safe<0;
   // Overspent: decimals and currency turn the warning colour too, not only the whole number.
-  final liftedNow=overspent?lifted.copyWith(color:PaydayColors.darkStatusOver):lifted;
+  final liftedNow=overspent?lifted.copyWith(color:PaydayColors.heroOver):lifted;
   final nudge=current&&language!='ar'?darijaNudge(balance.safe,toPayday,balance.usedFraction,language):null;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    // Home shows this month; the switcher appears only after another month was picked elsewhere.
    if(!current)...[navMonth(),SizedBox(height:PaydaySpace.md)],
-   // Hero: the one dominant object on Home. Flat emerald in both themes. Tap for the details.
+   // Hero: the one dominant object on Home. Flat royal blue in both themes. Tap for the details.
    Material(key:ValueKey('home-hero'),color:PaydayColors.hero,borderRadius:BorderRadius.circular(PaydayRadius.hero),clipBehavior:Clip.antiAlias,
     child:InkWell(onTap:()=>balanceDetails(balance,true),child:Stack(children:[
      // Second colour: a soft saffron glow in the top corner.
@@ -243,10 +243,10 @@ extension _HomeScreen on _FinanceState {
        ]),
        // In Arabic the number reads first from the right, then درهم.
        textDirection:language=='ar'?TextDirection.rtl:TextDirection.ltr,
-       style:heroTabular.copyWith(fontFamily:'Bricolage',fontSize:PaydayType.hero,height:1.05,fontWeight:FontWeight.w800,color:overspent?PaydayColors.darkStatusOver:heroInk,letterSpacing:-1.5))),
+       style:heroTabular.copyWith(fontFamily:'Bricolage',fontSize:PaydayType.hero,height:1.05,fontWeight:FontWeight.w800,color:overspent?PaydayColors.heroOver:heroInk,letterSpacing:-1.5))),
       // Overspent: say it in words too, so the minus sign is never the only signal.
       if(overspent)Padding(padding:EdgeInsets.only(top:PaydaySpace.xs),child:Row(key:ValueKey('home-overspent'),children:[
-       PaydayAppIcon(Icons.info_outline,size:18,color:PaydayColors.darkStatusOver),SizedBox(width:PaydaySpace.sm),
+       PaydayAppIcon(Icons.info_outline,size:18,color:PaydayColors.heroOver),SizedBox(width:PaydaySpace.sm),
        Flexible(child:LText('Over by ${whole(-balance.safe)}',maxLines:1,overflow:TextOverflow.ellipsis,style:TextStyle(color:heroInk,fontWeight:FontWeight.w700))),
       ])),
       SizedBox(height:PaydaySpace.lg),
@@ -259,7 +259,7 @@ extension _HomeScreen on _FinanceState {
         FractionallySizedBox(alignment:AlignmentDirectional.centerStart,widthFactor:v,child:DecoratedBox(decoration:BoxDecoration(
          borderRadius:BorderRadius.circular(6),
          gradient:overspent?null:LinearGradient(begin:AlignmentDirectional.centerStart,end:AlignmentDirectional.centerEnd,colors:[heroInk,PaydayColors.saffron]),
-         color:overspent?PaydayColors.darkStatusOver:null))),
+         color:overspent?PaydayColors.heroOver:null))),
        ])))),
       SizedBox(height:PaydaySpace.lg),Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
        heroFigure('Income',money(balance.income)),SizedBox(width:PaydaySpace.sm),

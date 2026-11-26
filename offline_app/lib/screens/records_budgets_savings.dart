@@ -190,7 +190,7 @@ extension _RecordsBudgetsSavings on _FinanceState {
   final now=DateTime.now(),current=monthKey(now);
   final thisMonth=balanceFor(d,current).savingsNet;
   return Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-   // Everything saved so far, on emerald like Home.
+   // Everything saved so far, on the royal-blue hero like Home.
    Container(key:ValueKey('savings-hero'),width:double.infinity,padding:EdgeInsets.all(20),decoration:BoxDecoration(
      color:PaydayColors.hero,
      borderRadius:BorderRadius.circular(PaydayRadius.hero)),
